@@ -518,7 +518,7 @@ def search_poster(message):
             backdrop_path = item.get("backdrop_path")
             poster_path = item.get("poster_path")
 
-            # --- Handle Season Specific Images and Unique Season Posters ---
+                        # --- Handle Season Specific Images and Unique Season Posters ---
             if season_number and media_type == "tv":
                 season_url = f"https://api.themoviedb.org/3/tv/{item_id}/season/{season_number}?api_key={TMDB_API_KEY}"
                 season_res = session.get(season_url, timeout=5)
@@ -526,10 +526,18 @@ def search_poster(message):
                     season_data = season_res.json()
                     if season_data.get("poster_path"):
                         poster_path = season_data.get("poster_path")
-                    # Also try checking if season has its own backdrop
-                    if season_data.get("backdrop_path"):
-                        backdrop_path = season_data.get("backdrop_path")
                     title = f"{title} season {season_number}"
+                
+                # Fetch season-specific backdrop images
+                season_img_url = f"https://api.themoviedb.org/3/tv/{item_id}/season/{season_number}/images?api_key={TMDB_API_KEY}"
+                season_img_res = session.get(season_img_url, timeout=4)
+                if season_img_res.status_code == 200:
+                    season_images = season_img_res.json().get("posters", []) or season_img_res.json().get("backdrops", [])
+                    if season_images:
+                        # Use the first valid image path found for this specific season
+                        path_key = "file_path" if "file_path" in season_images[0] else "poster_path"
+                        if season_images[0].get(path_key):
+                            backdrop_path = season_images[0].get(path_key)
 
             backdrop_url_original = f"https://image.tmdb.org/t/p/original{backdrop_path}" if backdrop_path else f"https://image.tmdb.org/t/p/original{poster_path}"
             portrait_url_original = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else backdrop_url_original
