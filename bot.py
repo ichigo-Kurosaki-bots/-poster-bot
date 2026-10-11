@@ -77,7 +77,6 @@ def send_welcome(message):
     updates_btn = telebot.types.InlineKeyboardButton(text="• Updates •", url="https://t.me/Aero_Unity")
     owner_btn = telebot.types.InlineKeyboardButton(text="• Owner •", url="https://t.me/Mr_Mohammed_29")
     
-    # Layout: About | Updates on top row, Owner on bottom row
     markup.row(about_btn, updates_btn)
     markup.row(owner_btn)
     
@@ -257,23 +256,6 @@ def add_title_overlay(image_bytes, title_text):
     output.seek(0)
     return output
 
-def get_watch_provider_link(item_id, media_type):
-    endpoint = "movie" if media_type == "movie" else "tv"
-    watch_url = f"https://api.themoviedb.org/3/{endpoint}/{item_id}/watch/providers?api_key={TMDB_API_KEY}"
-    try:
-        res = session.get(watch_url, timeout=5).json()
-        results = res.get("results", {})
-        for country in ["IN", "US", "GB"]:
-            if country in results and "link" in results[country]:
-                return "ᴘʀɪᴍᴇ ᴠɪᴅᴇᴏ ᴘᴏsᴛᴇʀ", results[country]["link"]
-        if results:
-            first_country = list(results.keys())[0]
-            if "link" in results[first_country]:
-                return "sᴛʀᴇᴀᴍɪɴɢ ʟɪɴᴋ", results[first_country]["link"]
-    except Exception:
-        pass
-    return None, None
-
 @bot.message_handler(func=lambda message: True)
 def search_poster(message):
     user_id = message.from_user.id
@@ -314,8 +296,6 @@ def search_poster(message):
 
             item = valid_items[0]
             title = item.get("title") or item.get("name") or "Unknown Title"
-            item_id = item.get("id")
-            media_type = item.get("media_type", "movie")
             
             release_date = item.get("release_date") or item.get("first_air_date") or ""
             year = release_date.split("-")[0] if release_date else "N/A"
@@ -326,22 +306,16 @@ def search_poster(message):
             backdrop_url_original = f"https://image.tmdb.org/t/p/original{backdrop_path}"
             portrait_url_original = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else backdrop_url_original
             
-            provider_label, provider_link = get_watch_provider_link(item_id, media_type)
-            
             img_response = session.get(backdrop_url_original, timeout=8)
             if img_response.status_code == 200:
                 processed_image = add_title_overlay(img_response.content, title)
                 
                 caption_lines = [
-                    "<b>ᴍᴏʜᴀᴍᴍᴇᴅ ᴘᴏsᴛᴇʀ ʙᴏᴛ</b>\n"
+                    "<b>ᴍᴏʜᴀᴍᴍᴇᴅ ᴘᴏsᴛᴇʀ ʙᴏᴛ</b>\n",
+                    f"<b>ᴘᴏʀᴛʀᴀɪᴛ:</b> <a href=\"{portrait_url_original}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</b></a>\n",
+                    f"<b>ᴄᴏᴠᴇʀ:</b> <a href=\"{backdrop_url_original}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</b></a>\n",
+                    f"<b>{title} ({year})</b>"
                 ]
-                
-                if provider_link:
-                    caption_lines.append(f"<b>{provider_label}:</b> <a href=\"{provider_link}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</b></a>\n")
-                
-                caption_lines.append(f"<b>ᴘᴏʀᴛʀᴀɪᴛ:</b> <a href=\"{portrait_url_original}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</b></a>\n")
-                caption_lines.append(f"<b>ᴄᴏᴠᴇʀ:</b> <a href=\"{backdrop_url_original}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</b></a>\n")
-                caption_lines.append(f"<b>{title} ({year})</b>")
                 
                 caption = "\n".join(caption_lines)
                 
