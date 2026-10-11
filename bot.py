@@ -460,6 +460,15 @@ def search_poster(message):
         response = res.json()
         results = response.get("results", [])
 
+        # Fallback: Search explicitly in TV endpoint if multi-search yields nothing
+        if not results:
+            tv_url = f"https://api.themoviedb.org/3/search/tv?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}"
+            tv_res = session.get(tv_url, timeout=5)
+            if tv_res.status_code == 200:
+                results = tv_res.json().get("results", [])
+                for r in results:
+                    r["media_type"] = "tv"
+
         if results:
             valid_items = [i for i in results if i.get("backdrop_path") or i.get("poster_path")]
             if not valid_items:
@@ -496,19 +505,21 @@ def search_poster(message):
             if img_response.status_code == 200:
                 processed_image_io = add_title_overlay(img_response.content, title, logo_url)
                 
-                file_path = os.path.join(CACHE_DIR, f"{item_id}.jpg")
+                # Use unique cache keys per item and season so seasons don't overwrite each other
+                cache_key = f"{item_id}_s{season_number}" if season_number else item_id
+                file_path = os.path.join(CACHE_DIR, f"{cache_key}.jpg")
                 with open(file_path, "wb") as f:
                     f.write(processed_image_io.getvalue())
                 
                 app_url = os.environ.get("RENDER_EXTERNAL_URL") or request.host_url.rstrip('/')
-                titled_poster_url = f"{app_url}/poster/{item_id}"
+                titled_poster_url = f"{app_url}/poster/{cache_key}"
                 
                 safe_title = html.escape(title)
                 
                 caption_lines = [
                     "<b>ᴍᴏʜᴀᴍᴍᴇᴅ ᴘᴏsᴛᴇʀ ʙᴏᴛ</b>\n",
                     f"<b>ᴘᴏʀᴛʀᴀɪᴛ :</b> <a href=\"{portrait_url_original}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</b></a>\n",
-                    f"<b>ᴄᴏᴠᴇʀ :</b> <a href=\"{titled_poster_url}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</b></a>\n",
+                    f"<b>ᴄᴏᴠᴇ𝐫 :</b> <a href=\"{titled_poster_url}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</b></a>\n",
                     f"<b>ᴛɪᴛʟᴇ : {safe_title} ({year})</b>"
                 ]
                 
@@ -532,7 +543,7 @@ def search_poster(message):
                     reply_markup=markup
                 )
             else:
-                bot.edit_message_text("❌ Failed to download background image.", message.chat.id, status_msg.message_id)
+                bot.edit_message_text("❌ Failed to download background image.", message.chat.id, status_msg.number if hasattr(status_msg, 'number') else status_msg.message_id)
         else:
             bot.edit_message_text("❌ Content not found! Please check your spelling or try another title.", message.chat.id, status_msg.message_id)
             
