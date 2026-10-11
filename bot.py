@@ -448,7 +448,7 @@ def search_poster(message):
 
     # Check PM Search restriction if query is sent in Private Chat (Allows Owner regardless)
     if message.chat.type == "private" and user_id != OWNER_ID:
-        pm_enabled = database.get_pm_search_status(OWNER_ID)
+        pm_enabled = database.get_global_pm_search()
         if not pm_enabled:
             access_denied_text = (
                 "🔒 <b>access limited</b>\n\n"
