@@ -1,5 +1,6 @@
 import os
 import io
+import sqlite3
 import telebot
 import requests
 from flask import Flask, send_file
@@ -15,19 +16,87 @@ app = Flask(__name__)
 
 session = requests.Session()
 
-USERS_DB = set()
-FORCE_SUB_CHANNELS = [] # e.g. ["@Aero_Unity"]
-
 # Temporary in-memory cache for processed images to serve via Flask web route with titles
 PROCESSED_IMAGES_CACHE = {}
 
-# REPLACE WITH YOUR ACTUAL TELEGRAM USER ID (Integer)
-OWNER_ID = 7284759394 # <--- Put your Telegram numeric User ID here!
+# YOUR OWNER ID
+OWNER_ID = 7284759394
 
 # Custom Image URLs
 START_IMAGE_URL = "https://telegra.ph/file/2ab528ba65c23832cdcf6-4ff26f1b433ef961eb.jpg"
 ABOUT_IMAGE_URL = "https://graph.org/file/283e03b08d8306b8d85af-8436c3be9697b2374c.jpg"
 FSUB_IMAGE_URL  = "https://graph.org/file/faf795187aa693e1024a4-746b376c8dcc889d4f.jpg"
+
+# --- Database Initialization (Persistent across redeploys) ---
+def init_db():
+    conn = sqlite3.connect("bot_database.db")
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            user_id INTEGER PRIMARY KEY
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS fsub_channels (
+            channel TEXT PRIMARY KEY
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+init_db()
+
+def add_user_to_db(user_id):
+    try:
+        conn = sqlite3.connect("bot_database.db")
+        cursor = conn.cursor()
+        cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user_id,))
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+def get_total_users():
+    try:
+        conn = sqlite3.connect("bot_database.db")
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM users")
+        count = cursor.fetchone()[0]
+        conn.close()
+        return count
+    except Exception:
+        return 0
+
+def get_fsub_channels():
+    try:
+        conn = sqlite3.connect("bot_database.db")
+        cursor = conn.cursor()
+        cursor.execute("SELECT channel FROM fsub_channels")
+        channels = [row[0] for row in cursor.fetchall()]
+        conn.close()
+        return channels
+    except Exception:
+        return []
+
+def add_fsub_channel_db(channel):
+    try:
+        conn = sqlite3.connect("bot_database.db")
+        cursor = conn.cursor()
+        cursor.execute("INSERT OR IGNORE INTO fsub_channels (channel) VALUES (?)", (channel,))
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+def remove_fsub_channel_db(channel):
+    try:
+        conn = sqlite3.connect("bot_database.db")
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM fsub_channels WHERE channel = ?", (channel,))
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
 
 @app.route('/')
 def home():
@@ -43,9 +112,10 @@ def serve_poster(item_id):
     return "Poster not found or expired.", 404
 
 def is_user_member(user_id):
-    if not FORCE_SUB_CHANNELS:
+    channels = get_fsub_channels()
+    if not channels:
         return True
-    for channel in FORCE_SUB_CHANNELS:
+    for channel in channels:
         try:
             member = bot.get_chat_member(channel, user_id)
             if member.status not in ['member', 'administrator', 'creator']:
@@ -55,8 +125,9 @@ def is_user_member(user_id):
     return True
 
 def send_fsub_prompt(chat_id):
+    channels = get_fsub_channels()
     markup = telebot.types.InlineKeyboardMarkup()
-    for channel in FORCE_SUB_CHANNELS:
+    for channel in channels:
         channel_name = channel.replace("@", "")
         markup.add(telebot.types.InlineKeyboardButton(text=f"• Join {channel}", url=f"https://t.me/{channel_name}"))
     
@@ -75,7 +146,7 @@ def send_fsub_prompt(chat_id):
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     user_id = message.from_user.id
-    USERS_DB.add(user_id)
+    add_user_to_db(user_id)
     
     if not is_user_member(user_id):
         send_fsub_prompt(message.chat.id)
@@ -198,7 +269,7 @@ def bot_stats(message):
     if message.from_user.id != OWNER_ID:
         bot.reply_to(message, "❌ <b>Access Denied:</b> This command is restricted to the bot owner only.", parse_mode="HTML")
         return
-    total_users = len(USERS_DB)
+    total_users = get_total_users()
     bot.reply_to(message, f"📊 <b>Bot Statistics:</b>\n\n👥 Total Unique Users: <code>{total_users}</code>", parse_mode="HTML")
 
 @bot.message_handler(commands=['addforcesub'])
@@ -209,8 +280,9 @@ def add_force_sub(message):
     args = message.text.split()
     if len(args) > 1:
         channel = args[1].strip()
-        if channel not in FORCE_SUB_CHANNELS:
-            FORCE_SUB_CHANNELS.append(channel)
+        current_channels = get_fsub_channels()
+        if channel not in current_channels:
+            add_fsub_channel_db(channel)
             bot.reply_to(message, f"✅ Successfully added <code>{channel}</code> to Force Subscription list.", parse_mode="HTML")
         else:
             bot.reply_to(message, f"⚠️ Channel <code>{channel}</code> is already in the list.", parse_mode="HTML")
@@ -225,8 +297,9 @@ def remove_force_sub(message):
     args = message.text.split()
     if len(args) > 1:
         channel = args[1].strip()
-        if channel in FORCE_SUB_CHANNELS:
-            FORCE_SUB_CHANNELS.remove(channel)
+        current_channels = get_fsub_channels()
+        if channel in current_channels:
+            remove_fsub_channel_db(channel)
             bot.reply_to(message, f"✅ Successfully removed <code>{channel}</code> from Force Subscription list.", parse_mode="HTML")
         else:
             bot.reply_to(message, f"❌ Channel <code>{channel}</code> not found in list.", parse_mode="HTML")
@@ -238,13 +311,14 @@ def list_force_sub(message):
     if message.from_user.id != OWNER_ID:
         bot.reply_to(message, "❌ <b>Access Denied:</b> This command is restricted to the bot owner only.", parse_mode="HTML")
         return
-    if FORCE_SUB_CHANNELS:
-        channels_str = "\n".join([f"• <code>{ch}</code>" for ch in FORCE_SUB_CHANNELS])
+    channels = get_fsub_channels()
+    if channels:
+        channels_str = "\n".join([f"• <code>{ch}</code>" for ch in channels])
         bot.reply_to(message, f"📢 <b>Force Subscription Channels:</b>\n\n{channels_str}", parse_mode="HTML")
     else:
         bot.reply_to(message, "ℹ️ No Force Subscription channels are currently set.", parse_mode="HTML")
 
-# --- Poster Generation Logic ---
+# --- Poster Generation Logic (Serif Font Typography) ---
 def add_title_overlay(image_bytes, title_text):
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     target_width = 1280
@@ -255,28 +329,51 @@ def add_title_overlay(image_bytes, title_text):
     width, height = image.size
     
     try:
-        font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-        font_size = int(height * 0.08)
+        font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf"
+        font_size = int(height * 0.10)
         font = ImageFont.truetype(font_path, font_size)
     except:
-        font = ImageFont.load_default()
+        try:
+            font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+            font_size = int(height * 0.08)
+            font = ImageFont.truetype(font_path, font_size)
+        except:
+            font = ImageFont.load_default()
 
-    try:
-        bbox = draw.textbbox((0, 0), title_text, font=font)
-        text_width = bbox[2] - bbox[0]
-        text_height = bbox[3] - bbox[1]
-    except:
-        text_width, text_height = draw.textsize(title_text, font=font)
+    words = title_text.split()
+    if len(words) > 3:
+        mid = len(words) // 2
+        line1 = " ".join(words[:mid])
+        line2 = " ".join(words[mid:])
+        title_lines = [line1, line2]
+    else:
+        title_lines = [title_text]
 
-    x = (width - text_width) / 2
-    y = height - text_height - int(height * 0.12)
+    line_heights = []
+    line_widths = []
+    for line in title_lines:
+        try:
+            bbox = draw.textbbox((0, 0), line, font=font)
+            w = bbox[2] - bbox[0]
+            h = bbox[3] - bbox[1]
+        except:
+            w, h = draw.textsize(line, font=font)
+        line_widths.append(w)
+        line_heights.append(h)
 
-    outline_range = 3
-    for adj_x in range(-outline_range, outline_range + 1):
-        for adj_y in range(-outline_range, outline_range + 1):
-            draw.text((x + adj_x, y + adj_y), title_text, font=font, fill="black")
+    total_text_height = sum(line_heights) + (len(title_lines) - 1) * 10
+    y = height - total_text_height - int(height * 0.10)
 
-    draw.text((x, y), title_text, font=font, fill="white")
+    for i, line in enumerate(title_lines):
+        x = (width - line_widths[i]) / 2
+        
+        outline_range = 3
+        for adj_x in range(-outline_range, outline_range + 1):
+            for adj_y in range(-outline_range, outline_range + 1):
+                draw.text((x + adj_x, y + adj_y), line, font=font, fill="black")
+
+        draw.text((x, y), line, font=font, fill="white")
+        y += line_heights[i] + 10
 
     output = io.BytesIO()
     image.save(output, format="JPEG", quality=90)
@@ -286,7 +383,7 @@ def add_title_overlay(image_bytes, title_text):
 @bot.message_handler(func=lambda message: True)
 def search_poster(message):
     user_id = message.from_user.id
-    USERS_DB.add(user_id)
+    add_user_to_db(user_id)
 
     if not is_user_member(user_id):
         send_fsub_prompt(message.chat.id)
@@ -298,7 +395,7 @@ def search_poster(message):
     elif query.startswith("/poster "):
         query = query[8:].strip()
 
-    status_msg = bot.reply_to(message, f"<b><i>Searching <code>{query}</code>...</i></b>", parse_mode="HTML")
+    status_msg = bot.reply_to(message, f"<b><i>Searching</i> <i><code>{query}</code>...</i></b>", parse_mode="HTML")
     
     if not TMDB_API_KEY:
         bot.edit_message_text("⚠️ <b>Error:</b> <code>TMDB_API_KEY</code> is missing in Render environment variables!", message.chat.id, status_msg.message_id, parse_mode="HTML")
@@ -338,7 +435,6 @@ def search_poster(message):
             if img_response.status_code == 200:
                 processed_image = add_title_overlay(img_response.content, title)
                 
-                # Cache processed image so Flask serves the image WITH the title
                 PROCESSED_IMAGES_CACHE[item_id] = processed_image
                 
                 app_url = os.environ.get("RENDER_EXTERNAL_URL", "https://your-app-name.onrender.com")
