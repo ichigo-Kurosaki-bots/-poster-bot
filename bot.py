@@ -96,7 +96,7 @@ def search_poster(message):
     elif query.startswith("/poster "):
         query = query[8:].strip()
 
-    status_msg = bot.reply_to(message, f"🔍 <i>Searching 16:9 poster layout for:</i> <code>{query}</code>...", parse_mode="HTML")
+    status_msg = bot.reply_to(message, f"🔍 <b><i>Searching <code>{query}</code>...</i></b>", parse_mode="HTML")
     
     if not TMDB_API_KEY:
         bot.edit_message_text("⚠️ <b>Error:</b> <code>TMDB_API_KEY</code> is missing in Render environment variables!", message.chat.id, status_msg.message_id, parse_mode="HTML")
