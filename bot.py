@@ -13,27 +13,145 @@ TMDB_API_KEY = os.environ.get("TMDB_API_KEY")
 bot = telebot.TeleBot(BOT_TOKEN)
 app = Flask(__name__)
 
-# Use a requests session for faster connection reuse (speed optimization)
 session = requests.Session()
+
+# In-memory storage for simple user tracking and forced subscription channels
+# (For production persistence, you can later connect a SQLite or MongoDB database)
+USERS_DB = set()
+FORCE_SUB_CHANNELS = [] # Stores channel usernames/IDs e.g., ["@Aero_Unity"]
 
 @app.route('/')
 def home():
-    return "Mohammed Poster Bot is running 24/7!"
+    return "Mohammed Poster Bot with F-Sub is running 24/7!"
+
+def is_user_member(user_id):
+    """Checks if a user has joined all force-subscription channels."""
+    if not FORCE_SUB_CHANNELS:
+        return True
+    
+    for channel in FORCE_SUB_CHANNELS:
+        try:
+            member = bot.get_chat_member(channel, user_id)
+            if member.status not in ['member', 'administrator', 'creator']:
+                return False
+        except Exception:
+            # If bot is not admin in the channel or invalid username, skip or treat as not joined
+            pass
+    return True
+
+def send_fsub_prompt(chat_id, user_id):
+    """Sends the force subscription prompt with channels and a 'Check Subscription' button."""
+    markup = telebot.types.InlineKeyboardMarkup()
+    for channel in FORCE_SUB_CHANNELS:
+        channel_name = channel.replace("@", "")
+        markup.add(telebot.types.InlineKeyboardButton(text=f"• Join {channel}", url=f"https://t.me/{channel_name}"))
+    
+    markup.add(telebot.types.InlineKeyboardButton(text="🔄 Check Subscription", callback_data="check_fsub"))
+    
+    fsub_text = (
+        "⚠️ <b>Access Denied!</b>\n\n"
+        "You must join our update channels below to use this bot.\n"
+        "After joining, click <b>Check Subscription</b> to continue."
+    )
+    bot.send_message(chat_id, fsub_text, parse_mode="HTML", reply_markup=markup)
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
+    user_id = message.from_user.id
+    USERS_DB.add(user_id)
+    
+    if not is_user_member(user_id):
+        send_fsub_prompt(message.chat.id, user_id)
+        return
+
     welcome_text = (
         "👋 <b>Welcome to Universal Poster Bot!</b>\n\n"
         "Send me any title (Movies, Series, Anime, K-Dramas, etc.), "
         "and I will generate the 16:9 widescreen poster layout for you!"
     )
-    bot.reply_to(message, welcome_text, parse_mode="HTML")
-
-def add_title_overlay(image_bytes, title_text):
-    """Downloads backdrop, ensures 16:9 landscape ratio, and adds stylized title overlay."""
-    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     
-    # Force strict 16:9 widescreen ratio
+    markup = telebot.types.InlineKeyboardMarkup(row_width=2)
+    about_btn = telebot.types.InlineKeyboardButton(text="ℹ️ About", callback_data="btn_about")
+    updates_btn = telebot.types.InlineKeyboardButton(text="📢 Updates", url="https://t.me/Aero_Unity")
+    owner_btn = telebot.types.InlineKeyboardButton(text="👤 Owner", url="https://t.me/Mr_Mohammed_29") # Replace with your owner link
+    markup.add(about_btn, updates_btn, owner_btn)
+    
+    bot.send_message(message.chat.id, welcome_text, parse_mode="HTML", reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: True)
+def handle_callbacks(call):
+    user_id = call.from_user.id
+    
+    if call.data == "check_fsub":
+        if is_user_member(user_id):
+            try:
+                bot.delete_message(call.message.chat.id, call.message.message_id)
+            except Exception:
+                pass
+            
+            # Send start message automatically after successful verification
+            welcome_text = (
+                "✅ <b>Verification Successful!</b>\n\n"
+                "👋 Welcome back! Send me any title (Movies, Series, Anime, K-Dramas, etc.) "
+                "to generate your 16:9 widescreen poster."
+            )
+            markup = telebot.types.InlineKeyboardMarkup(row_width=2)
+            about_btn = telebot.types.InlineKeyboardButton(text="ℹ️ About", callback_data="btn_about")
+            updates_btn = telebot.types.InlineKeyboardButton(text="📢 Updates", url="https://t.me/Aero_Unity")
+            owner_btn = telebot.types.InlineKeyboardButton(text="👤 Owner", url="https://t.me/Mohammed_Admin")
+            markup.add(about_btn, updates_btn, owner_btn)
+            
+            bot.send_message(call.message.chat.id, welcome_text, parse_mode="HTML", reply_markup=markup)
+        else:
+            bot.answer_callback_query(call.id, "❌ You haven't joined all channels yet!", show_alert=True)
+            
+    elif call.data == "btn_about":
+        bot.answer_callback_query(call.id, "Mohammed Poster Bot v2.0 - Powered by TMDb & Python Pillow.", show_alert=True)
+
+# --- Admin Force Sub & Stats Commands ---
+@bot.message_handler(commands=['stats'])
+def bot_stats(message):
+    total_users = len(USERS_DB)
+    bot.reply_to(message, f"📊 <b>Bot Statistics:</b>\n\n👥 Total Unique Users: <code>{total_users}</code>", parse_mode="HTML")
+
+@bot.message_handler(commands=['addforcesub'])
+def add_force_sub(message):
+    # Basic check (You can add your own Admin user ID security check here)
+    args = message.text.split()
+    if len(args) > 1:
+        channel = args[1].strip()
+        if channel not in FORCE_SUB_CHANNELS:
+            FORCE_SUB_CHANNELS.append(channel)
+            bot.reply_to(message, f"✅ Successfully added <code>{channel}</code> to Force Subscription list.", parse_mode="HTML")
+        else:
+            bot.reply_to(message, f"⚠️ Channel <code>{channel}</code> is already in the list.", parse_mode="HTML")
+    else:
+        bot.reply_to(message, "⚠️ Usage: `/addforcesub @ChannelUsername`", parse_mode="HTML")
+
+@bot.message_handler(commands=['removeforce'])
+def remove_force_sub(message):
+    args = message.text.split()
+    if len(args) > 1:
+        channel = args[1].strip()
+        if channel in FORCE_SUB_CHANNELS:
+            FORCE_SUB_CHANNELS.remove(channel)
+            bot.reply_to(message, f"✅ Successfully removed <code>{channel}</code> from Force Subscription list.", parse_mode="HTML")
+        else:
+            bot.reply_to(message, f"❌ Channel <code>{channel}</code> not found in list.", parse_mode="HTML")
+    else:
+        bot.reply_to(message, "⚠️ Usage: `/removeforce @ChannelUsername`", parse_mode="HTML")
+
+@bot.message_handler(commands=['fsublist'])
+def list_force_sub(message):
+    if FORCE_SUB_CHANNELS:
+        channels_str = "\n".join([f"• <code>{ch}</code>" for ch in FORCE_SUB_CHANNELS])
+        bot.reply_to(message, f"📢 <b>Force Subscription Channels:</b>\n\n{channels_str}", parse_mode="HTML")
+    else:
+        bot.reply_to(message, "ℹ️ No Force Subscription channels are currently set.", parse_mode="HTML")
+
+# --- Poster Generation Logic ---
+def add_title_overlay(image_bytes, title_text):
+    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     target_width = 1280
     target_height = 720
     image = image.resize((target_width, target_height), Image.Resampling.LANCZOS)
@@ -58,22 +176,19 @@ def add_title_overlay(image_bytes, title_text):
     x = (width - text_width) / 2
     y = height - text_height - int(height * 0.12)
 
-    # Draw text outline/shadow for readability
     outline_range = 3
     for adj_x in range(-outline_range, outline_range + 1):
         for adj_y in range(-outline_range, outline_range + 1):
             draw.text((x + adj_x, y + adj_y), title_text, font=font, fill="black")
 
-    # Draw main text in white
     draw.text((x, y), title_text, font=font, fill="white")
 
     output = io.BytesIO()
-    image.save(output, format="JPEG", quality=90)  # Slightly reduced quality for faster upload
+    image.save(output, format="JPEG", quality=90)
     output.seek(0)
     return output
 
 def get_watch_provider_link(item_id, media_type):
-    """Fetches watch provider link (e.g. Prime Video / Netflix) from TMDb quickly."""
     endpoint = "movie" if media_type == "movie" else "tv"
     watch_url = f"https://api.themoviedb.org/3/{endpoint}/{item_id}/watch/providers?api_key={TMDB_API_KEY}"
     try:
@@ -92,8 +207,14 @@ def get_watch_provider_link(item_id, media_type):
 
 @bot.message_handler(func=lambda message: True)
 def search_poster(message):
+    user_id = message.from_user.id
+    USERS_DB.add(user_id)
+
+    if not is_user_member(user_id):
+        send_fsub_prompt(message.chat.id, user_id)
+        return
+
     query = message.text.strip()
-    
     if query.startswith("/p "):
         query = query[3:].strip()
     elif query.startswith("/poster "):
@@ -136,15 +257,12 @@ def search_poster(message):
             backdrop_url_original = f"https://image.tmdb.org/t/p/original{backdrop_path}"
             portrait_url_original = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else backdrop_url_original
             
-            # Fetch OTT / Watch Provider link
             provider_label, provider_link = get_watch_provider_link(item_id, media_type)
             
-            # Fetch background image bytes quickly
             img_response = session.get(backdrop_url_original, timeout=8)
             if img_response.status_code == 200:
                 processed_image = add_title_overlay(img_response.content, title)
                 
-                # Styled caption using small caps formatting
                 caption_lines = [
                     "<b>ᴍᴏʜᴀᴍᴍᴇᴅ ᴘᴏsᴛᴇʀ ʙᴏᴛ</b>\n"
                 ]
@@ -158,7 +276,6 @@ def search_poster(message):
                 
                 caption = "\n".join(caption_lines)
                 
-                # Inline Buttons: Aero Unity button and Open Image button side-by-side
                 markup = telebot.types.InlineKeyboardMarkup()
                 aero_button = telebot.types.InlineKeyboardButton(text="• ᴀᴇʀᴏ ᴜɴɪᴛʏ •", url="https://t.me/Aero_Unity")
                 open_image_button = telebot.types.InlineKeyboardButton(text="ᴏᴘᴇɴ ɪᴍᴀɢᴇ ↗", url=backdrop_url_original)
