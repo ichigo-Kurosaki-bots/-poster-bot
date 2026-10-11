@@ -19,9 +19,9 @@ USERS_DB = set()
 FORCE_SUB_CHANNELS = [] # e.g. ["@Aero_Unity"]
 
 # Custom Image URLs (You can replace these with your own direct image links)
-START_IMAGE_URL = "https://envs.sh/X1_.jpg"
-ABOUT_IMAGE_URL = "https://envs.sh/X1_.jpg"
-FSUB_IMAGE_URL  = "https://envs.sh/X1_.jpg"
+START_IMAGE_URL = "https://graph.org/file/1f38886284d37d4343fd1-81fd0b764071d0819a.jpg"
+ABOUT_IMAGE_URL = "https://graph.org/file/283e03b08d8306b8d85af-8436c3be9697b2374c.jpg"
+FSUB_IMAGE_URL  = "https://graph.org/file/faf795187aa693e1024a4-746b376c8dcc889d4f.jpg"
 
 @app.route('/')
 def home():
