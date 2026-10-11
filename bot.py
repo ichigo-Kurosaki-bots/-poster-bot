@@ -1,9 +1,11 @@
 import os
+import io
 import sqlite3
 import telebot
 import requests
-from flask import Flask
+from flask import Flask, send_file, request
 import threading
+from PIL import Image, ImageDraw, ImageFont
 
 # Load credentials from Render Environment Variables
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
@@ -13,6 +15,9 @@ bot = telebot.TeleBot(BOT_TOKEN)
 app = Flask(__name__)
 
 session = requests.Session()
+
+# Temporary in-memory cache for processed 16:9 images to serve via Flask web route with titles
+PROCESSED_IMAGES_CACHE = {}
 
 # YOUR OWNER ID
 OWNER_ID = 7284759394
@@ -28,7 +33,8 @@ def init_db():
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
-            user_id INTEGER PRIMARY KEY
+            user_id INTEGER PRIMARY KEY,
+            first_name TEXT
         )
     """)
     cursor.execute("""
@@ -36,31 +42,78 @@ def init_db():
             channel TEXT PRIMARY KEY
         )
     """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS banned_users (
+            user_id INTEGER PRIMARY KEY
+        )
+    """)
     conn.commit()
     conn.close()
 
 init_db()
 
-def add_user_to_db(user_id):
+def add_user_to_db(user_id, first_name):
     try:
         conn = sqlite3.connect("bot_database.db")
         cursor = conn.cursor()
-        cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user_id,))
+        cursor.execute("INSERT OR REPLACE INTO users (user_id, first_name) VALUES (?, ?)", (user_id, first_name))
         conn.commit()
         conn.close()
     except Exception:
         pass
 
-def get_total_users():
+def get_all_users():
     try:
         conn = sqlite3.connect("bot_database.db")
         cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM users")
-        count = cursor.fetchone()[0]
+        cursor.execute("SELECT user_id, first_name FROM users")
+        users = cursor.fetchall()
         conn.close()
-        return count
+        return users
     except Exception:
-        return 0
+        return []
+
+def is_user_banned(user_id):
+    try:
+        conn = sqlite3.connect("bot_database.db")
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1 FROM banned_users WHERE user_id = ?", (user_id,))
+        banned = cursor.fetchone() is not None
+        conn.close()
+        return banned
+    except Exception:
+        return False
+
+def ban_user_db(user_id):
+    try:
+        conn = sqlite3.connect("bot_database.db")
+        cursor = conn.cursor()
+        cursor.execute("INSERT OR IGNORE INTO banned_users (user_id) VALUES (?)", (user_id,))
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+def unban_user_db(user_id):
+    try:
+        conn = sqlite3.connect("bot_database.db")
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM banned_users WHERE user_id = ?", (user_id,))
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+def get_banned_users():
+    try:
+        conn = sqlite3.connect("bot_database.db")
+        cursor = conn.cursor()
+        cursor.execute("SELECT user_id FROM banned_users")
+        banned = [row[0] for row in cursor.fetchall()]
+        conn.close()
+        return banned
+    except Exception:
+        return []
 
 def get_fsub_channels():
     try:
@@ -97,6 +150,15 @@ def remove_fsub_channel_db(channel):
 def home():
     return "Mohammed Poster Bot is running 24/7!"
 
+@app.route('/poster/<item_id>')
+def serve_poster(item_id):
+    """Flask route to serve the 16:9 widescreen generated poster image with the title burned in."""
+    if item_id in PROCESSED_IMAGES_CACHE:
+        img_io = PROCESSED_IMAGES_CACHE[item_id]
+        img_io.seek(0)
+        return send_file(img_io, mimetype='image/jpeg')
+    return "Poster not found or expired.", 404
+
 def is_user_member(user_id):
     channels = get_fsub_channels()
     if not channels:
@@ -132,7 +194,12 @@ def send_fsub_prompt(chat_id):
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     user_id = message.from_user.id
-    add_user_to_db(user_id)
+    first_name = message.from_user.first_name or "User"
+    add_user_to_db(user_id, first_name)
+    
+    if is_user_banned(user_id):
+        bot.reply_to(message, "❌ <b>You are banned from using this bot.</b>", parse_mode="HTML")
+        return
     
     if not is_user_member(user_id):
         send_fsub_prompt(message.chat.id)
@@ -141,7 +208,7 @@ def send_welcome(message):
     welcome_text = (
         "👋 <b>Welcome to Universal Poster Bot!</b>\n\n"
         "Send me any title (Movies, Series, Anime, K-Dramas, etc.), "
-        "and I will send you the official poster layout!"
+        "and I will generate the 16:9 widescreen poster layout for you!"
     )
     
     markup = telebot.types.InlineKeyboardMarkup(row_width=2)
@@ -161,6 +228,10 @@ def send_welcome(message):
 def handle_callbacks(call):
     user_id = call.from_user.id
     
+    if is_user_banned(user_id):
+        bot.answer_callback_query(call.id, "❌ You are banned from using this bot.", show_alert=True)
+        return
+    
     if call.data == "check_fsub":
         if is_user_member(user_id):
             try:
@@ -171,7 +242,7 @@ def handle_callbacks(call):
             welcome_text = (
                 "✅ <b>Verification Successful!</b>\n\n"
                 "👋 Welcome back! Send me any title (Movies, Series, Anime, K-Dramas, etc.) "
-                "to get your posters."
+                "to generate your 16:9 widescreen poster."
             )
             markup = telebot.types.InlineKeyboardMarkup(row_width=2)
             about_btn = telebot.types.InlineKeyboardButton(text="• About •", callback_data="btn_about")
@@ -255,8 +326,67 @@ def bot_stats(message):
     if message.from_user.id != OWNER_ID:
         bot.reply_to(message, "❌ <b>Access Denied:</b> This command is restricted to the bot owner only.", parse_mode="HTML")
         return
-    total_users = get_total_users()
-    bot.reply_to(message, f"📊 <b>Bot Statistics:</b>\n\n👥 Total Unique Users: <code>{total_users}</code>", parse_mode="HTML")
+    
+    users = get_all_users()
+    total_users = len(users)
+    
+    user_list_str = ""
+    for idx, (uid, fname) in enumerate(users[:25], 1):
+        user_list_str += f"{idx}. {fname} (<code>{uid}</code>)\n"
+    
+    if total_users > 25:
+        user_list_str += f"\n<i>...and {total_users - 25} more users.</i>"
+
+    stats_msg = (
+        f"📊 <b>Bot Statistics:</b>\n\n"
+        f"👥 Total Unique Users: <code>{total_users}</code>\n\n"
+        f"<b>User List:</b>\n{user_list_str if user_list_str else 'No users yet.'}"
+    )
+    bot.reply_to(message, stats_msg, parse_mode="HTML")
+
+@bot.message_handler(commands=['ban'])
+def ban_user(message):
+    if message.from_user.id != OWNER_ID:
+        bot.reply_to(message, "❌ <b>Access Denied:</b> This command is restricted to the bot owner only.", parse_mode="HTML")
+        return
+    args = message.text.split()
+    if len(args) > 1:
+        try:
+            target_id = int(args[1].strip())
+            ban_user_db(target_id)
+            bot.reply_to(message, f"✅ Successfully banned user ID: <code>{target_id}</code>", parse_mode="HTML")
+        except ValueError:
+            bot.reply_to(message, "⚠️ Invalid User ID format. Use numeric ID.", parse_mode="HTML")
+    else:
+        bot.reply_to(message, "⚠️ Usage: `/ban USER_ID`", parse_mode="HTML")
+
+@bot.message_handler(commands=['unban'])
+def unban_user(message):
+    if message.from_user.id != OWNER_ID:
+        bot.reply_to(message, "❌ <b>Access Denied:</b> This command is restricted to the bot owner only.", parse_mode="HTML")
+        return
+    args = message.text.split()
+    if len(args) > 1:
+        try:
+            target_id = int(args[1].strip())
+            unban_user_db(target_id)
+            bot.reply_to(message, f"✅ Successfully unbanned user ID: <code>{target_id}</code>", parse_mode="HTML")
+        except ValueError:
+            bot.reply_to(message, "⚠️ Invalid User ID format. Use numeric ID.", parse_mode="HTML")
+    else:
+        bot.reply_to(message, "⚠️ Usage: `/unban USER_ID`", parse_mode="HTML")
+
+@bot.message_handler(commands=['banlist'])
+def list_banned_users(message):
+    if message.from_user.id != OWNER_ID:
+        bot.reply_to(message, "❌ <b>Access Denied:</b> This command is restricted to the bot owner only.", parse_mode="HTML")
+        return
+    banned_ids = get_banned_users()
+    if banned_ids:
+        banned_str = "\n".join([f"• <code>{uid}</code>" for uid in banned_ids])
+        bot.reply_to(message, f"🚫 <b>Banned Users List:</b>\n\n{banned_str}", parse_mode="HTML")
+    else:
+        bot.reply_to(message, "ℹ️ No banned users.", parse_mode="HTML")
 
 @bot.message_handler(commands=['addforcesub'])
 def add_force_sub(message):
@@ -304,11 +434,76 @@ def list_force_sub(message):
     else:
         bot.reply_to(message, "ℹ️ No Force Subscription channels are currently set.", parse_mode="HTML")
 
-# --- Poster Search & Send Logic (Using Official TMDb Images Directly) ---
+# --- Poster Generation Logic (16:9 Widescreen with Serif Font Typography) ---
+def add_title_overlay(image_bytes, title_text):
+    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    target_width = 1280
+    target_height = 720
+    image = image.resize((target_width, target_height), Image.Resampling.LANCZOS)
+    
+    draw = ImageDraw.Draw(image)
+    width, height = image.size
+    
+    try:
+        font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf"
+        font_size = int(height * 0.10)
+        font = ImageFont.truetype(font_path, font_size)
+    except:
+        try:
+            font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+            font_size = int(height * 0.08)
+            font = ImageFont.truetype(font_path, font_size)
+        except:
+            font = ImageFont.load_default()
+
+    words = title_text.split()
+    if len(words) > 3:
+        mid = len(words) // 2
+        line1 = " ".join(words[:mid])
+        line2 = " ".join(words[mid:])
+        title_lines = [line1, line2]
+    else:
+        title_lines = [title_text]
+
+    line_heights = []
+    line_widths = []
+    for line in title_lines:
+        try:
+            bbox = draw.textbbox((0, 0), line, font=font)
+            w = bbox[2] - bbox[0]
+            h = bbox[3] - bbox[1]
+        except:
+            w, h = draw.textsize(line, font=font)
+        line_widths.append(w)
+        line_heights.append(h)
+
+    total_text_height = sum(line_heights) + (len(title_lines) - 1) * 10
+    y = height - total_text_height - int(height * 0.10)
+
+    for i, line in enumerate(title_lines):
+        x = (width - line_widths[i]) / 2
+        
+        outline_range = 3
+        for adj_x in range(-outline_range, outline_range + 1):
+            for adj_y in range(-outline_range, outline_range + 1):
+                draw.text((x + adj_x, y + adj_y), line, font=font, fill="black")
+
+        draw.text((x, y), line, font=font, fill="white")
+        y += line_heights[i] + 10
+
+    output = io.BytesIO()
+    image.save(output, format="JPEG", quality=90)
+    output.seek(0)
+    return output
+
 @bot.message_handler(func=lambda message: True)
 def search_poster(message):
     user_id = message.from_user.id
-    add_user_to_db(user_id)
+    first_name = message.from_user.first_name or "User"
+    add_user_to_db(user_id, first_name)
+
+    if is_user_banned(user_id):
+        return
 
     if not is_user_member(user_id):
         send_fsub_prompt(message.chat.id)
@@ -340,11 +535,12 @@ def search_poster(message):
         if results:
             valid_items = [i for i in results if i.get("backdrop_path")]
             if not valid_items:
-                bot.edit_message_text("❌ Backdrop banner not available for this title.", message.chat.id, status_msg.message_id)
+                bot.edit_message_text("❌ 16:9 landscape banner not available for this title.", message.chat.id, status_msg.message_id)
                 return
 
             item = valid_items[0]
             title = item.get("title") or item.get("name") or "Unknown Title"
+            item_id = str(item.get("id"))
             
             release_date = item.get("release_date") or item.get("first_air_date") or ""
             year = release_date.split("-")[0] if release_date else "N/A"
@@ -355,28 +551,40 @@ def search_poster(message):
             backdrop_url_original = f"https://image.tmdb.org/t/p/original{backdrop_path}"
             portrait_url_original = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else backdrop_url_original
             
-            caption_lines = [
-                "<b>ᴍᴏʜᴀᴍᴍᴇᴅ ᴘᴏsᴛᴇʀ ʙᴏᴛ</b>\n",
-                f"<b>ᴘᴏʀᴛʀᴀɪᴛ:</b> <a href=\"{portrait_url_original}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</b></a>\n",
-                f"<b>ᴄᴏᴠᴇʀ:</b> <a href=\"{backdrop_url_original}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</b></a>\n",
-                f"<b>{title} ({year})</b>"
-            ]
-            
-            caption = "\n".join(caption_lines)
-            
-            markup = telebot.types.InlineKeyboardMarkup()
-            aero_button = telebot.types.InlineKeyboardButton(text="• ᴀᴇʀᴏ ᴜɴɪᴛʏ •", url="https://t.me/Aero_Unity")
-            open_image_button = telebot.types.InlineKeyboardButton(text="ᴏᴘᴇɴ ɪᴍᴀɢᴇ ↗", url=backdrop_url_original)
-            markup.row(aero_button, open_image_button)
-            
-            bot.delete_message(message.chat.id, status_msg.message_id)
-            bot.send_photo(
-                chat_id=message.chat.id,
-                photo=backdrop_url_original,
-                caption=caption,
-                parse_mode="HTML",
-                reply_markup=markup
-            )
+            img_response = session.get(backdrop_url_original, timeout=8)
+            if img_response.status_code == 200:
+                processed_image = add_title_overlay(img_response.content, title)
+                
+                PROCESSED_IMAGES_CACHE[item_id] = processed_image
+                
+                # Automatically use Render external URL or fallback to request root
+                app_url = os.environ.get("RENDER_EXTERNAL_URL") or request.host_url.rstrip('/')
+                titled_poster_url = f"{app_url}/poster/{item_id}"
+                
+                caption_lines = [
+                    "<b>ᴍᴏʜᴀᴍᴍᴇᴅ ᴘᴏsᴛᴇʀ ʙᴏᴛ</b>\n",
+                    f"<b>ᴘᴏʀᴛʀᴀɪᴛ:</b> <a href=\"{portrait_url_original}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</b></a>\n",
+                    f"<b>ᴄᴏᴠᴇʀ:</b> <a href=\"{titled_poster_url}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</b></a>\n",
+                    f"<b>{title} ({year})</b>"
+                ]
+                
+                caption = "\n".join(caption_lines)
+                
+                markup = telebot.types.InlineKeyboardMarkup()
+                aero_button = telebot.types.InlineKeyboardButton(text="• ᴀᴇʀᴏ ᴜɴɪᴛʏ •", url="https://t.me/Aero_Unity")
+                open_image_button = telebot.types.InlineKeyboardButton(text="ᴏᴘᴇɴ ɪᴍᴀɢᴇ ↗", url=titled_poster_url)
+                markup.row(aero_button, open_image_button)
+                
+                bot.delete_message(message.chat.id, status_msg.message_id)
+                bot.send_photo(
+                    chat_id=message.chat.id,
+                    photo=processed_image,
+                    caption=caption,
+                    parse_mode="HTML",
+                    reply_markup=markup
+                )
+            else:
+                bot.edit_message_text("❌ Failed to download background image.", message.chat.id, status_msg.message_id)
         else:
             bot.edit_message_text("❌ Content not found! Please check your spelling or try another title.", message.chat.id, status_msg.message_id)
             
