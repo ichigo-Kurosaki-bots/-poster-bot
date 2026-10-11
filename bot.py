@@ -541,8 +541,14 @@ def search_poster(message):
             bot.edit_message_text(f"⚠️ An error occurred: {html.escape(str(e))}", message.chat.id, status_msg.message_id, parse_mode="HTML")
         except Exception:
             pass
-
+            
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    threading.Thread(target=lambda: bot.infinity_polling(skip_pending_updates=True), daemon=True).start()
+    # Clear pending updates safely first, then run standard infinity polling
+    try:
+        bot.remove_webhook()
+    except Exception:
+        pass
+        
+    threading.Thread(target=lambda: bot.infinity_polling(), daemon=True).start()
     app.run(host="0.0.0.0", port=port)
