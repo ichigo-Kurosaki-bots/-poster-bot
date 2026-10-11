@@ -543,7 +543,7 @@ def search_poster(message):
                 # Unique cache key per season so different seasons never overwrite each other
                 cache_key = f"{item_id}_s{season_number}" if season_number else item_id
                 file_path = os.path.join(CACHE_DIR, f"{cache_key}.jpg")
-                with open(file_path, "wbS") as f:
+                with open(file_path, "wb") as f:
                     f.write(processed_image_io.getvalue())
                 
                 app_url = os.environ.get("RENDER_EXTERNAL_URL") or request.host_url.rstrip('/')
