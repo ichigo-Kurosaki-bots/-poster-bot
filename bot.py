@@ -143,7 +143,7 @@ def search_poster(message):
                 
                 # Styled caption using small caps formatting
                 caption_lines = [
-                    "<b>ᴍᴏʜᴀᴍᴍᴇᴅ ᴘᴏsᴛᴇʀ ʙᴏᴛ</b>  <i>ᴀᴅᴍɪɴ</i>\n"
+                    "<b>ᴍᴏʜᴀᴍᴍᴇᴅ ᴘᴏsᴛᴇʀ ʙᴏᴛ</b>\n"
                 ]
                 
                 if provider_link:
