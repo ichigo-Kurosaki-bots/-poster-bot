@@ -18,8 +18,8 @@ session = requests.Session()
 USERS_DB = set()
 FORCE_SUB_CHANNELS = [] # e.g. ["@Aero_Unity"]
 
-# Custom Image URLs (You can replace these with your own direct image links)
-START_IMAGE_URL = "https://graph.org/file/1f38886284d37d4343fd1-81fd0b764071d0819a.jpg"
+# Custom Image URLs
+START_IMAGE_URL = "https://telegra.ph/file/2ab528ba65c23832cdcf6-4ff26f1b433ef961eb.jpg"
 ABOUT_IMAGE_URL = "https://graph.org/file/283e03b08d8306b8d85af-8436c3be9697b2374c.jpg"
 FSUB_IMAGE_URL  = "https://graph.org/file/faf795187aa693e1024a4-746b376c8dcc889d4f.jpg"
 
@@ -117,12 +117,11 @@ def handle_callbacks(call):
         about_text = (
             "⍟───[ <b>ᴍʏ ᴅᴇᴛᴀɪʟꜱ</b> ]───⍟\n\n"
             "‣ <b>ᴍʏ ɴᴀᴍᴇ : Poster Bot</b>\n"
-            "‣ <b>ᴍʏ ʙᴇsᴛ ғʀɪᴇɴᴅ :</b> <a href=\"https://t.me/Mr_Mohammed_29\">ᴛʜɪs ᴘᴇʀsᴏɴ</a>\n"
-            "‣ <b>ᴅᴇᴠᴇʟᴏᴘᴇʀ : <a href=\"https://t.me/Mr_Mohammed_29\">Mohammed</a></b>\n"
-            "‣ <b>ʟɪʙʀᴀʀʏ : ᴘʏʀᴏɢʀᴀᴍ / ᴛᴇʟᴇʙᴏᴛ</b>\n"
-            "‣ <b>ʟᴀɴɢᴜᴀɢᴇ : ᴘʏᴛʜᴏɴ 3</b>\n"
-            "‣ <b>ʙᴏᴛ sᴇʀᴠᴇʀ : <a a href=\"https://t.me/Aero_Unity\">Aero Unity</a></b>\n"
-            "‣ <b>ʙᴜɪʟᴅ sᴛᴀᴛᴜs :</b> ᴠ3.9.1 [sᴛᴀʙʟᴇ]"
+            "‣ <b>ᴅᴇᴠᴇʟᴏᴘᴇʀ : <a href=\"https://t.me/Mr_Mohammed_29\"><b>Mohammed</b></a></b>\n"
+            "‣ <b>ʟɪʙʀᴀʀʏ : ᴘʏʀᴏɢʀᴀᴍ / ᴛᴇʟᴇʙᴏᴛ </b>\n"
+            "‣ <b>ʟᴀɴɢᴜᴀɢᴇ : ᴘʏᴛʜᴏɴ 3 </b>\n"
+            "‣ <b>ʙᴏᴛ sᴇʀᴠᴇʀ : <a href=\"https://t.me/Aero_Unity\"><b>Aero Unity</b></a></b>\n"
+            "‣ <b>ʙᴜɪʟᴅ sᴛᴀᴛᴜs : ᴠ3.9.1 [sᴛᴀʙʟᴇ] </b>"
         )
         markup = telebot.types.InlineKeyboardMarkup()
         home_btn = telebot.types.InlineKeyboardButton(text="🏠 Home", callback_data="btn_home")
@@ -136,13 +135,16 @@ def handle_callbacks(call):
                 reply_markup=markup
             )
         except Exception:
-            bot.edit_message_caption(
-                chat_id=call.message.chat.id,
-                message_id=call.message.message_id,
-                caption=about_text,
-                parse_mode="HTML",
-                reply_markup=markup
-            )
+            try:
+                bot.edit_message_caption(
+                    chat_id=call.message.chat.id,
+                    message_id=call.message.message_id,
+                    caption=about_text,
+                    parse_mode="HTML",
+                    reply_markup=markup
+                )
+            except Exception:
+                bot.send_photo(call.message.chat.id, ABOUT_IMAGE_URL, caption=about_text, parse_mode="HTML", reply_markup=markup)
 
     elif call.data == "btn_home":
         welcome_text = (
@@ -165,13 +167,16 @@ def handle_callbacks(call):
                 reply_markup=markup
             )
         except Exception:
-            bot.edit_message_caption(
-                chat_id=call.message.chat.id,
-                message_id=call.message.message_id,
-                caption=welcome_text,
-                parse_mode="HTML",
-                reply_markup=markup
-            )
+            try:
+                bot.edit_message_caption(
+                    chat_id=call.message.chat.id,
+                    message_id=call.message.message_id,
+                    caption=welcome_text,
+                    parse_mode="HTML",
+                    reply_markup=markup
+                )
+            except Exception:
+                bot.send_photo(call.message.chat.id, START_IMAGE_URL, caption=welcome_text, parse_mode="HTML", reply_markup=markup)
 
 # --- Admin Force Sub & Stats Commands ---
 @bot.message_handler(commands=['stats'])
@@ -332,10 +337,10 @@ def search_poster(message):
                 ]
                 
                 if provider_link:
-                    caption_lines.append(f"<b>{provider_label}:</b> {provider_link}\n")
+                    caption_lines.append(f"<b>{provider_label}:</b> <a href=\"{provider_link}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</b></a>\n")
                 
-                caption_lines.append(f"<b>ᴘᴏʀᴛʀᴀɪᴛ:</b> <a href=\"{portrait_url_original}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</a></b>\n")
-                caption_lines.append(f"<b>ᴄᴏᴠᴇʀ:</b> <a href=\"{backdrop_url_original}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</a></b>\n")
+                caption_lines.append(f"<b>ᴘᴏʀᴛʀᴀɪᴛ:</b> <a href=\"{portrait_url_original}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</b></a>\n")
+                caption_lines.append(f"<b>ᴄᴏᴠᴇʀ:</b> <a href=\"{backdrop_url_original}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</b></a>\n")
                 caption_lines.append(f"<b>{title} ({year})</b>")
                 
                 caption = "\n".join(caption_lines)
