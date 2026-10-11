@@ -1,11 +1,9 @@
 import os
-import io
 import sqlite3
 import telebot
 import requests
-from flask import Flask, send_file
+from flask import Flask
 import threading
-from PIL import Image, ImageDraw, ImageFont
 
 # Load credentials from Render Environment Variables
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
@@ -15,9 +13,6 @@ bot = telebot.TeleBot(BOT_TOKEN)
 app = Flask(__name__)
 
 session = requests.Session()
-
-# Temporary in-memory cache for processed images to serve via Flask web route with titles
-PROCESSED_IMAGES_CACHE = {}
 
 # YOUR OWNER ID
 OWNER_ID = 7284759394
@@ -102,15 +97,6 @@ def remove_fsub_channel_db(channel):
 def home():
     return "Mohammed Poster Bot is running 24/7!"
 
-@app.route('/poster/<item_id>')
-def serve_poster(item_id):
-    """Flask route to serve the generated poster image with the title burned in."""
-    if item_id in PROCESSED_IMAGES_CACHE:
-        img_io = PROCESSED_IMAGES_CACHE[item_id]
-        img_io.seek(0)
-        return send_file(img_io, mimetype='image/jpeg')
-    return "Poster not found or expired.", 404
-
 def is_user_member(user_id):
     channels = get_fsub_channels()
     if not channels:
@@ -155,7 +141,7 @@ def send_welcome(message):
     welcome_text = (
         "👋 <b>Welcome to Universal Poster Bot!</b>\n\n"
         "Send me any title (Movies, Series, Anime, K-Dramas, etc.), "
-        "and I will generate the 16:9 widescreen poster layout for you!"
+        "and I will send you the official poster layout!"
     )
     
     markup = telebot.types.InlineKeyboardMarkup(row_width=2)
@@ -185,7 +171,7 @@ def handle_callbacks(call):
             welcome_text = (
                 "✅ <b>Verification Successful!</b>\n\n"
                 "👋 Welcome back! Send me any title (Movies, Series, Anime, K-Dramas, etc.) "
-                "to generate your 16:9 widescreen poster."
+                "to get your posters."
             )
             markup = telebot.types.InlineKeyboardMarkup(row_width=2)
             about_btn = telebot.types.InlineKeyboardButton(text="• About •", callback_data="btn_about")
@@ -318,68 +304,7 @@ def list_force_sub(message):
     else:
         bot.reply_to(message, "ℹ️ No Force Subscription channels are currently set.", parse_mode="HTML")
 
-# --- Poster Generation Logic (Serif Font Typography) ---
-def add_title_overlay(image_bytes, title_text):
-    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-    target_width = 1280
-    target_height = 720
-    image = image.resize((target_width, target_height), Image.Resampling.LANCZOS)
-    
-    draw = ImageDraw.Draw(image)
-    width, height = image.size
-    
-    try:
-        font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf"
-        font_size = int(height * 0.10)
-        font = ImageFont.truetype(font_path, font_size)
-    except:
-        try:
-            font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-            font_size = int(height * 0.08)
-            font = ImageFont.truetype(font_path, font_size)
-        except:
-            font = ImageFont.load_default()
-
-    words = title_text.split()
-    if len(words) > 3:
-        mid = len(words) // 2
-        line1 = " ".join(words[:mid])
-        line2 = " ".join(words[mid:])
-        title_lines = [line1, line2]
-    else:
-        title_lines = [title_text]
-
-    line_heights = []
-    line_widths = []
-    for line in title_lines:
-        try:
-            bbox = draw.textbbox((0, 0), line, font=font)
-            w = bbox[2] - bbox[0]
-            h = bbox[3] - bbox[1]
-        except:
-            w, h = draw.textsize(line, font=font)
-        line_widths.append(w)
-        line_heights.append(h)
-
-    total_text_height = sum(line_heights) + (len(title_lines) - 1) * 10
-    y = height - total_text_height - int(height * 0.10)
-
-    for i, line in enumerate(title_lines):
-        x = (width - line_widths[i]) / 2
-        
-        outline_range = 3
-        for adj_x in range(-outline_range, outline_range + 1):
-            for adj_y in range(-outline_range, outline_range + 1):
-                draw.text((x + adj_x, y + adj_y), line, font=font, fill="black")
-
-        draw.text((x, y), line, font=font, fill="white")
-        y += line_heights[i] + 10
-
-    output = io.BytesIO()
-    image.save(output, format="JPEG", quality=90)
-    output.seek(0)
-    return output
-
+# --- Poster Search & Send Logic (Using Official TMDb Images Directly) ---
 @bot.message_handler(func=lambda message: True)
 def search_poster(message):
     user_id = message.from_user.id
@@ -395,7 +320,7 @@ def search_poster(message):
     elif query.startswith("/poster "):
         query = query[8:].strip()
 
-    status_msg = bot.reply_to(message, f"<b><i>Searching</i> <i><code>{query}</code>...</i></b>", parse_mode="HTML")
+    status_msg = bot.reply_to(message, f"<b><i>Searching <code>{query}</code>...</i></b>", parse_mode="HTML")
     
     if not TMDB_API_KEY:
         bot.edit_message_text("⚠️ <b>Error:</b> <code>TMDB_API_KEY</code> is missing in Render environment variables!", message.chat.id, status_msg.message_id, parse_mode="HTML")
@@ -415,12 +340,11 @@ def search_poster(message):
         if results:
             valid_items = [i for i in results if i.get("backdrop_path")]
             if not valid_items:
-                bot.edit_message_text("❌ 16:9 landscape banner not available for this title.", message.chat.id, status_msg.message_id)
+                bot.edit_message_text("❌ Backdrop banner not available for this title.", message.chat.id, status_msg.message_id)
                 return
 
             item = valid_items[0]
             title = item.get("title") or item.get("name") or "Unknown Title"
-            item_id = str(item.get("id"))
             
             release_date = item.get("release_date") or item.get("first_air_date") or ""
             year = release_date.split("-")[0] if release_date else "N/A"
@@ -431,39 +355,28 @@ def search_poster(message):
             backdrop_url_original = f"https://image.tmdb.org/t/p/original{backdrop_path}"
             portrait_url_original = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else backdrop_url_original
             
-            img_response = session.get(backdrop_url_original, timeout=8)
-            if img_response.status_code == 200:
-                processed_image = add_title_overlay(img_response.content, title)
-                
-                PROCESSED_IMAGES_CACHE[item_id] = processed_image
-                
-                app_url = os.environ.get("RENDER_EXTERNAL_URL", "https://your-app-name.onrender.com")
-                titled_poster_url = f"{app_url}/poster/{item_id}"
-                
-                caption_lines = [
-                    "<b>ᴍᴏʜᴀᴍᴍᴇᴅ ᴘᴏsᴛᴇʀ ʙᴏᴛ</b>\n",
-                    f"<b>ᴘᴏʀᴛʀᴀɪᴛ:</b> <a href=\"{portrait_url_original}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</b></a>\n",
-                    f"<b>ᴄᴏᴠᴇʀ:</b> <a href=\"{titled_poster_url}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</b></a>\n",
-                    f"<b>{title} ({year})</b>"
-                ]
-                
-                caption = "\n".join(caption_lines)
-                
-                markup = telebot.types.InlineKeyboardMarkup()
-                aero_button = telebot.types.InlineKeyboardButton(text="• ᴀᴇʀᴏ ᴜɴɪᴛʏ •", url="https://t.me/Aero_Unity")
-                open_image_button = telebot.types.InlineKeyboardButton(text="ᴏᴘᴇɴ ɪᴍᴀɢᴇ ↗", url=titled_poster_url)
-                markup.row(aero_button, open_image_button)
-                
-                bot.delete_message(message.chat.id, status_msg.message_id)
-                bot.send_photo(
-                    chat_id=message.chat.id,
-                    photo=processed_image,
-                    caption=caption,
-                    parse_mode="HTML",
-                    reply_markup=markup
-                )
-            else:
-                bot.edit_message_text("❌ Failed to download background image.", message.chat.id, status_msg.message_id)
+            caption_lines = [
+                "<b>ᴍᴏʜᴀᴍᴍᴇᴅ ᴘᴏsᴛᴇʀ ʙᴏᴛ</b>\n",
+                f"<b>ᴘᴏʀᴛʀᴀɪᴛ:</b> <a href=\"{portrait_url_original}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</b></a>\n",
+                f"<b>ᴄᴏᴠᴇʀ:</b> <a href=\"{backdrop_url_original}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</b></a>\n",
+                f"<b>{title} ({year})</b>"
+            ]
+            
+            caption = "\n".join(caption_lines)
+            
+            markup = telebot.types.InlineKeyboardMarkup()
+            aero_button = telebot.types.InlineKeyboardButton(text="• ᴀᴇʀᴏ ᴜɴɪᴛʏ •", url="https://t.me/Aero_Unity")
+            open_image_button = telebot.types.InlineKeyboardButton(text="ᴏᴘᴇɴ ɪᴍᴀɢᴇ ↗", url=backdrop_url_original)
+            markup.row(aero_button, open_image_button)
+            
+            bot.delete_message(message.chat.id, status_msg.message_id)
+            bot.send_photo(
+                chat_id=message.chat.id,
+                photo=backdrop_url_original,
+                caption=caption,
+                parse_mode="HTML",
+                reply_markup=markup
+            )
         else:
             bot.edit_message_text("❌ Content not found! Please check your spelling or try another title.", message.chat.id, status_msg.message_id)
             
