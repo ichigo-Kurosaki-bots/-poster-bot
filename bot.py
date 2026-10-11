@@ -13,6 +13,9 @@ TMDB_API_KEY = os.environ.get("TMDB_API_KEY")
 bot = telebot.TeleBot(BOT_TOKEN)
 app = Flask(__name__)
 
+# Use a requests session for faster connection reuse (speed optimization)
+session = requests.Session()
+
 @app.route('/')
 def home():
     return "Mohammed Poster Bot is running 24/7!"
@@ -65,16 +68,16 @@ def add_title_overlay(image_bytes, title_text):
     draw.text((x, y), title_text, font=font, fill="white")
 
     output = io.BytesIO()
-    image.save(output, format="JPEG", quality=95)
+    image.save(output, format="JPEG", quality=90)  # Slightly reduced quality for faster upload
     output.seek(0)
     return output
 
 def get_watch_provider_link(item_id, media_type):
-    """Fetches watch provider link (e.g. Prime Video / Netflix) from TMDb."""
+    """Fetches watch provider link (e.g. Prime Video / Netflix) from TMDb quickly."""
     endpoint = "movie" if media_type == "movie" else "tv"
     watch_url = f"https://api.themoviedb.org/3/{endpoint}/{item_id}/watch/providers?api_key={TMDB_API_KEY}"
     try:
-        res = requests.get(watch_url).json()
+        res = session.get(watch_url, timeout=5).json()
         results = res.get("results", {})
         for country in ["IN", "US", "GB"]:
             if country in results and "link" in results[country]:
@@ -96,7 +99,7 @@ def search_poster(message):
     elif query.startswith("/poster "):
         query = query[8:].strip()
 
-    status_msg = bot.reply_to(message, f"🔍 <b><i>Searching <code>{query}</code>...</i></b>", parse_mode="HTML")
+    status_msg = bot.reply_to(message, f"🔍 <i>Searching 16:9 poster layout for:</i> <code>{query}</code>...", parse_mode="HTML")
     
     if not TMDB_API_KEY:
         bot.edit_message_text("⚠️ <b>Error:</b> <code>TMDB_API_KEY</code> is missing in Render environment variables!", message.chat.id, status_msg.message_id, parse_mode="HTML")
@@ -105,7 +108,7 @@ def search_poster(message):
     url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={requests.utils.quote(query)}"
     
     try:
-        res = requests.get(url)
+        res = session.get(url, timeout=5)
         if res.status_code != 200:
             bot.edit_message_text(f"⚠️ <b>TMDb API Error ({res.status_code}):</b> Check your API Key.", message.chat.id, status_msg.message_id, parse_mode="HTML")
             return
@@ -136,8 +139,8 @@ def search_poster(message):
             # Fetch OTT / Watch Provider link
             provider_label, provider_link = get_watch_provider_link(item_id, media_type)
             
-            # Fetch background image bytes
-            img_response = requests.get(backdrop_url_original)
+            # Fetch background image bytes quickly
+            img_response = session.get(backdrop_url_original, timeout=8)
             if img_response.status_code == 200:
                 processed_image = add_title_overlay(img_response.content, title)
                 
