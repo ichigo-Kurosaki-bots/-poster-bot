@@ -15,32 +15,31 @@ app = Flask(__name__)
 
 session = requests.Session()
 
-# In-memory storage for simple user tracking and forced subscription channels
-# (For production persistence, you can later connect a SQLite or MongoDB database)
 USERS_DB = set()
-FORCE_SUB_CHANNELS = [] # Stores channel usernames/IDs e.g., ["@Aero_Unity"]
+FORCE_SUB_CHANNELS = [] # e.g. ["@Aero_Unity"]
+
+# Custom Image URLs (You can replace these with your own direct image links)
+START_IMAGE_URL = "https://envs.sh/X1_.jpg"
+ABOUT_IMAGE_URL = "https://envs.sh/X1_.jpg"
+FSUB_IMAGE_URL  = "https://envs.sh/X1_.jpg"
 
 @app.route('/')
 def home():
-    return "Mohammed Poster Bot with F-Sub is running 24/7!"
+    return "Mohammed Poster Bot is running 24/7!"
 
 def is_user_member(user_id):
-    """Checks if a user has joined all force-subscription channels."""
     if not FORCE_SUB_CHANNELS:
         return True
-    
     for channel in FORCE_SUB_CHANNELS:
         try:
             member = bot.get_chat_member(channel, user_id)
             if member.status not in ['member', 'administrator', 'creator']:
                 return False
         except Exception:
-            # If bot is not admin in the channel or invalid username, skip or treat as not joined
             pass
     return True
 
-def send_fsub_prompt(chat_id, user_id):
-    """Sends the force subscription prompt with channels and a 'Check Subscription' button."""
+def send_fsub_prompt(chat_id):
     markup = telebot.types.InlineKeyboardMarkup()
     for channel in FORCE_SUB_CHANNELS:
         channel_name = channel.replace("@", "")
@@ -53,7 +52,10 @@ def send_fsub_prompt(chat_id, user_id):
         "You must join our update channels below to use this bot.\n"
         "After joining, click <b>Check Subscription</b> to continue."
     )
-    bot.send_message(chat_id, fsub_text, parse_mode="HTML", reply_markup=markup)
+    try:
+        bot.send_photo(chat_id, FSUB_IMAGE_URL, caption=fsub_text, parse_mode="HTML", reply_markup=markup)
+    except Exception:
+        bot.send_message(chat_id, fsub_text, parse_mode="HTML", reply_markup=markup)
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
@@ -61,7 +63,7 @@ def send_welcome(message):
     USERS_DB.add(user_id)
     
     if not is_user_member(user_id):
-        send_fsub_prompt(message.chat.id, user_id)
+        send_fsub_prompt(message.chat.id)
         return
 
     welcome_text = (
@@ -71,12 +73,18 @@ def send_welcome(message):
     )
     
     markup = telebot.types.InlineKeyboardMarkup(row_width=2)
-    about_btn = telebot.types.InlineKeyboardButton(text="ℹ️ About", callback_data="btn_about")
-    updates_btn = telebot.types.InlineKeyboardButton(text="📢 Updates", url="https://t.me/Aero_Unity")
-    owner_btn = telebot.types.InlineKeyboardButton(text="👤 Owner", url="https://t.me/Mr_Mohammed_29") # Replace with your owner link
-    markup.add(about_btn, updates_btn, owner_btn)
+    about_btn = telebot.types.InlineKeyboardButton(text="• About •", callback_data="btn_about")
+    updates_btn = telebot.types.InlineKeyboardButton(text="• Updates •", url="https://t.me/Aero_Unity")
+    owner_btn = telebot.types.InlineKeyboardButton(text="• Owner •", url="https://t.me/Mr_Mohammed_29")
     
-    bot.send_message(message.chat.id, welcome_text, parse_mode="HTML", reply_markup=markup)
+    # Layout: About | Updates on top row, Owner on bottom row
+    markup.row(about_btn, updates_btn)
+    markup.row(owner_btn)
+    
+    try:
+        bot.send_photo(message.chat.id, START_IMAGE_URL, caption=welcome_text, parse_mode="HTML", reply_markup=markup)
+    except Exception:
+        bot.send_message(message.chat.id, welcome_text, parse_mode="HTML", reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: True)
 def handle_callbacks(call):
@@ -89,24 +97,81 @@ def handle_callbacks(call):
             except Exception:
                 pass
             
-            # Send start message automatically after successful verification
             welcome_text = (
                 "✅ <b>Verification Successful!</b>\n\n"
                 "👋 Welcome back! Send me any title (Movies, Series, Anime, K-Dramas, etc.) "
                 "to generate your 16:9 widescreen poster."
             )
             markup = telebot.types.InlineKeyboardMarkup(row_width=2)
-            about_btn = telebot.types.InlineKeyboardButton(text="ℹ️ About", callback_data="btn_about")
-            updates_btn = telebot.types.InlineKeyboardButton(text="📢 Updates", url="https://t.me/Aero_Unity")
-            owner_btn = telebot.types.InlineKeyboardButton(text="👤 Owner", url="https://t.me/Mohammed_Admin")
-            markup.add(about_btn, updates_btn, owner_btn)
+            about_btn = telebot.types.InlineKeyboardButton(text="• About •", callback_data="btn_about")
+            updates_btn = telebot.types.InlineKeyboardButton(text="• Updates •", url="https://t.me/Aero_Unity")
+            owner_btn = telebot.types.InlineKeyboardButton(text="• Owner •", url="https://t.me/Mr_Mohammed_29")
+            markup.row(about_btn, updates_btn)
+            markup.row(owner_btn)
             
-            bot.send_message(call.message.chat.id, welcome_text, parse_mode="HTML", reply_markup=markup)
+            bot.send_photo(call.message.chat.id, START_IMAGE_URL, caption=welcome_text, parse_mode="HTML", reply_markup=markup)
         else:
             bot.answer_callback_query(call.id, "❌ You haven't joined all channels yet!", show_alert=True)
             
     elif call.data == "btn_about":
-        bot.answer_callback_query(call.id, "Mohammed Poster Bot v2.0 - Powered by TMDb & Python Pillow.", show_alert=True)
+        about_text = (
+            "⍟───[ <b>ᴍʏ ᴅᴇᴛᴀɪʟꜱ</b> ]───⍟\n\n"
+            "‣ <b>ᴍʏ ɴᴀᴍᴇ : Poster Bot</b>\n"
+            "‣ <b>ᴍʏ ʙᴇsᴛ ғʀɪᴇɴᴅ :</b> <a href=\"https://t.me/Mr_Mohammed_29\">ᴛʜɪs ᴘᴇʀsᴏɴ</a>\n"
+            "‣ <b>ᴅᴇᴠᴇʟᴏᴘᴇʀ : <a href=\"https://t.me/Mr_Mohammed_29\">Mohammed</a></b>\n"
+            "‣ <b>ʟɪʙʀᴀʀʏ : ᴘʏʀᴏɢʀᴀᴍ / ᴛᴇʟᴇʙᴏᴛ</b>\n"
+            "‣ <b>ʟᴀɴɢᴜᴀɢᴇ : ᴘʏᴛʜᴏɴ 3</b>\n"
+            "‣ <b>ʙᴏᴛ sᴇʀᴠᴇʀ : <a a href=\"https://t.me/Aero_Unity\">Aero Unity</a></b>\n"
+            "‣ <b>ʙᴜɪʟᴅ sᴛᴀᴛᴜs :</b> ᴠ3.9.1 [sᴛᴀʙʟᴇ]"
+        )
+        markup = telebot.types.InlineKeyboardMarkup()
+        home_btn = telebot.types.InlineKeyboardButton(text="🏠 Home", callback_data="btn_home")
+        markup.add(home_btn)
+        
+        try:
+            bot.edit_message_media(
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                media=telebot.types.InputMediaPhoto(ABOUT_IMAGE_URL, caption=about_text, parse_mode="HTML"),
+                reply_markup=markup
+            )
+        except Exception:
+            bot.edit_message_caption(
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                caption=about_text,
+                parse_mode="HTML",
+                reply_markup=markup
+            )
+
+    elif call.data == "btn_home":
+        welcome_text = (
+            "👋 <b>Welcome to Universal Poster Bot!</b>\n\n"
+            "Send me any title (Movies, Series, Anime, K-Dramas, etc.), "
+            "and I will generate the 16:9 widescreen poster layout for you!"
+        )
+        markup = telebot.types.InlineKeyboardMarkup(row_width=2)
+        about_btn = telebot.types.InlineKeyboardButton(text="• About •", callback_data="btn_about")
+        updates_btn = telebot.types.InlineKeyboardButton(text="• Updates •", url="https://t.me/Aero_Unity")
+        owner_btn = telebot.types.InlineKeyboardButton(text="• Owner •", url="https://t.me/Mr_Mohammed_29")
+        markup.row(about_btn, updates_btn)
+        markup.row(owner_btn)
+        
+        try:
+            bot.edit_message_media(
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                media=telebot.types.InputMediaPhoto(START_IMAGE_URL, caption=welcome_text, parse_mode="HTML"),
+                reply_markup=markup
+            )
+        except Exception:
+            bot.edit_message_caption(
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                caption=welcome_text,
+                parse_mode="HTML",
+                reply_markup=markup
+            )
 
 # --- Admin Force Sub & Stats Commands ---
 @bot.message_handler(commands=['stats'])
@@ -116,7 +181,6 @@ def bot_stats(message):
 
 @bot.message_handler(commands=['addforcesub'])
 def add_force_sub(message):
-    # Basic check (You can add your own Admin user ID security check here)
     args = message.text.split()
     if len(args) > 1:
         channel = args[1].strip()
@@ -211,7 +275,7 @@ def search_poster(message):
     USERS_DB.add(user_id)
 
     if not is_user_member(user_id):
-        send_fsub_prompt(message.chat.id, user_id)
+        send_fsub_prompt(message.chat.id)
         return
 
     query = message.text.strip()
@@ -220,7 +284,7 @@ def search_poster(message):
     elif query.startswith("/poster "):
         query = query[8:].strip()
 
-    status_msg = bot.reply_to(message, f"🔍 <i>Searching 16:9 poster layout for:</i> <code>{query}</code>...", parse_mode="HTML")
+    status_msg = bot.reply_to(message, f"<b><i>Searching <code>{query}</code>...</i></b>", parse_mode="HTML")
     
     if not TMDB_API_KEY:
         bot.edit_message_text("⚠️ <b>Error:</b> <code>TMDB_API_KEY</code> is missing in Render environment variables!", message.chat.id, status_msg.message_id, parse_mode="HTML")
@@ -270,8 +334,8 @@ def search_poster(message):
                 if provider_link:
                     caption_lines.append(f"<b>{provider_label}:</b> {provider_link}\n")
                 
-                caption_lines.append(f"<b>ᴘᴏʀᴛʀᴀɪᴛ:</b> <a href=\"{portrait_url_original}\">ᴄʟɪᴄᴋ ʜᴇʀᴇ</a>\n")
-                caption_lines.append(f"<b>ᴄᴏᴠᴇʀ:</b> <a href=\"{backdrop_url_original}\">ᴄʟɪᴄᴋ ʜᴇʀᴇ</a>\n")
+                caption_lines.append(f"<b>ᴘᴏʀᴛʀᴀɪᴛ:</b> <a href=\"{portrait_url_original}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</a></b>\n")
+                caption_lines.append(f"<b>ᴄᴏᴠᴇʀ:</b> <a href=\"{backdrop_url_original}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</a></b>\n")
                 caption_lines.append(f"<b>{title} ({year})</b>")
                 
                 caption = "\n".join(caption_lines)
