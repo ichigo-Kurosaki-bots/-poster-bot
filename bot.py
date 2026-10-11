@@ -2,7 +2,7 @@ import os
 import io
 import telebot
 import requests
-from flask import Flask
+from flask import Flask, send_file
 import threading
 from PIL import Image, ImageDraw, ImageFont
 
@@ -18,6 +18,12 @@ session = requests.Session()
 USERS_DB = set()
 FORCE_SUB_CHANNELS = [] # e.g. ["@Aero_Unity"]
 
+# Temporary in-memory cache for processed images to serve via Flask web route with titles
+PROCESSED_IMAGES_CACHE = {}
+
+# REPLACE WITH YOUR ACTUAL TELEGRAM USER ID (Integer)
+OWNER_ID = 7284759394 # <--- Put your Telegram numeric User ID here!
+
 # Custom Image URLs
 START_IMAGE_URL = "https://telegra.ph/file/2ab528ba65c23832cdcf6-4ff26f1b433ef961eb.jpg"
 ABOUT_IMAGE_URL = "https://graph.org/file/283e03b08d8306b8d85af-8436c3be9697b2374c.jpg"
@@ -26,6 +32,15 @@ FSUB_IMAGE_URL  = "https://graph.org/file/faf795187aa693e1024a4-746b376c8dcc889d
 @app.route('/')
 def home():
     return "Mohammed Poster Bot is running 24/7!"
+
+@app.route('/poster/<item_id>')
+def serve_poster(item_id):
+    """Flask route to serve the generated poster image with the title burned in."""
+    if item_id in PROCESSED_IMAGES_CACHE:
+        img_io = PROCESSED_IMAGES_CACHE[item_id]
+        img_io.seek(0)
+        return send_file(img_io, mimetype='image/jpeg')
+    return "Poster not found or expired.", 404
 
 def is_user_member(user_id):
     if not FORCE_SUB_CHANNELS:
@@ -177,14 +192,20 @@ def handle_callbacks(call):
             except Exception:
                 bot.send_photo(call.message.chat.id, START_IMAGE_URL, caption=welcome_text, parse_mode="HTML", reply_markup=markup)
 
-# --- Admin Force Sub & Stats Commands ---
+# --- Admin-Only Commands ---
 @bot.message_handler(commands=['stats'])
 def bot_stats(message):
+    if message.from_user.id != OWNER_ID:
+        bot.reply_to(message, "❌ <b>Access Denied:</b> This command is restricted to the bot owner only.", parse_mode="HTML")
+        return
     total_users = len(USERS_DB)
     bot.reply_to(message, f"📊 <b>Bot Statistics:</b>\n\n👥 Total Unique Users: <code>{total_users}</code>", parse_mode="HTML")
 
 @bot.message_handler(commands=['addforcesub'])
 def add_force_sub(message):
+    if message.from_user.id != OWNER_ID:
+        bot.reply_to(message, "❌ <b>Access Denied:</b> This command is restricted to the bot owner only.", parse_mode="HTML")
+        return
     args = message.text.split()
     if len(args) > 1:
         channel = args[1].strip()
@@ -198,6 +219,9 @@ def add_force_sub(message):
 
 @bot.message_handler(commands=['removeforce'])
 def remove_force_sub(message):
+    if message.from_user.id != OWNER_ID:
+        bot.reply_to(message, "❌ <b>Access Denied:</b> This command is restricted to the bot owner only.", parse_mode="HTML")
+        return
     args = message.text.split()
     if len(args) > 1:
         channel = args[1].strip()
@@ -211,6 +235,9 @@ def remove_force_sub(message):
 
 @bot.message_handler(commands=['fsublist'])
 def list_force_sub(message):
+    if message.from_user.id != OWNER_ID:
+        bot.reply_to(message, "❌ <b>Access Denied:</b> This command is restricted to the bot owner only.", parse_mode="HTML")
+        return
     if FORCE_SUB_CHANNELS:
         channels_str = "\n".join([f"• <code>{ch}</code>" for ch in FORCE_SUB_CHANNELS])
         bot.reply_to(message, f"📢 <b>Force Subscription Channels:</b>\n\n{channels_str}", parse_mode="HTML")
@@ -296,6 +323,7 @@ def search_poster(message):
 
             item = valid_items[0]
             title = item.get("title") or item.get("name") or "Unknown Title"
+            item_id = str(item.get("id"))
             
             release_date = item.get("release_date") or item.get("first_air_date") or ""
             year = release_date.split("-")[0] if release_date else "N/A"
@@ -310,10 +338,16 @@ def search_poster(message):
             if img_response.status_code == 200:
                 processed_image = add_title_overlay(img_response.content, title)
                 
+                # Cache processed image so Flask serves the image WITH the title
+                PROCESSED_IMAGES_CACHE[item_id] = processed_image
+                
+                app_url = os.environ.get("RENDER_EXTERNAL_URL", "https://your-app-name.onrender.com")
+                titled_poster_url = f"{app_url}/poster/{item_id}"
+                
                 caption_lines = [
                     "<b>ᴍᴏʜᴀᴍᴍᴇᴅ ᴘᴏsᴛᴇʀ ʙᴏᴛ</b>\n",
                     f"<b>ᴘᴏʀᴛʀᴀɪᴛ:</b> <a href=\"{portrait_url_original}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</b></a>\n",
-                    f"<b>ᴄᴏᴠᴇʀ:</b> <a href=\"{backdrop_url_original}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</b></a>\n",
+                    f"<b>ᴄᴏᴠᴇʀ:</b> <a href=\"{titled_poster_url}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</b></a>\n",
                     f"<b>{title} ({year})</b>"
                 ]
                 
@@ -321,7 +355,7 @@ def search_poster(message):
                 
                 markup = telebot.types.InlineKeyboardMarkup()
                 aero_button = telebot.types.InlineKeyboardButton(text="• ᴀᴇʀᴏ ᴜɴɪᴛʏ •", url="https://t.me/Aero_Unity")
-                open_image_button = telebot.types.InlineKeyboardButton(text="ᴏᴘᴇɴ ɪᴍᴀɢᴇ ↗", url=backdrop_url_original)
+                open_image_button = telebot.types.InlineKeyboardButton(text="ᴏᴘᴇɴ ɪᴍᴀɢᴇ ↗", url=titled_poster_url)
                 markup.row(aero_button, open_image_button)
                 
                 bot.delete_message(message.chat.id, status_msg.message_id)
