@@ -16,8 +16,9 @@ app = Flask(__name__)
 
 session = requests.Session()
 
-# Temporary in-memory cache for processed 16:9 images to serve via Flask web route
-PROCESSED_IMAGES_CACHE = {}
+# Persistent directory cache for processed images so web links never expire with an Internal Server Error
+CACHE_DIR = "poster_cache"
+os.makedirs(CACHE_DIR, exist_ok=True)
 
 # YOUR OWNER ID
 OWNER_ID = 7284759394
@@ -152,11 +153,10 @@ def home():
 
 @app.route('/poster/<item_id>')
 def serve_poster(item_id):
-    """Flask route to serve the generated 16:9 poster with official logo overlay."""
-    if item_id in PROCESSED_IMAGES_CACHE:
-        img_io = PROCESSED_IMAGES_CACHE[item_id]
-        img_io.seek(0)
-        return send_file(img_io, mimetype='image/jpeg')
+    """Flask route to reliably serve the cached poster image file."""
+    file_path = os.path.join(CACHE_DIR, f"{item_id}.jpg")
+    if os.path.exists(file_path):
+        return send_file(file_path, mimetype='image/jpeg')
     return "Poster not found or expired.", 404
 
 def is_user_member(user_id):
@@ -442,7 +442,6 @@ def get_tmdb_logo_url(item_id, media_type):
         res = session.get(url, timeout=4).json()
         logos = res.get("logos", [])
         if logos:
-            # Prefer English logos if available
             en_logos = [l for l in logos if l.get("iso_639_1") == "en"]
             selected_logo = en_logos[0] if en_logos else logos[0]
             return f"https://image.tmdb.org/t/p/original{selected_logo['file_path']}"
@@ -459,14 +458,12 @@ def add_title_overlay(image_bytes, title_text, logo_url=None):
     
     logo_applied = False
     
-    # Attempt to paste official PNG logo if available
     if logo_url:
         try:
             logo_res = session.get(logo_url, timeout=5)
             if logo_res.status_code == 200:
                 logo_img = Image.open(io.BytesIO(logo_res.content)).convert("RGBA")
                 
-                # Resize logo appropriately (max width 60%, max height 30% of canvas)
                 max_logo_w = int(target_width * 0.6)
                 max_logo_h = int(target_height * 0.3)
                 logo_img.thumbnail((max_logo_w, max_logo_h), Image.Resampling.LANCZOS)
@@ -475,13 +472,11 @@ def add_title_overlay(image_bytes, title_text, logo_url=None):
                 x = int((target_width - logo_w) / 2)
                 y = int(target_height - logo_h - (target_height * 0.08))
                 
-                # Paste transparent PNG logo onto 16:9 canvas
                 image.paste(logo_img, (x, y), logo_img)
                 logo_applied = True
         except Exception:
             pass
 
-    # Fallback to Serif typography if official logo is missing
     if not logo_applied:
         rgb_image = image.convert("RGB")
         draw = ImageDraw.Draw(rgb_image)
@@ -590,15 +585,16 @@ def search_poster(message):
             backdrop_url_original = f"https://image.tmdb.org/t/p/original{backdrop_path}"
             portrait_url_original = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else backdrop_url_original
             
-            # Fetch official title logo PNG
             logo_url = get_tmdb_logo_url(item_id, media_type)
             
             img_response = session.get(backdrop_url_original, timeout=8)
             if img_response.status_code == 200:
-                # Generate 16:9 widescreen poster with official logo overlay
-                processed_image = add_title_overlay(img_response.content, title, logo_url)
+                # Generate logo-embedded image and save permanently to disk cache
+                processed_image_io = add_title_overlay(img_response.content, title, logo_url)
                 
-                PROCESSED_IMAGES_CACHE[item_id] = processed_image
+                file_path = os.path.join(CACHE_DIR, f"{item_id}.jpg")
+                with open(file_path, "wb") as f:
+                    f.write(processed_image_io.getvalue())
                 
                 app_url = os.environ.get("RENDER_EXTERNAL_URL") or request.host_url.rstrip('/')
                 titled_poster_url = f"{app_url}/poster/{item_id}"
@@ -618,9 +614,11 @@ def search_poster(message):
                 markup.row(aero_button, open_image_button)
                 
                 bot.delete_message(message.chat.id, status_msg.message_id)
+                
+                # Send the clean original backdrop image directly in the chat as requested
                 bot.send_photo(
                     chat_id=message.chat.id,
-                    photo=processed_image,
+                    photo=backdrop_url_original,
                     caption=caption,
                     parse_mode="HTML",
                     reply_markup=markup
