@@ -32,7 +32,6 @@ def add_title_overlay(image_bytes, title_text):
     draw = ImageDraw.Draw(image)
     width, height = image.size
     
-    # Load default linux font or fallback to default
     try:
         font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
         font_size = int(height * 0.08)
@@ -40,7 +39,6 @@ def add_title_overlay(image_bytes, title_text):
     except:
         font = ImageFont.load_default()
 
-    # Calculate text dimensions
     try:
         bbox = draw.textbbox((0, 0), title_text, font=font)
         text_width = bbox[2] - bbox[0]
@@ -51,13 +49,11 @@ def add_title_overlay(image_bytes, title_text):
     x = (width - text_width) / 2
     y = height - text_height - int(height * 0.1)
 
-    # Draw text outline/shadow for high visibility
     outline_range = 3
     for adj_x in range(-outline_range, outline_range + 1):
         for adj_y in range(-outline_range, outline_range + 1):
             draw.text((x + adj_x, y + adj_y), title_text, font=font, fill="black")
 
-    # Draw main text in white
     draw.text((x, y), title_text, font=font, fill="white")
 
     output = io.BytesIO()
@@ -65,11 +61,28 @@ def add_title_overlay(image_bytes, title_text):
     output.seek(0)
     return output
 
+def get_watch_provider_link(item_id, media_type):
+    """Fetches watch provider link (e.g. Prime Video / Netflix) from TMDb."""
+    endpoint = "movie" if media_type == "movie" else "tv"
+    watch_url = f"https://api.themoviedb.org/3/{endpoint}/{item_id}/watch/providers?api_key={TMDB_API_KEY}"
+    try:
+        res = requests.get(watch_url).json()
+        results = res.get("results", {})
+        for country in ["US", "IN", "GB"]:
+            if country in results and "link" in results[country]:
+                return "Prime Video / Streaming Link", results[country]["link"]
+        if results:
+            first_country = list(results.keys())[0]
+            if "link" in results[first_country]:
+                return "Streaming Provider Link", results[first_country]["link"]
+    except Exception:
+        pass
+    return None, None
+
 @bot.message_handler(func=lambda message: True)
 def search_poster(message):
     query = message.text.strip()
     
-    # Remove leading command if user types /p or /poster
     if query.startswith("/p "):
         query = query[3:].strip()
     elif query.startswith("/poster "):
@@ -95,6 +108,9 @@ def search_poster(message):
         if results:
             item = next((i for i in results if i.get("backdrop_path")), results[0])
             title = item.get("title") or item.get("name") or "Unknown Title"
+            item_id = item.get("id")
+            media_type = item.get("media_type", "movie")
+            
             release_date = item.get("release_date") or item.get("first_air_date") or ""
             year = release_date.split("-")[0] if release_date else "N/A"
             
@@ -105,21 +121,29 @@ def search_poster(message):
                 backdrop_url_original = f"https://image.tmdb.org/t/p/original{backdrop_path}"
                 portrait_url_original = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else backdrop_url_original
                 
-                # Fetch image bytes
+                # Fetch OTT / Watch Provider link
+                provider_label, provider_link = get_watch_provider_link(item_id, media_type)
+                
+                # Fetch background image bytes
                 img_response = requests.get(backdrop_url_original)
                 if img_response.status_code == 200:
                     processed_image = add_title_overlay(img_response.content, title)
                     
-                    # Formatted text matching your screenshot
-                    user_name = message.from_user.first_name if message.from_user else "User"
-                    caption = (
-                        f"<b>Mohammed Poster Bot</b>  <i>Admin</i>\n\n"
-                        f"<b>Portrait:</b> <a href=\"{portrait_url_original}\">Click Here</a>\n\n"
-                        f"<b>Cover:</b> <a href=\"{backdrop_url_original}\">Click Here</a>\n\n"
-                        f"<b>{title} ({year})</b>"
-                    )
+                    # Styled caption using small caps styling for text
+                    caption_lines = [
+                        "<b>ᴍᴏʜᴀᴍᴍᴇᴅ ᴘᴏsᴛᴇʀ ʙᴏᴛ</b>  <i>ᴀᴅᴍɪɴ</i>\n"
+                    ]
                     
-                    # Updates button at the bottom
+                    if provider_link:
+                        caption_lines.append(f"<b>ᴘʀɪᴍᴇ ᴠɪᴅᴇᴏ ᴘᴏsᴛᴇʀ:</b> {provider_link}\n")
+                    
+                    caption_lines.append(f"<b>ᴘᴏʀᴛʀᴀɪᴛ:</b> <a href=\"{portrait_url_original}\">ᴄʟɪᴄᴋ ʜᴇʀᴇ</a>\n")
+                    caption_lines.append(f"<b>ᴄᴏᴠᴇʀ:</b> <a href=\"{backdrop_url_original}\">ᴄʟɪᴄᴋ ʜᴇʀᴇ</a>\n")
+                    caption_lines.append(f"<b>{title} ({year})</b>")
+                    
+                    caption = "\n".join(caption_lines)
+                    
+                    # Updates button for Aero Unity channel
                     markup = telebot.types.InlineKeyboardMarkup()
                     updates_button = telebot.types.InlineKeyboardButton(text="• ᴀᴇʀᴏ ᴜɴɪᴛʏ •", url="https://t.me/Aero_Unity")
                     markup.add(updates_button)
