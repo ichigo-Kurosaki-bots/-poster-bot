@@ -56,6 +56,30 @@ def set_global_pm_search(enabled):
     except Exception:
         pass
 
+def get_pm_search_status(user_id):
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT pm_search_enabled FROM users WHERE user_id = ?", (user_id,))
+        row = cursor.fetchone()
+        conn.close()
+        if row is not None and row[0] is not None:
+            return bool(row[0])
+        return True
+    except Exception:
+        return True
+
+def set_pm_search_status(user_id, enabled):
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET pm_search_enabled = ? WHERE user_id = ?", (1 if enabled else 0, user_id))
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+
 def add_user(user_id, first_name):
     try:
         conn = sqlite3.connect(DB_NAME)
