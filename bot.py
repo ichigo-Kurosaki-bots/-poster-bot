@@ -16,7 +16,7 @@ app = Flask(__name__)
 
 session = requests.Session()
 
-# Temporary in-memory cache for processed 16:9 images to serve via Flask web route with titles
+# Temporary in-memory cache for processed 16:9 images to serve via Flask web route
 PROCESSED_IMAGES_CACHE = {}
 
 # YOUR OWNER ID
@@ -152,7 +152,7 @@ def home():
 
 @app.route('/poster/<item_id>')
 def serve_poster(item_id):
-    """Flask route to serve the 16:9 widescreen generated poster image with the title burned in."""
+    """Flask route to serve the generated 16:9 poster with official logo overlay."""
     if item_id in PROCESSED_IMAGES_CACHE:
         img_io = PROCESSED_IMAGES_CACHE[item_id]
         img_io.seek(0)
@@ -434,65 +434,103 @@ def list_force_sub(message):
     else:
         bot.reply_to(message, "ℹ️ No Force Subscription channels are currently set.", parse_mode="HTML")
 
-# --- Poster Generation Logic (16:9 Widescreen with Serif Font Typography) ---
-def add_title_overlay(image_bytes, title_text):
-    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+# --- Helper: Fetch Official Title Logo PNG from TMDb ---
+def get_tmdb_logo_url(item_id, media_type):
+    endpoint = "movie" if media_type == "movie" else "tv"
+    url = f"https://api.themoviedb.org/3/{endpoint}/{item_id}/images?api_key={TMDB_API_KEY}"
+    try:
+        res = session.get(url, timeout=4).json()
+        logos = res.get("logos", [])
+        if logos:
+            # Prefer English logos if available
+            en_logos = [l for l in logos if l.get("iso_639_1") == "en"]
+            selected_logo = en_logos[0] if en_logos else logos[0]
+            return f"https://image.tmdb.org/t/p/original{selected_logo['file_path']}"
+    except Exception:
+        pass
+    return None
+
+# --- Poster Generation Logic (Overlay Official Logo PNG or Serif Fallback) ---
+def add_title_overlay(image_bytes, title_text, logo_url=None):
+    image = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
     target_width = 1280
     target_height = 720
     image = image.resize((target_width, target_height), Image.Resampling.LANCZOS)
     
-    draw = ImageDraw.Draw(image)
-    width, height = image.size
+    logo_applied = False
     
-    try:
-        font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf"
-        font_size = int(height * 0.10)
-        font = ImageFont.truetype(font_path, font_size)
-    except:
+    # Attempt to paste official PNG logo if available
+    if logo_url:
         try:
-            font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-            font_size = int(height * 0.08)
+            logo_res = session.get(logo_url, timeout=5)
+            if logo_res.status_code == 200:
+                logo_img = Image.open(io.BytesIO(logo_res.content)).convert("RGBA")
+                
+                # Resize logo appropriately (max width 60%, max height 30% of canvas)
+                max_logo_w = int(target_width * 0.6)
+                max_logo_h = int(target_height * 0.3)
+                logo_img.thumbnail((max_logo_w, max_logo_h), Image.Resampling.LANCZOS)
+                
+                logo_w, logo_h = logo_img.size
+                x = int((target_width - logo_w) / 2)
+                y = int(target_height - logo_h - (target_height * 0.08))
+                
+                # Paste transparent PNG logo onto 16:9 canvas
+                image.paste(logo_img, (x, y), logo_img)
+                logo_applied = True
+        except Exception:
+            pass
+
+    # Fallback to Serif typography if official logo is missing
+    if not logo_applied:
+        rgb_image = image.convert("RGB")
+        draw = ImageDraw.Draw(rgb_image)
+        width, height = rgb_image.size
+        
+        try:
+            font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf"
+            font_size = int(height * 0.10)
             font = ImageFont.truetype(font_path, font_size)
         except:
             font = ImageFont.load_default()
 
-    words = title_text.split()
-    if len(words) > 3:
-        mid = len(words) // 2
-        line1 = " ".join(words[:mid])
-        line2 = " ".join(words[mid:])
-        title_lines = [line1, line2]
-    else:
-        title_lines = [title_text]
+        words = title_text.split()
+        if len(words) > 3:
+            mid = len(words) // 2
+            line1 = " ".join(words[:mid])
+            line2 = " ".join(words[mid:])
+            title_lines = [line1, line2]
+        else:
+            title_lines = [title_text]
 
-    line_heights = []
-    line_widths = []
-    for line in title_lines:
-        try:
-            bbox = draw.textbbox((0, 0), line, font=font)
-            w = bbox[2] - bbox[0]
-            h = bbox[3] - bbox[1]
-        except:
-            w, h = draw.textsize(line, font=font)
-        line_widths.append(w)
-        line_heights.append(h)
+        line_heights = []
+        line_widths = []
+        for line in title_lines:
+            try:
+                bbox = draw.textbbox((0, 0), line, font=font)
+                w = bbox[2] - bbox[0]
+                h = bbox[3] - bbox[1]
+            except:
+                w, h = draw.textsize(line, font=font)
+            line_widths.append(w)
+            line_heights.append(h)
 
-    total_text_height = sum(line_heights) + (len(title_lines) - 1) * 10
-    y = height - total_text_height - int(height * 0.10)
+        total_text_height = sum(line_heights) + (len(title_lines) - 1) * 10
+        y = height - total_text_height - int(height * 0.10)
 
-    for i, line in enumerate(title_lines):
-        x = (width - line_widths[i]) / 2
-        
-        outline_range = 3
-        for adj_x in range(-outline_range, outline_range + 1):
-            for adj_y in range(-outline_range, outline_range + 1):
-                draw.text((x + adj_x, y + adj_y), line, font=font, fill="black")
+        for i, line in enumerate(title_lines):
+            x = (width - line_widths[i]) / 2
+            outline_range = 3
+            for adj_x in range(-outline_range, outline_range + 1):
+                for adj_y in range(-outline_range, outline_range + 1):
+                    draw.text((x + adj_x, y + adj_y), line, font=font, fill="black")
 
-        draw.text((x, y), line, font=font, fill="white")
-        y += line_heights[i] + 10
+            draw.text((x, y), line, font=font, fill="white")
+            y += line_heights[i] + 10
+        image = rgb_image
 
     output = io.BytesIO()
-    image.save(output, format="JPEG", quality=90)
+    image.convert("RGB").save(output, format="JPEG", quality=92)
     output.seek(0)
     return output
 
@@ -541,6 +579,7 @@ def search_poster(message):
             item = valid_items[0]
             title = item.get("title") or item.get("name") or "Unknown Title"
             item_id = str(item.get("id"))
+            media_type = item.get("media_type", "movie")
             
             release_date = item.get("release_date") or item.get("first_air_date") or ""
             year = release_date.split("-")[0] if release_date else "N/A"
@@ -551,13 +590,16 @@ def search_poster(message):
             backdrop_url_original = f"https://image.tmdb.org/t/p/original{backdrop_path}"
             portrait_url_original = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else backdrop_url_original
             
+            # Fetch official title logo PNG
+            logo_url = get_tmdb_logo_url(item_id, media_type)
+            
             img_response = session.get(backdrop_url_original, timeout=8)
             if img_response.status_code == 200:
-                processed_image = add_title_overlay(img_response.content, title)
+                # Generate 16:9 widescreen poster with official logo overlay
+                processed_image = add_title_overlay(img_response.content, title, logo_url)
                 
                 PROCESSED_IMAGES_CACHE[item_id] = processed_image
                 
-                # Automatically use Render external URL or fallback to request root
                 app_url = os.environ.get("RENDER_EXTERNAL_URL") or request.host_url.rstrip('/')
                 titled_poster_url = f"{app_url}/poster/{item_id}"
                 
