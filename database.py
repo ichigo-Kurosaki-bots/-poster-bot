@@ -9,8 +9,7 @@ def init_db():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             user_id INTEGER PRIMARY KEY,
-            first_name TEXT,
-            pm_search_enabled INTEGER DEFAULT 1
+            first_name TEXT
         )
     """)
     cursor.execute("""
@@ -23,42 +22,46 @@ def init_db():
             user_id INTEGER PRIMARY KEY
         )
     """)
-    try:
-        cursor.execute("ALTER TABLE users ADD COLUMN pm_search_enabled INTEGER DEFAULT 1")
-    except Exception:
-        pass
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value INTEGER DEFAULT 1
+        )
+    """)
+    # Set default global pm_search_enabled to ON (1) if not exists
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('global_pm_search', 1)")
     conn.commit()
     conn.close()
 
-def add_user(user_id, first_name):
+def get_global_pm_search():
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        cursor.execute("INSERT OR IGNORE INTO users (user_id, first_name, pm_search_enabled) VALUES (?, ?, 1)", (user_id, first_name))
-        cursor.execute("UPDATE users SET first_name = ? WHERE user_id = ?", (first_name, user_id))
-        conn.commit()
-        conn.close()
-    except Exception:
-        pass
-
-def get_pm_search_status(user_id):
-    try:
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute("SELECT pm_search_enabled FROM users WHERE user_id = ?", (user_id,))
+        cursor.execute("SELECT value FROM settings WHERE key = 'global_pm_search'")
         row = cursor.fetchone()
         conn.close()
-        if row is not None and row[0] is not None:
+        if row is not None:
             return bool(row[0])
         return True
     except Exception:
         return True
 
-def set_pm_search_status(user_id, enabled):
+def set_global_pm_search(enabled):
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        cursor.execute("UPDATE users SET pm_search_enabled = ? WHERE user_id = ?", (1 if enabled else 0, user_id))
+        cursor.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('global_pm_search', ?)", (1 if enabled else 0,))
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+def add_user(user_id, first_name):
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("INSERT OR IGNORE INTO users (user_id, first_name) VALUES (?, ?)", (user_id, first_name))
+        cursor.execute("UPDATE users SET first_name = ? WHERE user_id = ?", (first_name, user_id))
         conn.commit()
         conn.close()
     except Exception:
