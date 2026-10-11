@@ -113,17 +113,13 @@ def send_welcome(message):
     except Exception:
         bot.send_message(message.chat.id, welcome_text, parse_mode="HTML", reply_markup=markup)
 
-# --- Command: Owner-Only PM Search Toggle (Usable in Group Only) ---
+# --- Command: Owner-Only PM Search Toggle (Usable in Bot PM) ---
 @bot.message_handler(commands=['pmsearch'])
 def toggle_pm_search(message):
     user_id = message.from_user.id
     
     if user_id != OWNER_ID:
         bot.reply_to(message, "❌ <b>access denied:</b> owner command only.", parse_mode="HTML")
-        return
-
-    if message.chat.type not in ['group', 'supergroup']:
-        bot.reply_to(message, "⚠️ <b>please use this command inside your poster group!</b>", parse_mode="HTML")
         return
 
     args = message.text.strip().split()
@@ -450,8 +446,8 @@ def search_poster(message):
         send_fsub_prompt(message.chat.id)
         return
 
-    # Check PM Search restriction if query is sent in Private Chat
-    if message.chat.type == "private":
+    # Check PM Search restriction if query is sent in Private Chat (Allows Owner regardless)
+    if message.chat.type == "private" and user_id != OWNER_ID:
         pm_enabled = database.get_pm_search_status(OWNER_ID)
         if not pm_enabled:
             access_denied_text = (
@@ -460,7 +456,7 @@ def search_poster(message):
                 "please use this bot in our poster group."
             )
             markup = telebot.types.InlineKeyboardMarkup()
-            group_btn = telebot.types.InlineKeyboardButton(text="• Join poster group •", url=POSTER_GROUP_URL)
+            group_btn = telebot.types.InlineKeyboardButton(text="• join poster group •", url=POSTER_GROUP_URL)
             markup.add(group_btn)
             bot.reply_to(message, access_denied_text, parse_mode="HTML", reply_markup=markup)
             return
