@@ -66,14 +66,14 @@ def send_fsub_prompt(chat_id):
     markup = telebot.types.InlineKeyboardMarkup()
     for channel in channels:
         channel_name = channel.replace("@", "")
-        markup.add(telebot.types.InlineKeyboardButton(text=f"• join {channel}", url=f"https://t.me/{channel_name}"))
+        markup.add(telebot.types.InlineKeyboardButton(text=f"• Jᴏɪɴ {channel} •", url=f"https://t.me/{channel_name}"))
     
-    markup.add(telebot.types.InlineKeyboardButton(text="🔄 check subscription", callback_data="check_fsub"))
+    markup.add(telebot.types.InlineKeyboardButton(text="• ᴄʜᴇᴄᴋ sᴜʙsᴄʀɪᴘᴛɪᴏɴ •", callback_data="check_fsub"))
     
     fsub_text = (
-        "⚠️ <b>access denied!</b>\n\n"
-        "you must join our update channels below to use this bot.\n"
-        "after joining, click <b>check subscription</b> to continue."
+        " <b>ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ</b>\n\n"
+        "<b>›› ‼️ ʟᴏᴏᴋs ʟɪᴋᴇ ʏᴏᴜ ʜᴀᴠᴇɴ'ᴛ ᴊᴏɪɴᴇᴅ ᴛᴏ ᴏᴜʀ ᴄʜᴀɴɴᴇʟs ʏᴇᴛ, sᴜʙsᴄʀɪʙᴇ ɴᴏw...</b>\n"
+        "<b>ᴀғᴛᴇʀ Jᴏɪɴɪɴɢ, ᴄʟɪᴄᴋ <i>ᴄʜᴇᴄᴋ sᴜʙsᴄʀɪᴘᴛɪᴏɴ</i> ᴛᴏ ᴄᴏɴᴛɪɴᴜᴇ.</b>"
     )
     try:
         bot.send_photo(chat_id, FSUB_IMAGE_URL, caption=fsub_text, parse_mode="HTML", reply_markup=markup)
@@ -87,7 +87,7 @@ def send_welcome(message):
     database.add_user(user_id, first_name)
     
     if database.is_banned(user_id):
-        bot.reply_to(message, "❌ <b>you are banned from using this bot.</b>", parse_mode="HTML")
+        bot.reply_to(message, " <b>you are banned from using this bot.</b>", parse_mode="HTML")
         return
     
     if not is_user_member(user_id):
@@ -95,15 +95,15 @@ def send_welcome(message):
         return
 
     welcome_text = (
-        "👋 <b>welcome to universal poster bot!</b>\n\n"
-        "send me any title (movies, series, anime, k-dramas, etc.), "
-        "and i will generate the 16:9 widescreen poster layout for you!"
+        "👋 <b>Wᴇʟᴄᴏᴍᴇ Tᴏ Uɴɪᴠᴇʀsᴀʟ Pᴏsᴛᴇʀ Bᴏᴛ</b>\n\n"
+        "<b>𝗌𝖾𝗇𝖽 𝗆𝖾 𝖺𝗇𝗒 𝗍𝗂𝗍𝗅𝖾 (𝗆𝗈𝗏𝗂𝖾𝗌, 𝗌𝖾𝗋𝗂𝖾𝗌, 𝖺𝗇𝗂𝗆𝖾, 𝗄-𝖽𝗋𝖺𝗆𝖺𝗌, 𝖾𝗍𝖼.),,  "
+        "𝖺𝗇𝖽 𝗂 𝗐𝗂𝗅𝗅 𝗀𝖾𝗇𝖾𝗋𝖺𝗍𝖾 𝗍𝗁𝖾 𝗉𝗈𝗌𝗍𝖾𝗋 𝗅𝖺𝗒𝗈𝗎𝗍 𝖿𝗈𝗋 𝗒𝗈𝗎</b>"
     )
     
     markup = telebot.types.InlineKeyboardMarkup(row_width=2)
-    about_btn = telebot.types.InlineKeyboardButton(text="• about •", callback_data="btn_about")
-    updates_btn = telebot.types.InlineKeyboardButton(text="• updates •", url="https://t.me/Aero_Unity")
-    owner_btn = telebot.types.InlineKeyboardButton(text="• owner •", url="https://t.me/Mr_Mohammed_29")
+    about_btn = telebot.types.InlineKeyboardButton(text="• Aʙᴏᴜᴛ •", callback_data="btn_about")
+    updates_btn = telebot.types.InlineKeyboardButton(text="• Uᴘᴅᴀᴛᴇs •", url="https://t.me/Aero_Unity")
+    owner_btn = telebot.types.InlineKeyboardButton(text="• Oᴡɴᴇʀ •", url="https://t.me/Mr_Mohammed_29")
     
     markup.row(about_btn, updates_btn)
     markup.row(owner_btn)
@@ -119,7 +119,7 @@ def toggle_pm_search(message):
     user_id = message.from_user.id
     
     if user_id != OWNER_ID:
-        bot.reply_to(message, "❌ <b>access denied:</b> owner command only.", parse_mode="HTML")
+        bot.reply_to(message, " <b>ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ: ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴍʏ sᴇɴᴘᴀɪ</b>", parse_mode="HTML")
         return
 
     args = message.text.strip().split()
@@ -136,14 +136,14 @@ def toggle_pm_search(message):
     else:
         status = database.get_global_pm_search()
         status_str = "🟢 <b>on</b>" if status else "🔴 <b>off</b>"
-        bot.reply_to(message, f"ℹ️ <b>pm search status:</b> {status_str}", parse_mode="HTML")
+        bot.reply_to(message, f" <b>PM Sᴇᴀʀᴄʜ Sᴛᴀᴛᴜs:</b> {status_str}", parse_mode="HTML")
 
 @bot.callback_query_handler(func=lambda call: True)
 def handle_callbacks(call):
     user_id = call.from_user.id
     
     if database.is_banned(user_id):
-        bot.answer_callback_query(call.id, "❌ you are banned from using this bot.", show_alert=True)
+        bot.answer_callback_query(call.id, " you are banned from using this bot.", show_alert=True)
         return
     
     if call.data == "check_fsub":
@@ -159,15 +159,15 @@ def handle_callbacks(call):
                 "to 𝗀𝖾𝗇𝖾𝗋𝖺𝗍𝖾 𝗍𝗁𝖾 𝗉𝗈𝗌𝗍𝖾𝗋 𝗅𝖺𝗒𝗈𝗎𝗍 𝖿𝗈𝗋 𝗒𝗈𝗎</b>"
             )
             markup = telebot.types.InlineKeyboardMarkup(row_width=2)
-            about_btn = telebot.types.InlineKeyboardButton(text="• about •", callback_data="btn_about")
-            updates_btn = telebot.types.InlineKeyboardButton(text="• updates •", url="https://t.me/Aero_Unity")
-            owner_btn = telebot.types.InlineKeyboardButton(text="• owner •", url="https://t.me/Mr_Mohammed_29")
+            about_btn = telebot.types.InlineKeyboardButton(text="• Aʙᴏᴜᴛ •", callback_data="btn_about")
+            updates_btn = telebot.types.InlineKeyboardButton(text="• Uᴘᴅᴀᴛᴇs •", url="https://t.me/Aero_Unity")
+            owner_btn = telebot.types.InlineKeyboardButton(text="• Oᴡɴᴇʀ •", url="https://t.me/Mr_Mohammed_29")
             markup.row(about_btn, updates_btn)
             markup.row(owner_btn)
             
             bot.send_photo(call.message.chat.id, START_IMAGE_URL, caption=welcome_text, parse_mode="HTML", reply_markup=markup)
         else:
-            bot.answer_callback_query(call.id, "❌ you haven't joined all channels yet!", show_alert=True)
+            bot.answer_callback_query(call.id, "›› ‼️ ʟᴏᴏᴋs ʟɪᴋᴇ ʏᴏᴜ ʜᴀᴠᴇɴ'ᴛ ᴊᴏɪɴᴇᴅ ᴛᴏ ᴏᴜʀ ᴄʜᴀɴɴᴇʟs", show_alert=True)
             
     elif call.data == "btn_about":
         about_text = (
@@ -180,9 +180,8 @@ def handle_callbacks(call):
             "‣ <b>ʙᴜɪʟᴅ sᴛᴀᴛᴜs : ᴠ3.9.1 [sᴛᴀʙʟᴇ] </b>"
         )
         markup = telebot.types.InlineKeyboardMarkup()
-        home_btn = telebot.types.InlineKeyboardButton(text="🏠 home", callback_data="btn_home")
+        home_btn = telebot.types.InlineKeyboardButton(text="• Hᴏᴍᴇ •", callback_data="btn_home")
         markup.add(home_btn)
-        
         try:
             bot.edit_message_media(
                 chat_id=call.message.chat.id,
