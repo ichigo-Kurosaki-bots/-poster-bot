@@ -335,17 +335,17 @@ def remove_force_sub(message):
         else:
             bot.reply_to(message, f"❌ channel <code>{channel}</code> not found in list.", parse_mode="HTML")
     else:
-        bot.reply_to(message, "⚠️ usage: <code>/removeforce @channelusername</code>", parse_mode="HTML")
+        bot.reply_to(message, " <code>/removeforce @channelusername</code>", parse_mode="HTML")
 
 @bot.message_handler(commands=['fsublist'])
 def list_force_sub(message):
     if message.from_user.id != OWNER_ID:
-        bot.reply_to(message, "❌ <b>access denied:</b> owner command only.", parse_mode="HTML")
+        bot.reply_to(message, " <b>ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ: ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴍʏ sᴇɴᴘᴀɪ </b>", parse_mode="HTML")
         return
     channels = database.get_fsub_channels()
     if channels:
-        channels_str = "\n".join([f"• <code>{ch}</code>" for ch in channels])
-        bot.reply_to(message, f"📢 <b>force subscription channels:</b>\n\n{channels_str}", parse_mode="HTML")
+        channels_str = "\n".join([f"• <code>{ch}</code> •" for ch in channels])
+        bot.reply_to(message, f" <b>force subscription channels:</b>\n\n{channels_str}", parse_mode="HTML")
     else:
         bot.reply_to(message, "ℹ️ no force subscription channels are currently set.", parse_mode="HTML")
 
