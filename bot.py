@@ -635,7 +635,7 @@ def search_poster(message):
     results = []
 
     try:
-        # 1. If a season flag is detected (e.g., "One Piece S01"), prioritize TV search first
+        # 1. If a season/series flag is detected (e.g., "The Mentalist S01"), target the TV endpoint strictly
         if season_number:
             tv_url = f"https://api.themoviedb.org/3/search/tv?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}"
             tv_res = session.get(tv_url, timeout=5)
@@ -643,14 +643,8 @@ def search_poster(message):
                 results = tv_res.json().get("results", [])
                 for r in results:
                     r["media_type"] = "tv"
-
-            if not results:
-                url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}{year_param}"
-                multi_res = session.get(url, timeout=5)
-                if multi_res.status_code == 200:
-                    results = multi_res.json().get("results", [])
         else:
-            # 2. For standard queries or movies, search movie endpoint first
+            # 2. For specific movie titles (like "Peddi" or "Avengers Endgame"), search the movie endpoint strictly first
             movie_url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}{year_param}&region=IN"
             res = session.get(movie_url, timeout=5)
             if res.status_code == 200:
@@ -658,12 +652,7 @@ def search_poster(message):
                 for r in results:
                     r["media_type"] = "movie"
 
-            if not results:
-                url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}{year_param}"
-                multi_res = session.get(url, timeout=5)
-                if multi_res.status_code == 200:
-                    results = multi_res.json().get("results", [])
-
+            # If no movie is found, check if it's a strict TV series match
             if not results:
                 tv_url = f"https://api.themoviedb.org/3/search/tv?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}"
                 tv_res = session.get(tv_url, timeout=5)
