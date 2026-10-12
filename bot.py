@@ -499,24 +499,26 @@ def search_poster(message):
         bot.edit_message_text("⚠️ <b>𝖾𝗋𝗋𝗈𝗋:</b> <code>tmdb_api_key</code> 𝗂𝗌 𝗆𝗂𝗌𝗌𝗂𝗇𝗀!.", message.chat.id, status_msg.message_id, parse_mode="HTML")
         return
 
-    # Build primary search query
+    # Build search query with release year filter
     year_param = f"&primary_release_year={search_year}" if search_year else ""
-    url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}{year_param}"
+    
+    # 1. First, search explicitly in movies endpoint (handles regional films like Nani's "The Paradise 2026")
+    movie_url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}{year_param}&region=IN"
     
     try:
-        res = session.get(url, timeout=5)
+        res = session.get(movie_url, timeout=5)
         results = res.json().get("results", []) if res.status_code == 200 else []
+        for r in results:
+            r["media_type"] = "movie"
 
-        # Fallback 1: Specific Movie Search with year if multi-search fails or yields invalid images
+        # 2. If no movie match found, perform multi-search
         if not results:
-            movie_url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}{year_param}"
-            m_res = session.get(movie_url, timeout=5)
-            if m_res.status_code == 200:
-                results = m_res.json().get("results", [])
-                for r in results:
-                    r["media_type"] = "movie"
+            url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}{year_param}"
+            multi_res = session.get(url, timeout=5)
+            if multi_res.status_code == 200:
+                results = multi_res.json().get("results", [])
 
-        # Fallback 2: Specific TV Search
+        # 3. Fallback to TV search if still no results
         if not results:
             tv_url = f"https://api.themoviedb.org/3/search/tv?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}"
             tv_res = session.get(tv_url, timeout=5)
