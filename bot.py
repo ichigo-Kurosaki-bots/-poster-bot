@@ -21,6 +21,9 @@ app = Flask(__name__)
 
 session = requests.Session()
 
+# Memory cache for active search results pagination
+SEARCH_CACHE = {}
+
 # Persistent directory cache for processed images so web links never expire with an Internal Server Error
 CACHE_DIR = "poster_cache"
 os.makedirs(CACHE_DIR, exist_ok=True)
@@ -444,6 +447,103 @@ def add_title_overlay(image_bytes, title_text, logo_url=None):
     image.convert("RGB").save(output, format="JPEG", quality=92)
     output.seek(0)
     return output
+
+def build_poster_page(search_id, index=0):
+    cache = SEARCH_CACHE.get(search_id)
+    if not cache:
+        return None, None, None
+
+    results = cache["results"]
+    total = len(results)
+    index = max(0, min(index, total - 1))
+    item = results[index]
+
+    title = item.get("title") or item.get("name") or "unknown title"
+    item_id = str(item.get("id"))
+    media_type = item.get("media_type", "movie")
+    season_number = cache.get("season_number")
+
+    release_date = item.get("release_date") or item.get("first_air_date") or ""
+    year = release_date.split("-")[0] if release_date else "n/a"
+
+    backdrop_path = item.get("backdrop_path")
+    poster_path = item.get("poster_path")
+
+    if season_number and media_type == "tv":
+        title = f"{title} season {season_number}"
+
+    backdrop_url_original = f"https://image.tmdb.org/t/p/original{backdrop_path}" if backdrop_path else f"https://image.tmdb.org/t/p/original{poster_path}"
+    portrait_url_original = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else backdrop_url_original
+
+    logo_url = get_tmdb_logo_url(item_id, media_type)
+    
+    img_response = session.get(backdrop_url_original, timeout=8)
+    if img_response.status_code == 200:
+        processed_image_io = add_title_overlay(img_response.content, title, logo_url)
+        
+        cache_key = f"{item_id}_s{season_number}_idx{index}" if season_number else f"{item_id}_idx{index}"
+        file_path = os.path.join(CACHE_DIR, f"{cache_key}.jpg")
+        with open(file_path, "wb") as f:
+            f.write(processed_image_io.getvalue())
+        
+        app_url = os.environ.get("RENDER_EXTERNAL_URL") or request.host_url.rstrip('/')
+        titled_poster_url = f"{app_url}/poster/{cache_key}"
+        
+        safe_title = html.escape(title)
+        
+        caption_lines = [
+            "<b>ᴍᴏʜᴀᴍᴍᴇᴅ ᴘᴏsᴛᴇʀ ʙᴏᴛ</b>\n",
+            f"<b>ᴘᴏʀᴛʀᴀɪᴛ :</b> <a href=\"{portrait_url_original}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</b></a>\n",
+            f"<b>ᴄᴏᴠᴇʀ :</b> <a href=\"{titled_poster_url}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</b></a>\n",
+            f"<b>ᴛɪᴛʟᴇ : {safe_title} ({year})</b>"
+        ]
+        
+        caption = "\n".join(caption_lines)
+
+        markup = telebot.types.InlineKeyboardMarkup()
+        
+        # Row 1: Pagination Buttons << < 1/N > >>
+        first_btn = telebot.types.InlineKeyboardButton(text="<<", callback_data=f"p_{search_id}_0")
+        prev_idx = max(0, index - 1)
+        prev_btn = telebot.types.InlineKeyboardButton(text="<", callback_data=f"p_{search_id}_{prev_idx}")
+        count_btn = telebot.types.InlineKeyboardButton(text=f"{index+1}/{total}", callback_data="noop")
+        next_idx = min(total - 1, index + 1)
+        next_btn = telebot.types.InlineKeyboardButton(text=">", callback_data=f"p_{search_id}_{next_idx}")
+        last_btn = telebot.types.InlineKeyboardButton(text=">>", callback_data=f"p_{search_id}_{total-1}")
+        
+        markup.row(first_btn, prev_btn, count_btn, next_btn, last_btn)
+        
+        # Row 2: Aero Unity | Open Image
+        aero_button = telebot.types.InlineKeyboardButton(text="• ᴀᴇʀᴏ ᴜɴɪᴛʏ •", url="https://t.me/Aero_Unity")
+        open_image_button = telebot.types.InlineKeyboardButton(text="• ᴏᴘᴇɴ ɪᴍᴀɢᴇ •", url=titled_poster_url)
+        markup.row(aero_button, open_image_button)
+
+        return backdrop_url_original, caption, markup
+
+    return None, None, None
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("p_") or call.data == "noop")
+def handle_pagination(call):
+    if call.data == "noop":
+        bot.answer_callback_query(call.id)
+        return
+    
+    parts = call.data.split("_")
+    search_id = parts[1]
+    index = int(parts[2])
+
+    photo_url, caption, markup = build_poster_page(search_id, index)
+    if photo_url:
+        try:
+            bot.edit_message_media(
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                media=telebot.types.InputMediaPhoto(photo_url, caption=caption, parse_mode="HTML"),
+                reply_markup=markup
+            )
+        except Exception:
+            pass
+    bot.answer_callback_query(call.id)
 
 @bot.message_handler(func=lambda message: True)
 def search_poster(message):
