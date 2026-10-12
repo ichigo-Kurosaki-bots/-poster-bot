@@ -502,40 +502,51 @@ def search_poster(message):
     # Build search query with release year filter
     year_param = f"&primary_release_year={search_year}" if search_year else ""
     
-    # 1. If a season is explicitly requested (e.g. "One Piece S01"), prioritize TV search first
+    # 1. If a season flag is detected (e.g., "One Piece S01"), prioritize TV search first
     if season_number:
         tv_url = f"https://api.themoviedb.org/3/search/tv?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}"
-        tv_res = session.get(tv_url, timeout=5)
-        results = tv_res.json().get("results", []) if tv_res.status_code == 200 else []
-        for r in results:
-            r["media_type"] = "tv"
-
-        if not results:
-            url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}{year_param}"
-            multi_res = session.get(url, timeout=5)
-            if multi_res.status_code == 200:
-                results = multi_res.json().get("results", [])
-    else:
-        # 2. For regular queries or movies, search the movie endpoint first
-        movie_url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}{year_param}&region=IN"
-        res = session.get(movie_url, timeout=5)
-        results = res.json().get("results", []) if res.status_code == 200 else []
-        for r in results:
-            r["media_type"] = "movie"
-
-        if not results:
-            url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}{year_param}"
-            multi_res = session.get(url, timeout=5)
-            if multi_res.status_code == 200:
-                results = multi_res.json().get("results", [])
-
-        if not results:
-            tv_url = f"https://api.themoviedb.org/3/search/tv?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}"
+        try:
             tv_res = session.get(tv_url, timeout=5)
-            if tv_res.status_code == 200:
-                results = tv_res.json().get("results", [])
-                for r in results:
-                    r["media_type"] = "tv"
+            results = tv_res.json().get("results", []) if tv_res.status_code == 200 else []
+            for r in results:
+                r["media_type"] = "tv"
+        except Exception:
+            results = []
+
+        # Fallback to multi-search if TV endpoint returns nothing
+        if not results:
+            url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}{year_param}"
+            try:
+                multi_res = session.get(url, timeout=5)
+                if multi_res.status_code == 200:
+                    results = multi_res.json().get("results", [])
+            except Exception:
+                results = []
+    else:
+        # 2. For standard queries or movies, search movie endpoint first
+        movie_url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}{year_param}&region=IN"
+        try:
+            res = session.get(movie_url, timeout=5)
+            results = res.json().get("results", []) if res.status_code == 200 else []
+            for r in results:
+                r["media_type"] = "movie"
+
+            if not results:
+                url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}{year_param}"
+                multi_res = session.get(url, timeout=5)
+                if multi_res.status_code == 200:
+                    results = multi_res.json().get("results", [])
+
+            if not results:
+                tv_url = f"https://api.themoviedb.org/3/search/tv?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}"
+                tv_res = session.get(tv_url, timeout=5)
+                if tv_res.status_code == 200:
+                    results = tv_res.json().get("results", [])
+                    for r in results:
+                        r["media_type"] = "tv"
+        except Exception:
+            results = []
+
 
         if results:
             valid_items = [i for i in results if i.get("backdrop_path") or i.get("poster_path")]
