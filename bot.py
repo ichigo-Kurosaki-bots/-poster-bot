@@ -473,8 +473,7 @@ def build_poster_page(search_id, index=0):
         title = f"{title} season {season_number}"
 
     backdrop_url_original = f"https://image.tmdb.org/t/p/original{backdrop_path}" if backdrop_path else f"https://image.tmdb.org/t/p/original{poster_path}"
-    portrait_url_original = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else backdrop_url_original
-
+    
     logo_url = get_tmdb_logo_url(item_id, media_type)
     
     img_response = session.get(backdrop_url_original, timeout=8)
@@ -492,17 +491,18 @@ def build_poster_page(search_id, index=0):
         safe_title = html.escape(title)
         
         caption_lines = [
-            "<b>ᴍᴏʜᴀᴍᴍᴇᴅ ᴘᴏsᴛᴇʀ ʙᴏᴛ</b>\n",
-            f"<b>ᴘᴏʀᴛʀᴀɪᴛ :</b> <a href=\"{portrait_url_original}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</b></a>\n",
-            f"<b>ᴄᴏᴠᴇʀ :</b> <a href=\"{titled_poster_url}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</b></a>\n",
-            f"<b>ᴛɪᴛʟᴇ : {safe_title} ({year})</b>"
+            f"<b>{safe_title} ({year})</b>\n",
+            "• <b>Type :</b> Landscape",
+            "• <b>Language :</b> EN",
+            "• <b>Resolution :</b> 1920x1080\n",
+            f"• <a href=\"{titled_poster_url}\"><b>Direct Link</b></a>"
         ]
         
         caption = "\n".join(caption_lines)
 
         markup = telebot.types.InlineKeyboardMarkup()
         
-        # Row 1: Pagination Buttons << < 1/N > >>
+        # Row 1: Pagination Buttons << < 2/4 > >>
         first_btn = telebot.types.InlineKeyboardButton(text="<<", callback_data=f"p_{search_id}_0")
         prev_idx = max(0, index - 1)
         prev_btn = telebot.types.InlineKeyboardButton(text="<", callback_data=f"p_{search_id}_{prev_idx}")
@@ -647,84 +647,29 @@ def search_poster(message):
                 bot.edit_message_text("‼️ ɪᴍᴀɢᴇ ʙᴀɴɴᴇʀ ɴᴏᴛ ᴀᴠᴀɪʟᴀʙʟᴇ ꜰᴏʀ ᴛʜɪs ᴛɪᴛʟᴇ.", message.chat.id, status_msg.message_id)
                 return
 
-            item = valid_items[0]
-            title = item.get("title") or item.get("name") or "unknown title"
-            item_id = str(item.get("id"))
-            media_type = item.get("media_type", "movie")
-            
-            release_date = item.get("release_date") or item.get("first_air_date") or ""
-            year = release_date.split("-")[0] if release_date else "n/a"
-            
-            backdrop_path = item.get("backdrop_path")
-            poster_path = item.get("poster_path")
+            search_id = str(message.message_id)
+            SEARCH_CACHE[search_id] = {
+                "results": valid_items,
+                "season_number": season_number
+            }
 
-            # --- Handle Season Specific Images ---
-            if season_number and media_type == "tv":
-                season_url = f"https://api.themoviedb.org/3/tv/{item_id}/season/{season_number}?api_key={TMDB_API_KEY}"
-                season_res = session.get(season_url, timeout=5)
-                if season_res.status_code == 200:
-                    season_data = season_res.json()
-                    if season_data.get("poster_path"):
-                        poster_path = season_data.get("poster_path")
-                    if season_data.get("backdrop_path"):
-                        backdrop_path = season_data.get("backdrop_path")
-                    title = f"{title} season {season_number}"
-                
-                season_img_url = f"https://api.themoviedb.org/3/tv/{item_id}/season/{season_number}/images?api_key={TMDB_API_KEY}"
-                season_img_res = session.get(season_img_url, timeout=4)
-                if season_img_res.status_code == 200:
-                    s_data = season_img_res.json()
-                    s_backdrops = s_data.get("backdrops", [])
-                    if s_backdrops and s_backdrops[0].get("file_path"):
-                        backdrop_path = s_backdrops[0].get("file_path")
+            photo_url, caption, markup = build_poster_page(search_id, index=0)
+            
+            try:
+                bot.delete_message(message.chat.id, status_msg.message_id)
+            except Exception:
+                pass
 
-            backdrop_url_original = f"https://image.tmdb.org/t/p/original{backdrop_path}" if backdrop_path else f"https://image.tmdb.org/t/p/original{poster_path}"
-            portrait_url_original = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else backdrop_url_original
-            
-            logo_url = get_tmdb_logo_url(item_id, media_type)
-            
-            img_response = session.get(backdrop_url_original, timeout=8)
-            if img_response.status_code == 200:
-                processed_image_io = add_title_overlay(img_response.content, title, logo_url)
-                
-                cache_key = f"{item_id}_s{season_number}" if season_number else item_id
-                file_path = os.path.join(CACHE_DIR, f"{cache_key}.jpg")
-                with open(file_path, "wb") as f:
-                    f.write(processed_image_io.getvalue())
-                
-                app_url = os.environ.get("RENDER_EXTERNAL_URL") or request.host_url.rstrip('/')
-                titled_poster_url = f"{app_url}/poster/{cache_key}"
-                
-                safe_title = html.escape(title)
-                
-                caption_lines = [
-                    "<b>ᴍᴏʜᴀᴍᴍᴇᴅ ᴘᴏsᴛᴇʀ ʙᴏᴛ</b>\n",
-                    f"<b>ᴘᴏʀᴛʀᴀɪᴛ :</b> <a href=\"{portrait_url_original}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</b></a>\n",
-                    f"<b>ᴄᴏᴠᴇʀ :</b> <a href=\"{titled_poster_url}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</b></a>\n",
-                    f"<b>ᴛɪᴛʟᴇ : {safe_title} ({year})</b>"
-                ]
-                
-                caption = "\n".join(caption_lines)
-                
-                markup = telebot.types.InlineKeyboardMarkup()
-                aero_button = telebot.types.InlineKeyboardButton(text="• ᴀᴇʀᴏ ᴜɴɪᴛʏ •", url="https://t.me/Aero_Unity")
-                open_image_button = telebot.types.InlineKeyboardButton(text="• ᴏᴘᴇɴ ɪᴍᴀɢᴇ •", url=titled_poster_url)
-                markup.row(aero_button, open_image_button)
-                
-                try:
-                    bot.delete_message(message.chat.id, status_msg.message_id)
-                except Exception:
-                    pass
-                
+            if photo_url:
                 bot.send_photo(
                     chat_id=message.chat.id,
-                    photo=backdrop_url_original,
+                    photo=photo_url,
                     caption=caption,
                     parse_mode="HTML",
                     reply_markup=markup
                 )
             else:
-                bot.edit_message_text("‼️ ꜰᴀɪʟᴇᴅ ᴛᴏ ᴅᴏᴡɴʟᴏᴀᴅ ʙᴀᴄᴋɢʀᴏᴜɴᴅ ɪᴍᴀɢᴇ.", message.chat.id, status_msg.message_id)
+                bot.send_message(message.chat.id, "❌ failed to generate poster.")
         else:
             bot.edit_message_text("ᴘʟᴇᴀsᴇ ᴄʜᴇᴄᴋ ʏᴏᴜʀ sᴘᴇʟʟɪɴɢ.", message.chat.id, status_msg.message_id)
             
@@ -734,7 +679,6 @@ def search_poster(message):
         except Exception:
             pass
 
-            
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     try:
