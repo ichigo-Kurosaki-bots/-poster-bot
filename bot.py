@@ -262,7 +262,7 @@ def bot_stats(message):
 @bot.message_handler(commands=['ban'])
 def ban_user(message):
     if message.from_user.id != OWNER_ID:
-        bot.reply_to(message, "❌ <b>access denied:</b> owner command only.", parse_mode="HTML")
+        bot.reply_to(message, " <b>ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ: ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴍʏ sᴇɴᴘᴀɪ</b>", parse_mode="HTML")
         return
     args = message.text.split()
     if len(args) > 1:
@@ -271,14 +271,14 @@ def ban_user(message):
             database.ban_user(target_id)
             bot.reply_to(message, f"✅ successfully banned user id: <code>{target_id}</code>", parse_mode="HTML")
         except ValueError:
-            bot.reply_to(message, "⚠️ invalid user id format.", parse_mode="HTML")
+            bot.reply_to(message, "‼️ ɪɴᴠᴀʟɪᴅ ᴜsᴇʀ ɪᴅ", parse_mode="HTML")
     else:
-        bot.reply_to(message, "⚠️ usage: <code>/ban user_id</code>", parse_mode="HTML")
+        bot.reply_to(message, " <code>/ban user_id</code>", parse_mode="HTML")
 
 @bot.message_handler(commands=['unban'])
 def unban_user(message):
     if message.from_user.id != OWNER_ID:
-        bot.reply_to(message, "❌ <b>access denied:</b> owner command only.", parse_mode="HTML")
+        bot.reply_to(message, " <b>ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ: ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴍʏ sᴇɴᴘᴀɪ</b>", parse_mode="HTML")
         return
     args = message.text.split()
     if len(args) > 1:
@@ -287,26 +287,26 @@ def unban_user(message):
             database.unban_user(target_id)
             bot.reply_to(message, f"✅ successfully unbanned user id: <code>{target_id}</code>", parse_mode="HTML")
         except ValueError:
-            bot.reply_to(message, "⚠️ invalid user id format.", parse_mode="HTML")
+            bot.reply_to(message, "‼️ ɪɴᴠᴀʟɪᴅ ᴜsᴇʀ ɪᴅ.", parse_mode="HTML")
     else:
-        bot.reply_to(message, "⚠️ usage: <code>/unban user_id</code>", parse_mode="HTML")
+        bot.reply_to(message, "<code>/unban user_id</code>", parse_mode="HTML")
 
 @bot.message_handler(commands=['banlist'])
 def list_banned_users(message):
     if message.from_user.id != OWNER_ID:
-        bot.reply_to(message, "❌ <b>access denied:</b> owner command only.", parse_mode="HTML")
+        bot.reply_to(message, " <b>ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ: ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴍʏ sᴇɴᴘᴀɪ</b>", parse_mode="HTML")
         return
     banned_ids = database.get_banned_users()
     if banned_ids:
-        banned_str = "\n".join([f"• <code>{uid}</code>" for uid in banned_ids])
-        bot.reply_to(message, f"🚫 <b>banned users list:</b>\n\n{banned_str}", parse_mode="HTML")
+        banned_str = "\n".join([f"• <code>{uid}</code> •" for uid in banned_ids])
+        bot.reply_to(message, f"🚫 <b>ʙᴀɴɴᴇᴅ ᴜsᴇʀs ʟɪsᴛ:</b>\n\n{banned_str}", parse_mode="HTML")
     else:
-        bot.reply_to(message, "ℹ️ no banned users.", parse_mode="HTML")
+        bot.reply_to(message, "‼️ ɴᴏ ʙᴀɴɴᴇᴅ ᴜsᴇʀs ꜰᴏᴜɴᴅ.", parse_mode="HTML")
 
 @bot.message_handler(commands=['addforcesub'])
 def add_force_sub(message):
     if message.from_user.id != OWNER_ID:
-        bot.reply_to(message, "❌ <b>access denied:</b> owner command only.", parse_mode="HTML")
+        bot.reply_to(message, " <b>ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ: ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴍʏ sᴇɴᴘᴀɪ </b>", parse_mode="HTML")
         return
     args = message.text.split()
     if len(args) > 1:
@@ -314,16 +314,16 @@ def add_force_sub(message):
         current_channels = database.get_fsub_channels()
         if channel not in current_channels:
             database.add_fsub_channel(channel)
-            bot.reply_to(message, f"✅ successfully added <code>{channel}</code> to force subscription list.", parse_mode="HTML")
+            bot.reply_to(message, f"<b>✅ sᴜᴄᴄᴇssꜰᴜʟʟʏ ᴀᴅᴅᴇᴅ <code>{channel}</code> ᴛᴏ ꜰᴏʀᴄᴇ sᴜʙsᴄʀɪᴘᴛɪᴏɴ ʟɪsᴛ.</b>", parse_mode="HTML")
         else:
-            bot.reply_to(message, f"⚠️ channel <code>{channel}</code> is already in the list.", parse_mode="HTML")
+            bot.reply_to(message, f"‼️ ᴄʜᴀɴɴᴇʟ <code>{channel}</code> ɪs ᴀʟʀᴇᴀᴅʏ ɪɴ ᴛʜᴇ ʟɪsᴛ.", parse_mode="HTML")
     else:
-        bot.reply_to(message, "⚠️ usage: <code>/addforcesub @channelusername</code>", parse_mode="HTML")
+        bot.reply_to(message, "<code>/addforcesub @channelusername</code>", parse_mode="HTML")
 
 @bot.message_handler(commands=['removeforce'])
 def remove_force_sub(message):
     if message.from_user.id != OWNER_ID:
-        bot.reply_to(message, "❌ <b>access denied:</b> owner command only.", parse_mode="HTML")
+        bot.reply_to(message, " <b>ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ: ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴍʏ sᴇɴᴘᴀɪ</b>", parse_mode="HTML")
         return
     args = message.text.split()
     if len(args) > 1:
@@ -331,9 +331,9 @@ def remove_force_sub(message):
         current_channels = database.get_fsub_channels()
         if channel in current_channels:
             database.remove_fsub_channel(channel)
-            bot.reply_to(message, f"✅ successfully removed <code>{channel}</code> from force subscription list.", parse_mode="HTML")
+            bot.reply_to(message, f"<b>✅️ sᴜᴄᴄᴇssꜰᴜʟʟʏ ʀᴇᴍᴏᴠᴇᴅ <code>{channel}</code> ꜰʀᴏᴍ ꜰᴏʀᴄᴇ sᴜʙsᴄʀɪᴘᴛɪᴏɴ ʟɪsᴛ</b>", parse_mode="HTML")
         else:
-            bot.reply_to(message, f"❌ channel <code>{channel}</code> not found in list.", parse_mode="HTML")
+            bot.reply_to(message, f"‼️ ᴄʜᴀɴɴᴇʟ<code>{channel}</code> ɴᴏᴛ ꜰᴏᴜɴᴅ ɪɴ ʟɪsᴛ.", parse_mode="HTML")
     else:
         bot.reply_to(message, " <code>/removeforce @channelusername</code>", parse_mode="HTML")
 
@@ -345,9 +345,9 @@ def list_force_sub(message):
     channels = database.get_fsub_channels()
     if channels:
         channels_str = "\n".join([f"• <code>{ch}</code> •" for ch in channels])
-        bot.reply_to(message, f" <b>force subscription channels:</b>\n\n{channels_str}", parse_mode="HTML")
+        bot.reply_to(message, f" <b>ꜰᴏʀᴄᴇ sᴜʙsᴄʀɪᴘᴛɪᴏɴ ᴄʜᴀɴɴᴇʟs ʟɪsᴛ:</b>\n\n{channels_str}", parse_mode="HTML")
     else:
-        bot.reply_to(message, "ℹ️ no force subscription channels are currently set.", parse_mode="HTML")
+        bot.reply_to(message, "‼️<b>ɴᴏ sᴜʙsᴄʀɪᴘᴛɪᴏɴ ᴄʜᴀɴɴᴇʟs ᴀʀᴇ ᴄᴜʀʀᴇɴᴛʟʏ sᴇᴛ.</b>", parse_mode="HTML")
 
 # --- Helper: Fetch Official Title Logo PNG from TMDb ---
 def get_tmdb_logo_url(item_id, media_type):
