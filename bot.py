@@ -448,7 +448,7 @@ def search_poster(message):
 
     # Check PM Search restriction if query is sent in Private Chat (Allows Owner regardless)
     if message.chat.type == "private" and user_id != OWNER_ID:
-        pm_enabled = database.get_global_pm_search()
+        pm_enabled = database.get_pm_search_status(OWNER_ID)
         if not pm_enabled:
             access_denied_text = (
                 "🔒 <b>access limited</b>\n\n"
@@ -518,7 +518,7 @@ def search_poster(message):
             backdrop_path = item.get("backdrop_path")
             poster_path = item.get("poster_path")
 
-                        # --- Handle Season Specific Images and Unique Season Posters ---
+            # --- Handle Season Specific Images and Unique Season Posters ---
             if season_number and media_type == "tv":
                 season_url = f"https://api.themoviedb.org/3/tv/{item_id}/season/{season_number}?api_key={TMDB_API_KEY}"
                 season_res = session.get(season_url, timeout=5)
@@ -534,11 +534,11 @@ def search_poster(message):
                 if season_img_res.status_code == 200:
                     season_images = season_img_res.json().get("posters", []) or season_img_res.json().get("backdrops", [])
                     if season_images:
-                        # Use the first valid image path found for this specific season
                         path_key = "file_path" if "file_path" in season_images[0] else "poster_path"
                         if season_images[0].get(path_key):
                             backdrop_path = season_images[0].get(path_key)
 
+            # Ensure we fallback correctly to portrait if backdrop is missing, but always format to landscape widescreen via resize
             backdrop_url_original = f"https://image.tmdb.org/t/p/original{backdrop_path}" if backdrop_path else f"https://image.tmdb.org/t/p/original{poster_path}"
             portrait_url_original = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else backdrop_url_original
             
@@ -561,8 +561,8 @@ def search_poster(message):
                 
                 caption_lines = [
                     "<b>ᴍᴏʜᴀᴍᴍᴇᴅ ᴘᴏsᴛᴇʀ ʙᴏᴛ</b>\n",
-                    f"<b>ᴘᴏʀᴛʀᴀɪᴛ :</b> <a href=\"{portrait_url_original}\"><b>ᴄʟɪᴄK ʜᴇʀᴇ</b></a>\n",
-                    f"<b>ᴄᴏᴠᴇʀ :</b> <a href=\"{titled_poster_url}\"><b>ᴄʟɪᴄK ʜᴇʀᴇ</b></a>\n",
+                    f"<b>ᴘᴏʀᴛʀᴀɪᴛ :</b> <a href=\"{portrait_url_original}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</b></a>\n",
+                    f"<b>ᴄᴏᴠᴇʀ :</b> <a href=\"{titled_poster_url}\"><b>ᴄʟɪᴄᴋ ʜᴇʀᴇ</b></a>\n",
                     f"<b>ᴛɪᴛʟᴇ : {safe_title} ({year})</b>"
                 ]
                 
