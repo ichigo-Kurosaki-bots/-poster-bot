@@ -98,7 +98,7 @@ def send_welcome(message):
         "👋 <b>Wᴇʟᴄᴏᴍᴇ Tᴏ Uɴɪᴠᴇʀsᴀʟ Pᴏsᴛᴇʀ Bᴏᴛ</b>\n\n"
         "<b>𝗌𝖾𝗇𝖽 𝗆𝖾 𝖺𝗇𝗒 𝗍𝗂𝗍𝗅𝖾 (𝗆𝗈𝗏𝗂𝖾𝗌, 𝗌𝖾𝗋𝗂𝖾𝗌, 𝖺𝗇𝗂𝗆𝖾, 𝗄-𝖽𝗋𝖺𝗆𝖺𝗌, 𝖾𝗍𝖼.), "
         "𝖺𝗇𝖽 𝗂 𝗐𝗂𝗅𝗅 𝗀𝖾𝗇𝖾𝗋𝖺𝗍𝖾 𝗍𝗁𝖾 𝗉𝗈𝗌𝗍𝖾𝗋 𝗅𝖺𝗒𝗈𝗎𝗍 𝖿𝗈𝗋 𝗒𝗈𝗎</b>\n\n"
-        "Pᴏᴡᴇʀᴇᴅ Bʏ : <a href=\"https://t.me/Aero_Unity\">Aᴇʀᴏ Uɴɪᴛʏ</a></b>"
+        "<b>Pᴏᴡᴇʀᴇᴅ Bʏ : <a href=\"https://t.me/Aero_Unity\">Aᴇʀᴏ Uɴɪᴛʏ</a></b>"
     )
     
     markup = telebot.types.InlineKeyboardMarkup(row_width=2)
