@@ -154,9 +154,9 @@ def handle_callbacks(call):
                 pass
             
             welcome_text = (
-                "✅ <b>verification successful!</b>\n\n"
-                "👋 welcome back! send me any title (movies, series, anime, k-dramas, etc.) "
-                "to generate your 16:9 widescreen poster."
+                "✅ <b>Vᴇʀɪғɪᴄᴀᴛɪᴏɴ Sᴜᴄᴄᴇssғᴜʟ</b>\n\n"
+                "<b>Wᴇʟᴄᴏᴍᴇ Bᴀᴄᴋ 𝗌𝖾𝗇𝖽 𝗆𝖾 𝖺𝗇𝗒 𝗍𝗂𝗍𝗅𝖾 (𝗆𝗈𝗏𝗂𝖾𝗌, 𝗌𝖾𝗋𝗂𝖾𝗌, 𝖺𝗇𝗂𝗆𝖾, 𝗄-𝖽𝗋𝖺𝗆𝖺𝗌, 𝖾𝗍𝖼.), "
+                "to 𝗀𝖾𝗇𝖾𝗋𝖺𝗍𝖾 𝗍𝗁𝖾 𝗉𝗈𝗌𝗍𝖾𝗋 𝗅𝖺𝗒𝗈𝗎𝗍 𝖿𝗈𝗋 𝗒𝗈𝗎</b>"
             )
             markup = telebot.types.InlineKeyboardMarkup(row_width=2)
             about_btn = telebot.types.InlineKeyboardButton(text="• about •", callback_data="btn_about")
@@ -204,14 +204,14 @@ def handle_callbacks(call):
 
     elif call.data == "btn_home":
         welcome_text = (
-            "👋 <b>welcome to universal poster bot!</b>\n\n"
-            "send me any title (movies, series, anime, k-dramas, etc.), "
-            "and i will generate the 16:9 widescreen poster layout for you!"
+            "👋 <b>Wᴇʟᴄᴏᴍᴇ Tᴏ Uɴɪᴠᴇʀsᴀʟ Pᴏsᴛᴇʀ Bᴏᴛ!</b>\n\n"
+            "<b>𝗌𝖾𝗇𝖽 𝗆𝖾 𝖺𝗇𝗒 𝗍𝗂𝗍𝗅𝖾 (𝗆𝗈𝗏𝗂𝖾𝗌, 𝗌𝖾𝗋𝗂𝖾𝗌, 𝖺𝗇𝗂𝗆𝖾, 𝗄-𝖽𝗋𝖺𝗆𝖺𝗌, 𝖾𝗍𝖼.),"
+            "𝖺𝗇𝖽 𝗂 𝗐𝗂𝗅𝗅 𝗀𝖾𝗇𝖾𝗋𝖺𝗍𝖾 𝗍𝗁𝖾 𝗉𝗈𝗌𝗍𝖾𝗋 𝗅𝖺𝗒𝗈𝗎𝗍 𝖿𝗈𝗋 𝗒𝗈𝗎!</b>"
         )
         markup = telebot.types.InlineKeyboardMarkup(row_width=2)
-        about_btn = telebot.types.InlineKeyboardButton(text="• about •", callback_data="btn_about")
-        updates_btn = telebot.types.InlineKeyboardButton(text="• updates •", url="https://t.me/Aero_Unity")
-        owner_btn = telebot.types.InlineKeyboardButton(text="• owner •", url="https://t.me/Mr_Mohammed_29")
+        about_btn = telebot.types.InlineKeyboardButton(text="• Aʙᴏᴜᴛ •", callback_data="btn_about")
+        updates_btn = telebot.types.InlineKeyboardButton(text="• Uᴘᴅᴀᴛᴇs •", url="https://t.me/Aero_Unity")
+        owner_btn = telebot.types.InlineKeyboardButton(text="• Oᴡɴᴇʀ •", url="https://t.me/Mr_Mohammed_29")
         markup.row(about_btn, updates_btn)
         markup.row(owner_btn)
         
