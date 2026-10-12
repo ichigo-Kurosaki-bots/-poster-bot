@@ -33,7 +33,7 @@ START_IMAGE_URL = "https://telegra.ph/file/2ab528ba65c23832cdcf6-4ff26f1b433ef96
 ABOUT_IMAGE_URL = "https://graph.org/file/283e03b08d8306b8d85af-8436c3be9697b2374c.jpg"
 FSUB_IMAGE_URL  = "https://graph.org/file/faf795187aa693e1024a4-746b376c8dcc889d4f.jpg"
 
-# Initialize SQLite tables
+# Initialize Database tables / connection
 database.init_db()
 
 @app.route('/')
@@ -96,7 +96,7 @@ def send_welcome(message):
 
     welcome_text = (
         "👋 <b>Wᴇʟᴄᴏᴍᴇ Tᴏ Uɴɪᴠᴇʀsᴀʟ Pᴏsᴛᴇʀ Bᴏᴛ</b>\n\n"
-        "<b>𝗌𝖾𝗇𝖽 𝗆𝖾 𝖺𝗇𝗒 𝗍𝗂𝗍𝗅𝖾 (𝗆𝗈𝗏𝗂𝖾𝗌, 𝗌𝖾𝗋𝗂𝖾𝗌, 𝖺𝗇𝗂𝗆𝖾, 𝗄-𝖽𝗋𝖺𝗆𝖺𝗌, 𝖾𝗍𝖼.),,  "
+        "<b>𝗌𝖾𝗇𝖽 𝗆𝖾 𝖺𝗇𝗒 𝗍𝗂𝗍𝗅𝖾 (𝗆𝗈𝗏𝗂𝖾𝗌, 𝗌𝖾𝗋𝗂𝖾𝗌, 𝖺𝗇𝗂𝗆𝖾, 𝗄-𝖽𝗋𝖺𝗆𝖺𝗌, 𝖾𝗍𝖼.), "
         "𝖺𝗇𝖽 𝗂 𝗐𝗂𝗅𝗅 𝗀𝖾𝗇𝖾𝗋𝖺𝗍𝖾 𝗍𝗁𝖾 𝗉𝗈𝗌𝗍𝖾𝗋 𝗅𝖺𝗒𝗈𝗎𝗍 𝖿𝗈𝗋 𝗒𝗈𝗎</b>"
     )
     
@@ -154,7 +154,7 @@ def handle_callbacks(call):
                 pass
             
             welcome_text = (
-                "✅ <b>Vᴇʀɪғɪᴄᴀᴛɪᴏɴ Sᴜᴄᴄᴇssғᴜʟ</b>\n\n"
+                "✅ <b>VᴇʀɪғɪᴄᴀᴛɪᴏN Sᴜᴄᴄᴇssғᴜʟ</b>\n\n"
                 "<b>Wᴇʟᴄᴏᴍᴇ Bᴀᴄᴋ 𝗌𝖾𝗇𝖽 𝗆𝖾 𝖺𝗇𝗒 𝗍𝗂𝗍𝗅𝖾 (𝗆𝗈𝗏𝗂𝖾𝗌, 𝗌𝖾𝗋𝗂𝖾𝗌, 𝖺𝗇𝗂𝗆𝖾, 𝗄-𝖽𝗋𝖺𝗆𝖺𝗌, 𝖾𝗍𝖼.), "
                 "to 𝗀𝖾𝗇𝖾𝗋𝖺𝗍𝖾 𝗍𝗁𝖾 𝗉𝗈𝗌𝗍𝖾𝗋 𝗅𝖺𝗒𝗈𝗎𝗍 𝖿𝗈𝗋 𝗒𝗈𝗎</b>"
             )
@@ -204,7 +204,7 @@ def handle_callbacks(call):
     elif call.data == "btn_home":
         welcome_text = (
             "👋 <b>Wᴇʟᴄᴏᴍᴇ Tᴏ Uɴɪᴠᴇʀsᴀʟ Pᴏsᴛᴇʀ Bᴏᴛ!</b>\n\n"
-            "<b>𝗌𝖾𝗇𝖽 𝗆𝖾 𝖺𝗇𝗒 𝗍𝗂𝗍𝗅𝖾 (𝗆𝗈𝗏𝗂𝖾𝗌, 𝗌𝖾𝗋𝗂𝖾𝗌, 𝖺𝗇𝗂𝗆𝖾, 𝗄-𝖽𝗋𝖺𝗆𝖺𝗌, 𝖾𝗍𝖼.),"
+            "<b>𝗌𝖾𝗇𝖽 𝗆𝖾 𝖺𝗇𝗒 𝗍𝗂𝗍𝗅𝖾 (𝗆𝗈𝗏𝗂𝖾𝗌, 𝗌𝖾𝗋𝗂𝖾𝗌, 𝖺𝗇𝗂𝗆𝖾, 𝗄-𝖽𝗋𝖺𝗆𝖺𝗌, 𝖾𝗍𝖼.), "
             "𝖺𝗇𝖽 𝗂 𝗐𝗂𝗅𝗅 𝗀𝖾𝗇𝖾𝗋𝖺𝗍𝖾 𝗍𝗁𝖾 𝗉𝗈𝗌𝗍𝖾𝗋 𝗅𝖺𝗒𝗈𝗎𝗍 𝖿𝗈𝗋 𝗒𝗈𝗎!</b>"
         )
         markup = telebot.types.InlineKeyboardMarkup(row_width=2)
@@ -344,7 +344,7 @@ def list_force_sub(message):
     channels = database.get_fsub_channels()
     if channels:
         channels_str = "\n".join([f"• <code>{ch}</code> •" for ch in channels])
-        bot.reply_to(message, f" <b>ꜰᴏʀᴄᴇ sᴜʙsᴄʀɪᴘᴛɪᴏɴ ᴄʜᴀɴɴᴇʟs ʟɪsᴛ:</b>\n\n{channels_str}", parse_mode="HTML")
+        bot.reply_to(message, f" <b>ꜰᴏʀᴄᴇ sᴜʙsᴄʀɪᴘᴛɪᴏN ᴄʜᴀɴɴᴇʟs ʟɪsᴛ:</b>\n\n{channels_str}", parse_mode="HTML")
     else:
         bot.reply_to(message, "‼️<b>ɴᴏ sᴜʙsᴄʀɪᴘᴛɪᴏɴ ᴄʜᴀɴɴᴇʟs ᴀʀᴇ ᴄᴜʀʀᴇɴᴛʟʏ sᴇᴛ.</b>", parse_mode="HTML")
 
@@ -368,7 +368,6 @@ def add_title_overlay(image_bytes, title_text, logo_url=None):
     orig_img = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
     target_width, target_height = 1280, 720
     
-    # If image is tall/vertical portrait (aspect ratio < 1.33)
     if orig_img.width / orig_img.height < 1.33:
         bg = orig_img.resize((target_width, target_height), Image.Resampling.LANCZOS)
         bg = bg.filter(ImageFilter.GaussianBlur(15))
@@ -458,7 +457,6 @@ def search_poster(message):
         send_fsub_prompt(message.chat.id)
         return
 
-    # Check Global PM Search restriction if query is sent in Private Chat (Allows Owner regardless)
     if message.chat.type == "private" and user_id != OWNER_ID:
         pm_enabled = database.get_global_pm_search()
         if not pm_enabled:
@@ -479,7 +477,6 @@ def search_poster(message):
     elif raw_query.startswith("/poster "):
         raw_query = raw_query[8:].strip()
 
-    # --- Season Detection (e.g., Reacher S01 or Season 2) ---
     season_number = None
     clean_query = raw_query
     season_match = re.search(r'(?i)\b(?:s|season)\s*0*(\d+)\b', raw_query)
@@ -529,7 +526,7 @@ def search_poster(message):
             backdrop_path = item.get("backdrop_path")
             poster_path = item.get("poster_path")
 
-            # --- Handle Seasons --- #
+            # --- Strictly Unique Season Backdrops and Posters ---
             if season_number and media_type == "tv":
                 season_url = f"https://api.themoviedb.org/3/tv/{item_id}/season/{season_number}?api_key={TMDB_API_KEY}"
                 season_res = session.get(season_url, timeout=5)
@@ -537,9 +534,11 @@ def search_poster(message):
                     season_data = season_res.json()
                     if season_data.get("poster_path"):
                         poster_path = season_data.get("poster_path")
+                    if season_data.get("backdrop_path"):
+                        backdrop_path = season_data.get("backdrop_path")
                     title = f"{title} season {season_number}"
                 
-                # Fetch season-specific backdrop images from TMDb season images endpoint
+                # Check specific season image endpoints to ensure unique backdrops per season
                 season_img_url = f"https://api.themoviedb.org/3/tv/{item_id}/season/{season_number}/images?api_key={TMDB_API_KEY}"
                 season_img_res = session.get(season_img_url, timeout=4)
                 if season_img_res.status_code == 200:
@@ -557,7 +556,7 @@ def search_poster(message):
             if img_response.status_code == 200:
                 processed_image_io = add_title_overlay(img_response.content, title, logo_url)
                 
-                # Unique cache key per season so different seasons never overwrite each other
+                # Distinct cache key per season so S01 and S02 never share or overwrite files
                 cache_key = f"{item_id}_s{season_number}" if season_number else item_id
                 file_path = os.path.join(CACHE_DIR, f"{cache_key}.jpg")
                 with open(file_path, "wb") as f:
