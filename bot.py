@@ -578,7 +578,7 @@ def handle_pagination(call):
             
     bot.answer_callback_query(call.id)
 
-@bot.message_handler(func=lambda message: True)
+@bot.message_handler(func=lambda message: not message.text.strip().startswith("/"))
 def search_poster(message):
     user_id = message.from_user.id
     first_name = message.from_user.first_name or "user"
