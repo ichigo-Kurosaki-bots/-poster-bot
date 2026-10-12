@@ -234,11 +234,11 @@ def handle_callbacks(call):
             except Exception:
                 bot.send_photo(call.message.chat.id, START_IMAGE_URL, caption=welcome_text, parse_mode="HTML", reply_markup=markup)
 
-# --- Admin-Only Commands ---
+# --- Admin-Only Commands --- #
 @bot.message_handler(commands=['stats'])
 def bot_stats(message):
     if message.from_user.id != OWNER_ID:
-        bot.reply_to(message, "❌ <b>access denied:</b> owner command only.", parse_mode="HTML")
+        bot.reply_to(message, "<b>ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ: ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴍʏ sᴇɴᴘᴀɪ </b>", parse_mode="HTML")
         return
     
     users = database.get_all_users()
@@ -253,9 +253,9 @@ def bot_stats(message):
         user_list_str += f"\n<i>...and {total_users - 25} more users.</i>"
 
     stats_msg = (
-        f"📊 <b>bot statistics:</b>\n\n"
-        f"👥 total unique users: <code>{total_users}</code>\n\n"
-        f"<b>user list:</b>\n{user_list_str if user_list_str else 'no users yet.'}"
+        f"📊 <b>𝖡𝗈𝗍 𝖲𝗍𝖺𝗍𝗂𝗌𝗍𝗂𝖼𝗌:</b>\n\n"
+        f"<b>ᴛᴏᴛᴀʟ ᴜsᴇʀs:</b> <code>{total_users}</code>\n\n"
+        f"<b>ᴜsᴇʀs ʟɪsᴛs:</b>\n{user_list_str if user_list_str else 'no users yet.'}"
     )
     bot.reply_to(message, stats_msg, parse_mode="HTML")
 
@@ -269,7 +269,7 @@ def ban_user(message):
         try:
             target_id = int(args[1].strip())
             database.ban_user(target_id)
-            bot.reply_to(message, f"✅ successfully banned user id: <code>{target_id}</code>", parse_mode="HTML")
+            bot.reply_to(message, f"✅ sᴜᴄᴄᴇssꜰᴜʟʟʏ ʙᴀɴɴᴇᴅ ᴀ ᴜsᴇʀ ɪᴅ : <code>{target_id}</code>", parse_mode="HTML")
         except ValueError:
             bot.reply_to(message, "‼️ ɪɴᴠᴀʟɪᴅ ᴜsᴇʀ ɪᴅ", parse_mode="HTML")
     else:
@@ -285,7 +285,7 @@ def unban_user(message):
         try:
             target_id = int(args[1].strip())
             database.unban_user(target_id)
-            bot.reply_to(message, f"✅ successfully unbanned user id: <code>{target_id}</code>", parse_mode="HTML")
+            bot.reply_to(message, f"✅ sᴜᴄᴄᴇssꜰᴜʟʟʏ ᴜɴʙᴀɴɴᴇᴅ ᴜsᴇʀ ɪᴅ : <code>{target_id}</code>", parse_mode="HTML")
         except ValueError:
             bot.reply_to(message, "‼️ ɪɴᴠᴀʟɪᴅ ᴜsᴇʀ ɪᴅ.", parse_mode="HTML")
     else:
