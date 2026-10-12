@@ -6,6 +6,7 @@ import telebot
 import requests
 from flask import Flask, send_file, request
 import threading
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import database
 
@@ -23,6 +24,7 @@ session = requests.Session()
 
 # Memory cache for active search results pagination
 SEARCH_CACHE = {}
+IMDB_SEARCH_CACHE = {}
 
 # Persistent directory cache for processed images so web links never expire with an Internal Server Error
 CACHE_DIR = "poster_cache"
@@ -177,12 +179,12 @@ def handle_callbacks(call):
     elif call.data == "btn_about":
         about_text = (
             "⍟───[ <b>ᴍʏ ᴅᴇᴛᴀɪʟꜱ</b> ]───⍟\n\n"
-            "‣ <b>ᴍʏ ɴᴀᴍᴇ : poster bot</b>\n"
-            "‣ <b>ᴅᴇᴠᴇʟᴏᴘᴇʀ : <a href=\"https://t.me/Mr_Mohammed_29\"><b>mohammed</b></a></b>\n"
-            "‣ <b>ʟɪʙʀᴀʀʏ : pyrogram / telebot </b>\n"
-            "‣ <b>ʟᴀɴɢᴜᴀɢᴇ : python 3 </b>\n"
-            "‣ <b>ʙᴏᴛ sᴇʀᴠᴇʀ : <a href=\"https://t.me/Aero_Unity\"><b>aero unity</b></a></b>\n"
-            "‣ <b>ʙᴜɪʟᴅ sᴛᴀᴛᴜs : ᴠ3.9.1 [sᴛᴀʙʟᴇ] </b>"
+            "‣ <b>ᴍʏ ɴᴀᴍᴇ : <a href"\"https://t.me/Aero_Poster_bot\">ᴀᴇʀᴏ ᴘᴏsᴛᴇʀ ʙᴏᴛ</a></b>\n"
+            "‣ <b>ᴅᴇᴠᴇʟᴏᴘᴇʀ : <a href=\"https://t.me/Mr_Mohammed_29\"><b>ᴍᴏʜᴀᴍᴍᴇᴅ</b></a></b>\n"
+            "‣ <b>ʟɪʙʀᴀʀʏ : ᴘʏʀᴏɢʀᴀᴍ / ᴛᴇʟᴇʙᴏᴛ</b>\n"
+            "‣ <b>ʟᴀɴɢᴜᴀɢᴇ : <a href=\"https://www.python.org/download/releases/3.0/\">ᴘʏᴛʜᴏɴ 𝟹</a></b>\n"
+            "‣ <b>ʙᴏᴛ sᴇʀᴠᴇʀ : <a href=\"https://t.me/Aero_Unity\"><b>ᴀᴇʀᴏ ᴜɴɪᴛʏ</b></a></b>\n"
+            "‣ <b>ʙᴜɪʟᴅ sᴛᴀᴛᴜs : ᴠ3.0 [sᴛᴀʙʟᴇ] </b>"
         )
         markup = telebot.types.InlineKeyboardMarkup()
         home_btn = telebot.types.InlineKeyboardButton(text="• Hᴏᴍᴇ •", callback_data="btn_home")
@@ -741,6 +743,168 @@ def search_poster(message):
             bot.edit_message_text(f"⚠️ ᴀɴ ᴇʀʀᴏʀ ᴏᴄᴄᴜʀᴇᴅ: {html.escape(str(e))}", message.chat.id, status_msg.message_id, parse_mode="HTML")
         except Exception:
             pass
+
+# --- 1. /imdb Command Handler ---
+@bot.message_handler(commands=['imdb'])
+def imdb_command(message):
+    args = message.text.split(maxsplit=1)
+    
+    # Show usage if user types only /imdb
+    if len(args) == 1:
+        bot.reply_to(
+            message,
+            "<b>Usage:</b> <code>/imdb [Movie Name] or [IMDb URL]</code>",
+            parse_mode="HTML"
+        )
+        return
+
+    query = args[1].strip()
+    status_msg = bot.reply_to(message, "<b><i>Searching TMDb...</i></b>", parse_mode="HTML")
+
+    search_url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={requests.utils.quote(query)}"
+    
+    try:
+        res = session.get(search_url, timeout=5)
+        if res.status_code != 200:
+            bot.edit_message_text("⚠️ <i>Failed to fetch results from TMDb.</i>", message.chat.id, status_msg.message_id, parse_mode="HTML")
+            return
+            
+        data = res.json()
+        results = data.get("results", [])
+        
+        valid_results = [item for item in results if item.get("title") or item.get("name")]
+        
+        if not valid_results:
+            bot.edit_message_text("❌ <b>No titles found for your search!</b>", message.chat.id, status_msg.message_id, parse_mode="HTML")
+            return
+
+        # Cache top 10 search results
+        search_id = str(message.message_id)
+        IMDB_SEARCH_CACHE[search_id] = valid_results[:10]
+
+        # Build Title Selection Buttons
+        markup = InlineKeyboardMarkup()
+        for idx, item in enumerate(IMDB_SEARCH_CACHE[search_id]):
+            title = item.get("title") or item.get("name")
+            release_date = item.get("release_date") or item.get("first_air_date") or ""
+            year = release_date.split("-")[0] if release_date else "N/A"
+            
+            button_text = f"{title} ({year})"
+            callback_data = f"imdb_select_{search_id}_{idx}"
+            markup.add(InlineKeyboardButton(text=button_text, callback_data=callback_data))
+
+        # Close button at bottom
+        markup.add(InlineKeyboardButton(text="❌ Close", callback_data="imdb_close"))
+
+        bot.delete_message(message.chat.id, status_msg.message_id)
+        bot.send_message(
+            chat_id=message.chat.id,
+            text="<b>Select The Correct Title From Below Results :</b>",
+            parse_mode="HTML",
+            reply_markup=markup
+        )
+
+    except Exception as e:
+        bot.edit_message_text(f"⚠️ <b>An error occurred:</b> <code>{html.escape(str(e))}</code>", message.chat.id, status_msg.message_id, parse_mode="HTML")
+
+# --- 2. Callback Query Handler for Title Selection & Close Button ---
+@bot.callback_query_handler(func=lambda call: call.data.startswith("imdb_select_") or call.data == "imdb_close")
+def handle_imdb_callbacks(call):
+    if call.data == "imdb_close":
+        try:
+            bot.delete_message(call.message.chat.id, call.message.message_id)
+        except Exception:
+            pass
+        bot.answer_callback_query(call.id)
+        return
+
+    parts = call.data.split("_")
+    search_id = parts[2]
+    item_idx = int(parts[3])
+
+    search_items = IMDB_SEARCH_CACHE.get(search_id)
+    if not search_items or item_idx >= len(search_items):
+        bot.answer_callback_query(call.id, "Session expired, please search again.", show_alert=True)
+        return
+
+    selected_item = search_items[item_idx]
+    item_id = selected_item.get("id")
+    media_type = selected_item.get("media_type", "movie")
+
+    endpoint = "movie" if media_type == "movie" else "tv"
+    details_url = f"https://api.themoviedb.org/3/{endpoint}/{item_id}?api_key={TMDB_API_KEY}&append_to_response=external_ids"
+    
+    try:
+        det_res = session.get(details_url, timeout=5)
+        if det_res.status_code == 200:
+            details = det_res.json()
+            
+            title = details.get("title") or details.get("name") or "Unknown"
+            release_date = details.get("release_date") or details.get("first_air_date") or ""
+            year = release_date.split("-")[0] if release_date else "N/A"
+            rating = details.get("vote_average", "N/A")
+            if rating != "N/A":
+                rating = f"{round(rating, 1)} / 10"
+
+            rel_info = release_date if release_date else "N/A"
+            genres = [f"#{g['name'].replace(' ', '')}" for g in details.get("genres", [])]
+            genre_str = ", ".join(genres) if genres else "N/A"
+
+            spoken_langs = [f"#{l.get('english_name', l.get('name')).replace(' ', '')}" for l in details.get("spoken_languages", [])]
+            lang_str = ", ".join(spoken_langs) if spoken_langs else "N/A"
+
+            countries = [f"#{c.get('name').replace(' ', '_')}" for c in details.get("production_countries", [])]
+            country_str = ", ".join(countries) if countries else "N/A"
+
+            overview = details.get("overview", "No storyline available.")
+
+            external_ids = details.get("external_ids", {})
+            imdb_id = external_ids.get("imdb_id")
+            imdb_link = f"https://www.imdb.com/title/{imdb_id}" if imdb_id else "https://www.imdb.com"
+
+            poster_path = details.get("poster_path") or details.get("backdrop_path")
+            poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else None
+
+            # Caption layout matching your screenshot
+            caption_lines = [
+                f"🎬 <b>{html.escape(title)}</b> [{year}]",
+                f"⭐ <b>IMDb Rating:</b> {rating}",
+                f"📅 <b>Release Info:</b> {rel_info}",
+                f"🎭 <b>Genre:</b> {genre_str}",
+                f"🌐 <b>Language:</b> {lang_str}",
+                f"🏳️ <b>Country of Origin:</b> {country_str}\n",
+                f"📖 <b>Storyline:</b>\n<i>{html.escape(overview)}</i>"
+            ]
+            caption_text = "\n".join(caption_lines)
+
+            markup = InlineKeyboardMarkup()
+            markup.add(InlineKeyboardButton(text="• IMDB Pᴀɢᴇ •", url=imdb_link))
+
+            try:
+                bot.delete_message(call.message.chat.id, call.message.message_id)
+            except Exception:
+                pass
+
+            if poster_url:
+                bot.send_photo(
+                    chat_id=call.message.chat.id,
+                    photo=poster_url,
+                    caption=caption_text,
+                    parse_mode="HTML",
+                    reply_markup=markup
+                )
+            else:
+                bot.send_message(
+                    chat_id=call.message.chat.id,
+                    text=caption_text,
+                    parse_mode="HTML",
+                    reply_markup=markup
+                )
+
+    except Exception as e:
+        bot.answer_callback_query(call.id, f"Error: {e}", show_alert=True)
+
+    bot.answer_callback_query(call.id)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
