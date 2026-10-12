@@ -637,7 +637,7 @@ def search_poster(message):
             
     except Exception as e:
         try:
-            bot.edit_message_text(f"⚠️ ᴀɴ ᴇʀʀᴏʀ ᴏᴄᴄᴜʀᴇᴅ: {html.escape(str(e))}", message.chat.id, status_msg.message_id, parse_mode="HTML")
+            bot.edit_message_text(f"⚠️ ᴀɴ ᴇʀʀᴏR ᴏᴄᴄᴜʀᴇᴅ: {html.escape(str(e))}", message.chat.id, status_msg.message_id, parse_mode="HTML")
         except Exception:
             pass
 
