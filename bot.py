@@ -749,7 +749,6 @@ def search_poster(message):
 def imdb_command(message):
     args = message.text.split(maxsplit=1)
     
-    # Show usage if user types only /imdb
     if len(args) == 1:
         bot.reply_to(
             message,
@@ -778,11 +777,9 @@ def imdb_command(message):
             bot.edit_message_text("❌ <b>No titles found for your search!</b>", message.chat.id, status_msg.message_id, parse_mode="HTML")
             return
 
-        # Cache top 10 search results
         search_id = str(message.message_id)
         IMDB_SEARCH_CACHE[search_id] = valid_results[:10]
 
-        # Build Title Selection Buttons
         markup = InlineKeyboardMarkup()
         for idx, item in enumerate(IMDB_SEARCH_CACHE[search_id]):
             title = item.get("title") or item.get("name")
@@ -793,7 +790,6 @@ def imdb_command(message):
             callback_data = f"imdb_select_{search_id}_{idx}"
             markup.add(InlineKeyboardButton(text=button_text, callback_data=callback_data))
 
-        # Close button at bottom
         markup.add(InlineKeyboardButton(text="❌ Close", callback_data="imdb_close"))
 
         bot.delete_message(message.chat.id, status_msg.message_id)
@@ -806,6 +802,7 @@ def imdb_command(message):
 
     except Exception as e:
         bot.edit_message_text(f"⚠️ <b>An error occurred:</b> <code>{html.escape(str(e))}</code>", message.chat.id, status_msg.message_id, parse_mode="HTML")
+
 
 # --- 2. Callback Query Handler for Title Selection & Close Button ---
 @bot.callback_query_handler(func=lambda call: call.data.startswith("imdb_select_") or call.data == "imdb_close")
@@ -865,7 +862,6 @@ def handle_imdb_callbacks(call):
             poster_path = details.get("poster_path") or details.get("backdrop_path")
             poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else None
 
-            # Caption layout matching your screenshot
             caption_lines = [
                 f"🎬 <b>{html.escape(title)}</b> [{year}]",
                 f"⭐ <b>IMDb Rating:</b> {rating}",
@@ -878,7 +874,7 @@ def handle_imdb_callbacks(call):
             caption_text = "\n".join(caption_lines)
 
             markup = InlineKeyboardMarkup()
-            markup.add(InlineKeyboardButton(text="• IMDB Pᴀɢᴇ •", url=imdb_link))
+            markup.add(InlineKeyboardButton(text="📺 IMDb Page", url=imdb_link))
 
             try:
                 bot.delete_message(call.message.chat.id, call.message.message_id)
@@ -905,6 +901,7 @@ def handle_imdb_callbacks(call):
         bot.answer_callback_query(call.id, f"Error: {e}", show_alert=True)
 
     bot.answer_callback_query(call.id)
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
