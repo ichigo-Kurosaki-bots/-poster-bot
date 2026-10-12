@@ -667,9 +667,51 @@ def search_poster(message):
                 bot.edit_message_text("‼️ ɪᴍᴀɢᴇ ʙᴀɴɴᴇʀ ɴᴏᴛ ᴀᴠᴀɪʟᴀʙʟᴇ ꜰᴏʀ ᴛʜɪs ᴛɪᴛʟᴇ.", message.chat.id, status_msg.message_id)
                 return
 
+            # Target the best/first matching title from the search
+            target_item = valid_items[0]
+            item_id = str(target_item.get("id"))
+            media_type = target_item.get("media_type", "movie")
+            
+            # Fetch all available backdrop/poster images for this specific title
+            images_list = []
+            img_endpoint = "tv" if (media_type == "tv" or season_number) else "movie"
+            
+            if season_number and media_type == "tv":
+                images_url = f"https://api.themoviedb.org/3/tv/{item_id}/season/{season_number}/images?api_key={TMDB_API_KEY}"
+            else:
+                images_url = f"https://api.themoviedb.org/3/{img_endpoint}/{item_id}/images?api_key={TMDB_API_KEY}"
+
+            try:
+                img_res = session.get(images_url, timeout=5)
+                if img_res.status_code == 200:
+                    img_data = img_res.json()
+                    # Collect all backdrops, fallback to posters
+                    backdrops = img_data.get("backdrops", [])
+                    posters = img_data.get("posters", [])
+                    
+                    for b in backdrops:
+                        if b.get("file_path"):
+                            images_list.append({
+                                **target_item,
+                                "backdrop_path": b.get("file_path")
+                            })
+                    if not images_list:
+                        for p in posters:
+                            if p.get("file_path"):
+                                images_list.append({
+                                    **target_item,
+                                    "backdrop_path": p.get("file_path")
+                                })
+            except Exception:
+                pass
+
+            # Fallback to main item if image gallery fetch fails
+            if not images_list:
+                images_list = [target_item]
+
             search_id = str(message.message_id)
             SEARCH_CACHE[search_id] = {
-                "results": valid_items,
+                "results": images_list,
                 "season_number": season_number
             }
 
@@ -692,6 +734,7 @@ def search_poster(message):
                 bot.send_message(message.chat.id, "❌ failed to generate poster.")
         else:
             bot.edit_message_text("ᴘʟᴇᴀsᴇ ᴄʜᴇᴄᴋ ʏᴏᴜʀ sᴘᴇʟʟɪɴɢ.", message.chat.id, status_msg.message_id)
+
             
     except Exception as e:
         try:
