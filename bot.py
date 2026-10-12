@@ -473,7 +473,8 @@ def build_poster_page(search_id, index=0):
         title = f"{title} season {season_number}"
 
     backdrop_url_original = f"https://image.tmdb.org/t/p/original{backdrop_path}" if backdrop_path else f"https://image.tmdb.org/t/p/original{poster_path}"
-    
+    portrait_url_original = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else backdrop_url_original
+
     logo_url = get_tmdb_logo_url(item_id, media_type)
     
     img_response = session.get(backdrop_url_original, timeout=8)
@@ -502,7 +503,7 @@ def build_poster_page(search_id, index=0):
 
         markup = telebot.types.InlineKeyboardMarkup()
         
-        # Row 1: Pagination Buttons << < 2/4 > >>
+        # Row 1: Pagination Buttons << < 1/N > >>
         first_btn = telebot.types.InlineKeyboardButton(text="<<", callback_data=f"p_{search_id}_0")
         prev_idx = max(0, index - 1)
         prev_btn = telebot.types.InlineKeyboardButton(text="<", callback_data=f"p_{search_id}_{prev_idx}")
