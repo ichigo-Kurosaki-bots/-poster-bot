@@ -97,7 +97,8 @@ def send_welcome(message):
     welcome_text = (
         "👋 <b>Wᴇʟᴄᴏᴍᴇ Tᴏ Uɴɪᴠᴇʀsᴀʟ Pᴏsᴛᴇʀ Bᴏᴛ</b>\n\n"
         "<b>𝗌𝖾𝗇𝖽 𝗆𝖾 𝖺𝗇𝗒 𝗍𝗂𝗍𝗅𝖾 (𝗆𝗈𝗏𝗂𝖾𝗌, 𝗌𝖾𝗋𝗂𝖾𝗌, 𝖺𝗇𝗂𝗆𝖾, 𝗄-𝖽𝗋𝖺𝗆𝖺𝗌, 𝖾𝗍𝖼.), "
-        "𝖺𝗇𝖽 𝗂 𝗐𝗂𝗅𝗅 𝗀𝖾𝗇𝖾𝗋𝖺𝗍𝖾 𝗍𝗁𝖾 𝗉𝗈𝗌𝗍𝖾𝗋 𝗅𝖺𝗒𝗈𝗎𝗍 𝖿𝗈𝗋 𝗒𝗈𝗎</b>"
+        "𝖺𝗇𝖽 𝗂 𝗐𝗂𝗅𝗅 𝗀𝖾𝗇𝖾𝗋𝖺𝗍𝖾 𝗍𝗁𝖾 𝗉𝗈𝗌𝗍𝖾𝗋 𝗅𝖺𝗒𝗈𝗎𝗍 𝖿𝗈𝗋 𝗒𝗈𝗎</b>\n\n"
+        "Pᴏᴡᴇʀᴇᴅ Bʏ : <a href=\"https://t.me/Aero_Unity\">Aᴇʀᴏ Uɴɪᴛʏ</a></b>"
     )
     
     markup = telebot.types.InlineKeyboardMarkup(row_width=2)
@@ -477,12 +478,20 @@ def search_poster(message):
     elif raw_query.startswith("/poster "):
         raw_query = raw_query[8:].strip()
 
-    season_number = None
+    # Extract year if present (e.g., "The Paradise 2026")
+    search_year = None
+    year_match = re.search(r'\b(19\d\d|20\d\d)\b', raw_query)
     clean_query = raw_query
-    season_match = re.search(r'(?i)\b(?:s|season)\s*0*(\d+)\b', raw_query)
+    if year_match:
+        search_year = year_match.group(1)
+        clean_query = re.sub(r'\b(19\d\d|20\d\d)\b', '', raw_query).strip()
+
+    # Season Detection
+    season_number = None
+    season_match = re.search(r'(?i)\b(?:s|season)\s*0*(\d+)\b', clean_query)
     if season_match:
         season_number = int(season_match.group(1))
-        clean_query = re.sub(r'(?i)\b(?:s|season)\s*0*\d+\b', '', raw_query).strip()
+        clean_query = re.sub(r'(?i)\b(?:s|season)\s*0*\d+\b', '', clean_query).strip()
 
     status_msg = bot.reply_to(message, f"<b><i>searching <code>{html.escape(raw_query)}</code>...</i></b>", parse_mode="HTML")
     
@@ -490,17 +499,24 @@ def search_poster(message):
         bot.edit_message_text("⚠️ <b>𝖾𝗋𝗋𝗈𝗋:</b> <code>tmdb_api_key</code> 𝗂𝗌 𝗆𝗂𝗌𝗌𝗂𝗇𝗀!.", message.chat.id, status_msg.message_id, parse_mode="HTML")
         return
 
-    url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}"
+    # Build primary search query
+    year_param = f"&primary_release_year={search_year}" if search_year else ""
+    url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}{year_param}"
     
     try:
         res = session.get(url, timeout=5)
-        if res.status_code != 200:
-            bot.edit_message_text(f"⚠️ <b>𝗍𝗆𝖽𝖻 𝖺𝗉𝗂 𝖾𝗋𝗋𝗈𝗋 ({res.status_code})</b>", message.chat.id, status_msg.message_id, parse_mode="HTML")
-            return
+        results = res.json().get("results", []) if res.status_code == 200 else []
 
-        response = res.json()
-        results = response.get("results", [])
+        # Fallback 1: Specific Movie Search with year if multi-search fails or yields invalid images
+        if not results:
+            movie_url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}{year_param}"
+            m_res = session.get(movie_url, timeout=5)
+            if m_res.status_code == 200:
+                results = m_res.json().get("results", [])
+                for r in results:
+                    r["media_type"] = "movie"
 
+        # Fallback 2: Specific TV Search
         if not results:
             tv_url = f"https://api.themoviedb.org/3/search/tv?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}"
             tv_res = session.get(tv_url, timeout=5)
@@ -526,7 +542,7 @@ def search_poster(message):
             backdrop_path = item.get("backdrop_path")
             poster_path = item.get("poster_path")
 
-            # --- Strictly Unique Season Backdrops and Posters ---
+            # --- Handle Season Specific Images ---
             if season_number and media_type == "tv":
                 season_url = f"https://api.themoviedb.org/3/tv/{item_id}/season/{season_number}?api_key={TMDB_API_KEY}"
                 season_res = session.get(season_url, timeout=5)
@@ -538,7 +554,6 @@ def search_poster(message):
                         backdrop_path = season_data.get("backdrop_path")
                     title = f"{title} season {season_number}"
                 
-                # Check specific season image endpoints to ensure unique backdrops per season
                 season_img_url = f"https://api.themoviedb.org/3/tv/{item_id}/season/{season_number}/images?api_key={TMDB_API_KEY}"
                 season_img_res = session.get(season_img_url, timeout=4)
                 if season_img_res.status_code == 200:
@@ -556,7 +571,6 @@ def search_poster(message):
             if img_response.status_code == 200:
                 processed_image_io = add_title_overlay(img_response.content, title, logo_url)
                 
-                # Distinct cache key per season so S01 and S02 never share or overwrite files
                 cache_key = f"{item_id}_s{season_number}" if season_number else item_id
                 file_path = os.path.join(CACHE_DIR, f"{cache_key}.jpg")
                 with open(file_path, "wb") as f:
@@ -603,6 +617,7 @@ def search_poster(message):
             bot.edit_message_text(f"⚠️ ᴀɴ ᴇʀʀᴏʀ ᴏᴄᴄᴜʀᴇᴅ: {html.escape(str(e))}", message.chat.id, status_msg.message_id, parse_mode="HTML")
         except Exception:
             pass
+
             
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
