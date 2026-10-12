@@ -506,6 +506,7 @@ def build_poster_page(search_id, index=0):
 
         processed_image_io = add_title_overlay(img_response.content, title, logo_url)
         
+        # Unique cache key per item and per pagination index so the Flask web route serves the right image
         cache_key = f"{item_id}_s{season_number}_idx{index}" if season_number else f"{item_id}_idx{index}"
         file_path = os.path.join(CACHE_DIR, f"{cache_key}.jpg")
         with open(file_path, "wb") as f:
@@ -517,11 +518,13 @@ def build_poster_page(search_id, index=0):
         safe_title = html.escape(title)
         
         caption_lines = [
-            f"•<b>ᴛɪᴛʟᴇ : {safe_title} ({year})</b>",
-            "•<b>Tʏᴘᴇ :</b> Landscape",
-            f"•<b>Lᴀɴɢᴜᴀɢᴇ : {language_str}</b>",
-            f"•<b>Rᴇsᴏʟᴜᴛɪᴏɴs : {resolution_str}</b>",
-            f"•<b>Lɪɴᴋ :</b> <a href=\"{titled_poster_url}\"><b>Direct Link</b></a>"
+            f"<b>Mᴏʜᴀᴍᴍᴇᴅ Pᴏsᴛᴇʀ Bᴏᴛ</b>\n\n"
+            f"•<b> ᴛɪᴛʟᴇ : {safe_title} ({year})</b>",
+            "•<b> Tʏᴘᴇ : Landscape</b>",
+            f"•<b> Lᴀɴɢᴜᴀɢᴇ : {language_str}</b>",
+            f"•<b> Rᴇsᴏʟᴜᴛɪᴏɴs : {resolution_str}</b>",
+            f"•<b> Lɪɴᴋ :</b> <a href=\"{titled_poster_url}\"><b>Direct Link</b></a>\n\n"
+            f"<b>›› Pᴏᴡᴇʀᴇᴅ Bʏ : <a href=\"https://t.me/Aero_Unity\">Aᴇʀᴏ Uɴɪᴛʏ</a></b>"
         ]
         
         caption = "\n".join(caption_lines)
