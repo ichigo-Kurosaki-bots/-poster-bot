@@ -492,11 +492,11 @@ def build_poster_page(search_id, index=0):
         safe_title = html.escape(title)
         
         caption_lines = [
-            f"<b>{safe_title} ({year})</b>\n",
-            "• <b>Type :</b> Landscape",
-            "• <b>Language :</b> EN",
-            "• <b>Resolution :</b> 1920x1080\n",
-            f"• <a href=\"{titled_poster_url}\"><b>Direct Link</b></a>"
+            f"•<b>ᴛɪᴛʟᴇ : {safe_title} ({year})</b>",
+            "•<b>Tʏᴘᴇ :</b> Landscape",
+            "•<b>Lᴀɴɢᴜᴀɢᴇ : EN </b>",
+            "•<b>Rᴇsᴏʟᴜᴛɪᴏɴs : 1920x1080</b>",
+            f"•<b>Lɪɴᴋ :</b> <a href=\"{titled_poster_url}\"><b>Direct Link</b></a>"
         ]
         
         caption = "\n".join(caption_lines)
@@ -542,8 +542,10 @@ def handle_pagination(call):
                 media=telebot.types.InputMediaPhoto(photo_url, caption=caption, parse_mode="HTML"),
                 reply_markup=markup
             )
-        except Exception:
+        except Exception as e:
+            print(f"Pagination error: {e}")
             pass
+            
     bot.answer_callback_query(call.id)
 
 @bot.message_handler(func=lambda message: True)
