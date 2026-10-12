@@ -371,21 +371,17 @@ def add_title_overlay(image_bytes, title_text, logo_url=None):
     
     # If image is tall/vertical portrait (aspect ratio < 1.33)
     if orig_img.width / orig_img.height < 1.33:
-        # Create a blurred background
         bg = orig_img.resize((target_width, target_height), Image.Resampling.LANCZOS)
         bg = bg.filter(ImageFilter.GaussianBlur(15))
         
-        # Resize portrait nicely without distortion
         portrait = orig_img.copy()
         portrait.thumbnail((target_width, target_height), Image.Resampling.LANCZOS)
         
-        # Center the portrait on top of blurred background
         x_offset = (target_width - portrait.width) // 2
         y_offset = (target_height - portrait.height) // 2
         bg.paste(portrait, (x_offset, y_offset), portrait if portrait.mode == 'RGBA' else None)
         image = bg
     else:
-        # Standard 16:9 backdrop resize
         image = orig_img.resize((target_width, target_height), Image.Resampling.LANCZOS)
     
     logo_applied = False
@@ -468,12 +464,12 @@ def search_poster(message):
         pm_enabled = database.get_global_pm_search()
         if not pm_enabled:
             access_denied_text = (
-                "🔒 <b>access limited</b>\n\n"
-                "you are not a authorised user.\n\n"
-                "please use this bot in our poster group."
+                "🔒 <b>ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ</b>\n\n"
+                "<b>ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴀ ᴀᴜᴛʜᴏʀɪsᴇᴅ ᴜsᴇʀ.\n\n"
+                "ᴘʟᴇᴀsᴇ ᴜsᴇ ᴛʜɪs ʙᴏᴛ ɪɴ ᴏᴜʀ ᴘᴏsᴛᴇʀ ɢʀᴏᴜᴘ.</b>"
             )
             markup = telebot.types.InlineKeyboardMarkup()
-            group_btn = telebot.types.InlineKeyboardButton(text="• join poster group •", url=POSTER_GROUP_URL)
+            group_btn = telebot.types.InlineKeyboardButton(text="• ᴊᴏɪɴ ᴘᴏsᴛᴇʀ ɢʀᴏᴜᴘ •", url=POSTER_GROUP_URL)
             markup.add(group_btn)
             bot.reply_to(message, access_denied_text, parse_mode="HTML", reply_markup=markup)
             return
@@ -484,7 +480,7 @@ def search_poster(message):
     elif raw_query.startswith("/poster "):
         raw_query = raw_query[8:].strip()
 
-    # --- Season Detection (e.g., Jujutsu Kaisen S01 or Season 2) ---
+    # --- Season Detection (e.g., Reacher S01 or Season 2) ---
     season_number = None
     clean_query = raw_query
     season_match = re.search(r'(?i)\b(?:s|season)\s*0*(\d+)\b', raw_query)
@@ -495,7 +491,7 @@ def search_poster(message):
     status_msg = bot.reply_to(message, f"<b><i>searching <code>{html.escape(raw_query)}</code>...</i></b>", parse_mode="HTML")
     
     if not TMDB_API_KEY:
-        bot.edit_message_text("⚠️ <b>error:</b> <code>tmdb_api_key</code> is missing!", message.chat.id, status_msg.message_id, parse_mode="HTML")
+        bot.edit_message_text("⚠️ <b>𝖾𝗋𝗋𝗈𝗋:</b> <code>tmdb_api_key</code> 𝗂𝗌 𝗆𝗂𝗌𝗌𝗂𝗇𝗀!.", message.chat.id, status_msg.message_id, parse_mode="HTML")
         return
 
     url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}"
@@ -503,13 +499,12 @@ def search_poster(message):
     try:
         res = session.get(url, timeout=5)
         if res.status_code != 200:
-            bot.edit_message_text(f"⚠️ <b>tmdb api error ({res.status_code})</b>", message.chat.id, status_msg.message_id, parse_mode="HTML")
+            bot.edit_message_text(f"⚠️ <b>𝗍𝗆𝖽𝖻 𝖺𝗉𝗂 𝖾𝗋𝗋𝗈𝗋 ({res.status_code})</b>", message.chat.id, status_msg.message_id, parse_mode="HTML")
             return
 
         response = res.json()
         results = response.get("results", [])
 
-        # Fallback: Search explicitly in TV endpoint if multi-search yields nothing
         if not results:
             tv_url = f"https://api.themoviedb.org/3/search/tv?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}"
             tv_res = session.get(tv_url, timeout=5)
@@ -521,7 +516,7 @@ def search_poster(message):
         if results:
             valid_items = [i for i in results if i.get("backdrop_path") or i.get("poster_path")]
             if not valid_items:
-                bot.edit_message_text("❌ image banner not available for this title.", message.chat.id, status_msg.message_id)
+                bot.edit_message_text("‼️ ɪᴍᴀɢᴇ ʙᴀɴɴᴇʀ ɴᴏᴛ ᴀᴠᴀɪʟᴀʙʟᴇ ꜰᴏʀ ᴛʜɪs ᴛɪᴛʟᴇ.", message.chat.id, status_msg.message_id)
                 return
 
             item = valid_items[0]
@@ -535,7 +530,7 @@ def search_poster(message):
             backdrop_path = item.get("backdrop_path")
             poster_path = item.get("poster_path")
 
-            # --- Handle Season Specific Images ---
+            # --- Handle Seasons --- #
             if season_number and media_type == "tv":
                 season_url = f"https://api.themoviedb.org/3/tv/{item_id}/season/{season_number}?api_key={TMDB_API_KEY}"
                 season_res = session.get(season_url, timeout=5)
@@ -544,19 +539,26 @@ def search_poster(message):
                     if season_data.get("poster_path"):
                         poster_path = season_data.get("poster_path")
                     title = f"{title} season {season_number}"
+                
+                # Fetch season-specific backdrop images from TMDb season images endpoint
+                season_img_url = f"https://api.themoviedb.org/3/tv/{item_id}/season/{season_number}/images?api_key={TMDB_API_KEY}"
+                season_img_res = session.get(season_img_url, timeout=4)
+                if season_img_res.status_code == 200:
+                    s_data = season_img_res.json()
+                    s_backdrops = s_data.get("backdrops", [])
+                    if s_backdrops and s_backdrops[0].get("file_path"):
+                        backdrop_path = s_backdrops[0].get("file_path")
 
-            # Ensure backdrop_url_original points to main backdrop if available so Telegram message image is 16:9 wide
             backdrop_url_original = f"https://image.tmdb.org/t/p/original{backdrop_path}" if backdrop_path else f"https://image.tmdb.org/t/p/original{poster_path}"
             portrait_url_original = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else backdrop_url_original
             
             logo_url = get_tmdb_logo_url(item_id, media_type)
             
-            # Fetch backdrop image for title overlay processing
             img_response = session.get(backdrop_url_original, timeout=8)
             if img_response.status_code == 200:
                 processed_image_io = add_title_overlay(img_response.content, title, logo_url)
                 
-                # Unique cache key per season
+                # Unique cache key per season so different seasons never overwrite each other
                 cache_key = f"{item_id}_s{season_number}" if season_number else item_id
                 file_path = os.path.join(CACHE_DIR, f"{cache_key}.jpg")
                 with open(file_path, "wb") as f:
@@ -578,7 +580,7 @@ def search_poster(message):
                 
                 markup = telebot.types.InlineKeyboardMarkup()
                 aero_button = telebot.types.InlineKeyboardButton(text="• ᴀᴇʀᴏ ᴜɴɪᴛʏ •", url="https://t.me/Aero_Unity")
-                open_image_button = telebot.types.InlineKeyboardButton(text="ᴏᴘᴇɴ ɪᴍᴀɢᴇ ↗", url=titled_poster_url)
+                open_image_button = telebot.types.InlineKeyboardButton(text="• ᴏᴘᴇɴ ɪᴍᴀɢᴇ •", url=titled_poster_url)
                 markup.row(aero_button, open_image_button)
                 
                 try:
@@ -594,13 +596,13 @@ def search_poster(message):
                     reply_markup=markup
                 )
             else:
-                bot.edit_message_text("❌ failed to download background image.", message.chat.id, status_msg.message_id)
+                bot.edit_message_text("‼️ ꜰᴀɪʟᴇᴅ ᴛᴏ ᴅᴏᴡɴʟᴏᴀᴅ ʙᴀᴄᴋɢʀᴏᴜɴᴅ ɪᴍᴀɢᴇ.", message.chat.id, status_msg.message_id)
         else:
-            bot.edit_message_text("❌ content not found! please check your spelling.", message.chat.id, status_msg.message_id)
+            bot.edit_message_text("ᴘʟᴇᴀsᴇ ᴄʜᴇᴄᴋ ʏᴏᴜʀ sᴘᴇʟʟɪɴɢ.", message.chat.id, status_msg.message_id)
             
     except Exception as e:
         try:
-            bot.edit_message_text(f"⚠️ an error occurred: {html.escape(str(e))}", message.chat.id, status_msg.message_id, parse_mode="HTML")
+            bot.edit_message_text(f"⚠️ ᴀɴ ᴇʀʀᴏʀ ᴏᴄᴄᴜʀᴇᴅ: {html.escape(str(e))}", message.chat.id, status_msg.message_id, parse_mode="HTML")
         except Exception:
             pass
             
