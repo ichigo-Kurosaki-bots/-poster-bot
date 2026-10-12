@@ -144,15 +144,145 @@ def toggle_pm_search(message):
         status_str = "🟢 <b>on</b>" if status else "🔴 <b>off</b>"
         bot.reply_to(message, f" <b>PM Sᴇᴀʀᴄʜ Sᴛᴀᴛᴜs:</b> {status_str}", parse_mode="HTML")
 
-@bot.callback_query_handler(func=lambda call: not call.data.startswith("p_") and call.data != "noop")
-def handle_callbacks(call):
-    
+@bot.callback_query_handler(func=lambda call: True)
+def handle_all_callbacks(call):
     user_id = call.from_user.id
     
     if database.is_banned(user_id):
         bot.answer_callback_query(call.id, " you are banned from using this bot.", show_alert=True)
         return
     
+    # 1. Handle Poster Pagination
+    if call.data.startswith("p_") or call.data == "noop":
+        if call.data == "noop":
+            bot.answer_callback_query(call.id)
+            return
+        
+        parts = call.data.split("_")
+        search_id = parts[1]
+        index = int(parts[2])
+
+        photo_url, caption, markup = build_poster_page(search_id, index)
+        if photo_url:
+            try:
+                bot.edit_message_media(
+                    chat_id=call.message.chat.id,
+                    message_id=call.message.message_id,
+                    media=telebot.types.InputMediaPhoto(photo_url, caption=caption, parse_mode="HTML"),
+                    reply_markup=markup
+                )
+            except Exception as e:
+                print(f"Pagination edit error: {e}")
+                
+        bot.answer_callback_query(call.id)
+        return
+
+    # 2. Handle IMDb Selection & Close Button
+    if call.data.startswith("imdb_select_") or call.data == "imdb_close":
+        try:
+            bot.answer_callback_query(call.id)
+        except Exception:
+            pass
+
+        if call.data == "imdb_close":
+            try:
+                bot.delete_message(call.message.chat.id, call.message.message_id)
+            except Exception:
+                pass
+            return
+
+        parts = call.data.split("_")
+        if len(parts) < 4:
+            return
+            
+        search_id = parts[2]
+        item_idx = int(parts[3])
+
+        search_items = IMDB_SEARCH_CACHE.get(search_id)
+        if not search_items or item_idx >= len(search_items):
+            try:
+                bot.answer_callback_query(call.id, "Session expired, please search again.", show_alert=True)
+            except Exception:
+                pass
+            return
+
+        selected_item = search_items[item_idx]
+        item_id = selected_item.get("id")
+        media_type = selected_item.get("media_type", "movie")
+
+        endpoint = "movie" if media_type == "movie" else "tv"
+        details_url = f"https://api.themoviedb.org/3/{endpoint}/{item_id}?api_key={TMDB_API_KEY}&append_to_response=external_ids"
+        
+        try:
+            det_res = session.get(details_url, timeout=5)
+            if det_res.status_code == 200:
+                details = det_res.json()
+                
+                title = details.get("title") or details.get("name") or "Unknown"
+                release_date = details.get("release_date") or details.get("first_air_date") or ""
+                year = release_date.split("-")[0] if release_date else "N/A"
+                rating = details.get("vote_average", "N/A")
+                if rating != "N/A":
+                    rating = f"{round(rating, 1)} / 10"
+
+                rel_info = release_date if release_date else "N/A"
+                genres = [f"#{g['name'].replace(' ', '')}" for g in details.get("genres", [])]
+                genre_str = ", ".join(genres) if genres else "N/A"
+
+                spoken_langs = [f"#{l.get('english_name', l.get('name')).replace(' ', '')}" for l in details.get("spoken_languages", [])]
+                lang_str = ", ".join(spoken_langs) if spoken_langs else "N/A"
+
+                countries = [f"#{c.get('name').replace(' ', '_')}" for c in details.get("production_countries", [])]
+                country_str = ", ".join(countries) if countries else "N/A"
+
+                overview = details.get("overview", "No storyline available.")
+
+                external_ids = details.get("external_ids", {})
+                imdb_id = external_ids.get("imdb_id")
+                imdb_link = f"https://www.imdb.com/title/{imdb_id}" if imdb_id else "https://www.imdb.com"
+
+                poster_path = details.get("poster_path") or details.get("backdrop_path")
+                poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else None
+
+                caption_lines = [
+                    f"🎬 <b>{html.escape(title)}</b> [{year}]",
+                    f"⭐ <b>IMDb Rating:</b> {rating}",
+                    f"📅 <b>Release Info:</b> {rel_info}",
+                    f"🎭 <b>Genre:</b> {genre_str}",
+                    f"🌐 <b>Language:</b> {lang_str}",
+                    f"🏳️ <b>Country of Origin:</b> {country_str}\n",
+                    f"📖 <b>Storyline:</b>\n<i>{html.escape(overview)}</i>"
+                ]
+                caption_text = "\n".join(caption_lines)
+
+                markup = InlineKeyboardMarkup()
+                markup.add(InlineKeyboardButton(text="📺 IMDb Page", url=imdb_link))
+
+                try:
+                    bot.delete_message(call.message.chat.id, call.message.message_id)
+                except Exception:
+                    pass
+
+                if poster_url:
+                    bot.send_photo(
+                        chat_id=call.message.chat.id,
+                        photo=poster_url,
+                        caption=caption_text,
+                        parse_mode="HTML",
+                        reply_markup=markup
+                    )
+                else:
+                    bot.send_message(
+                        chat_id=call.message.chat.id,
+                        text=caption_text,
+                        parse_mode="HTML",
+                        reply_markup=markup
+                    )
+        except Exception as e:
+            print(f"IMDb details error: {e}")
+        return
+
+    # 3. Handle Static Menu Buttons (About, Home, Force Sub Check)
     if call.data == "check_fsub":
         if is_user_member(user_id):
             try:
@@ -239,6 +369,8 @@ def handle_callbacks(call):
                 )
             except Exception:
                 bot.send_photo(call.message.chat.id, START_IMAGE_URL, caption=welcome_text, parse_mode="HTML", reply_markup=markup)
+                
+    bot.answer_callback_query(call.id)
 
 # --- Admin-Only Commands --- #
 @bot.message_handler(commands=['stats'])
@@ -553,30 +685,6 @@ def build_poster_page(search_id, index=0):
         return backdrop_url_original, caption, markup
 
     return None, None, None
-    
-@bot.callback_query_handler(func=lambda call: call.data.startswith("p_") or call.data == "noop")
-def handle_pagination(call):
-    if call.data == "noop":
-        bot.answer_callback_query(call.id)
-        return
-    
-    parts = call.data.split("_")
-    search_id = parts[1]
-    index = int(parts[2])
-
-    photo_url, caption, markup = build_poster_page(search_id, index)
-    if photo_url:
-        try:
-            bot.edit_message_media(
-                chat_id=call.message.chat.id,
-                message_id=call.message.message_id,
-                media=telebot.types.InputMediaPhoto(photo_url, caption=caption, parse_mode="HTML"),
-                reply_markup=markup
-            )
-        except Exception as e:
-            print(f"Pagination edit error: {e}")
-            
-    bot.answer_callback_query(call.id)
 
 @bot.message_handler(func=lambda message: not message.text.strip().startswith("/"))
 def search_poster(message):
@@ -802,105 +910,6 @@ def imdb_command(message):
 
     except Exception as e:
         bot.edit_message_text(f"⚠️ <b>An error occurred:</b> <code>{html.escape(str(e))}</code>", message.chat.id, status_msg.message_id, parse_mode="HTML")
-
-
-# --- 2. Callback Query Handler for Title Selection & Close Button ---
-@bot.callback_query_handler(func=lambda call: call.data.startswith("imdb_select_") or call.data == "imdb_close")
-def handle_imdb_callbacks(call):
-    if call.data == "imdb_close":
-        try:
-            bot.delete_message(call.message.chat.id, call.message.message_id)
-        except Exception:
-            pass
-        bot.answer_callback_query(call.id)
-        return
-
-    parts = call.data.split("_")
-    search_id = parts[2]
-    item_idx = int(parts[3])
-
-    search_items = IMDB_SEARCH_CACHE.get(search_id)
-    if not search_items or item_idx >= len(search_items):
-        bot.answer_callback_query(call.id, "Session expired, please search again.", show_alert=True)
-        return
-
-    selected_item = search_items[item_idx]
-    item_id = selected_item.get("id")
-    media_type = selected_item.get("media_type", "movie")
-
-    endpoint = "movie" if media_type == "movie" else "tv"
-    details_url = f"https://api.themoviedb.org/3/{endpoint}/{item_id}?api_key={TMDB_API_KEY}&append_to_response=external_ids"
-    
-    try:
-        det_res = session.get(details_url, timeout=5)
-        if det_res.status_code == 200:
-            details = det_res.json()
-            
-            title = details.get("title") or details.get("name") or "Unknown"
-            release_date = details.get("release_date") or details.get("first_air_date") or ""
-            year = release_date.split("-")[0] if release_date else "N/A"
-            rating = details.get("vote_average", "N/A")
-            if rating != "N/A":
-                rating = f"{round(rating, 1)} / 10"
-
-            rel_info = release_date if release_date else "N/A"
-            genres = [f"#{g['name'].replace(' ', '')}" for g in details.get("genres", [])]
-            genre_str = ", ".join(genres) if genres else "N/A"
-
-            spoken_langs = [f"#{l.get('english_name', l.get('name')).replace(' ', '')}" for l in details.get("spoken_languages", [])]
-            lang_str = ", ".join(spoken_langs) if spoken_langs else "N/A"
-
-            countries = [f"#{c.get('name').replace(' ', '_')}" for c in details.get("production_countries", [])]
-            country_str = ", ".join(countries) if countries else "N/A"
-
-            overview = details.get("overview", "No storyline available.")
-
-            external_ids = details.get("external_ids", {})
-            imdb_id = external_ids.get("imdb_id")
-            imdb_link = f"https://www.imdb.com/title/{imdb_id}" if imdb_id else "https://www.imdb.com"
-
-            poster_path = details.get("poster_path") or details.get("backdrop_path")
-            poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else None
-
-            caption_lines = [
-                f"🎬 <b>{html.escape(title)}</b> [{year}]",
-                f"⭐ <b>IMDb Rating:</b> {rating}",
-                f"📅 <b>Release Info:</b> {rel_info}",
-                f"🎭 <b>Genre:</b> {genre_str}",
-                f"🌐 <b>Language:</b> {lang_str}",
-                f"🏳️ <b>Country of Origin:</b> {country_str}\n",
-                f"📖 <b>Storyline:</b>\n<i>{html.escape(overview)}</i>"
-            ]
-            caption_text = "\n".join(caption_lines)
-
-            markup = InlineKeyboardMarkup()
-            markup.add(InlineKeyboardButton(text="📺 IMDb Page", url=imdb_link))
-
-            try:
-                bot.delete_message(call.message.chat.id, call.message.message_id)
-            except Exception:
-                pass
-
-            if poster_url:
-                bot.send_photo(
-                    chat_id=call.message.chat.id,
-                    photo=poster_url,
-                    caption=caption_text,
-                    parse_mode="HTML",
-                    reply_markup=markup
-                )
-            else:
-                bot.send_message(
-                    chat_id=call.message.chat.id,
-                    text=caption_text,
-                    parse_mode="HTML",
-                    reply_markup=markup
-                )
-
-    except Exception as e:
-        bot.answer_callback_query(call.id, f"Error: {e}", show_alert=True)
-
-    bot.answer_callback_query(call.id)
 
 
 if __name__ == "__main__":
