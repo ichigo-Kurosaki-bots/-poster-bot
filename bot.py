@@ -466,6 +466,28 @@ def build_poster_page(search_id, index=0):
     release_date = item.get("release_date") or item.get("first_air_date") or ""
     year = release_date.split("-")[0] if release_date else "n/a"
 
+    # Fetch detailed item info from TMDb to get all spoken languages
+    endpoint = "movie" if media_type == "movie" else "tv"
+    details_url = f"https://api.themoviedb.org/3/{endpoint}/{item_id}?api_key={TMDB_API_KEY}"
+    languages_list = []
+    try:
+        det_res = session.get(details_url, timeout=4)
+        if det_res.status_code == 200:
+            det_data = det_res.json()
+            spoken = det_data.get("spoken_languages", [])
+            for lang in spoken:
+                name = lang.get("english_name") or lang.get("name")
+                if name:
+                    languages_list.append(name)
+    except Exception:
+        pass
+
+    # Fallback to original_language if no spoken languages found
+    if not languages_list:
+        languages_list = [item.get("original_language", "en").upper()]
+
+    language_str = ", ".join(languages_list)
+
     backdrop_path = item.get("backdrop_path")
     poster_path = item.get("poster_path")
 
@@ -473,12 +495,15 @@ def build_poster_page(search_id, index=0):
         title = f"{title} season {season_number}"
 
     backdrop_url_original = f"https://image.tmdb.org/t/p/original{backdrop_path}" if backdrop_path else f"https://image.tmdb.org/t/p/original{poster_path}"
-    portrait_url_original = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else backdrop_url_original
-
+    
     logo_url = get_tmdb_logo_url(item_id, media_type)
     
     img_response = session.get(backdrop_url_original, timeout=8)
     if img_response.status_code == 200:
+        img_obj = Image.open(io.BytesIO(img_response.content))
+        img_width, img_height = img_obj.size
+        resolution_str = f"{img_width}x{img_height}"
+
         processed_image_io = add_title_overlay(img_response.content, title, logo_url)
         
         cache_key = f"{item_id}_s{season_number}_idx{index}" if season_number else f"{item_id}_idx{index}"
@@ -494,8 +519,8 @@ def build_poster_page(search_id, index=0):
         caption_lines = [
             f"•<b>ᴛɪᴛʟᴇ : {safe_title} ({year})</b>",
             "•<b>Tʏᴘᴇ :</b> Landscape",
-            "•<b>Lᴀɴɢᴜᴀɢᴇ : EN </b>",
-            "•<b>Rᴇsᴏʟᴜᴛɪᴏɴs : 1920x1080</b>",
+            f"•<b>Lᴀɴɢᴜᴀɢᴇ : {language_str}</b>",
+            f"•<b>Rᴇsᴏʟᴜᴛɪᴏɴs : {resolution_str}</b>",
             f"•<b>Lɪɴᴋ :</b> <a href=\"{titled_poster_url}\"><b>Direct Link</b></a>"
         ]
         
