@@ -6,7 +6,7 @@ import telebot
 import requests
 from flask import Flask, send_file, request
 import threading
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import database
 
 # Load credentials from Render Environment Variables
@@ -113,7 +113,7 @@ def send_welcome(message):
     except Exception:
         bot.send_message(message.chat.id, welcome_text, parse_mode="HTML", reply_markup=markup)
 
-# --- Command: Owner-Only PM Search Toggle (Usable in Bot PM) ---
+# --- Command: Owner-Only PM Search Toggle ---
 @bot.message_handler(commands=['pmsearch'])
 def toggle_pm_search(message):
     user_id = message.from_user.id
@@ -126,15 +126,15 @@ def toggle_pm_search(message):
     if len(args) > 1:
         action = args[1].lower()
         if action in ['on', 'enable', 'true', '1']:
-            database.set_pm_search_status(OWNER_ID, True)
+            database.set_global_pm_search(True)
             bot.reply_to(message, "✅ <b>pm search enabled for users!</b>", parse_mode="HTML")
         elif action in ['off', 'disable', 'false', '0']:
-            database.set_pm_search_status(OWNER_ID, False)
+            database.set_global_pm_search(False)
             bot.reply_to(message, "🔒 <b>pm search disabled for users!</b>", parse_mode="HTML")
         else:
             bot.reply_to(message, "⚠️ usage: <code>/pmsearch on</code> or <code>/pmsearch off</code>", parse_mode="HTML")
     else:
-        status = database.get_pm_search_status(OWNER_ID)
+        status = database.get_global_pm_search()
         status_str = "🟢 <b>on</b>" if status else "🔴 <b>off</b>"
         bot.reply_to(message, f"ℹ️ <b>pm search status:</b> {status_str}", parse_mode="HTML")
 
@@ -364,12 +364,29 @@ def get_tmdb_logo_url(item_id, media_type):
         pass
     return None
 
-# --- Poster Generation Logic ---
+# --- Poster Generation Logic (Proper Aspect-Ratio Handling) ---
 def add_title_overlay(image_bytes, title_text, logo_url=None):
-    image = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
-    target_width = 1280
-    target_height = 720
-    image = image.resize((target_width, target_height), Image.Resampling.LANCZOS)
+    orig_img = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
+    target_width, target_height = 1280, 720
+    
+    # If image is tall/vertical portrait (aspect ratio < 1.33)
+    if orig_img.width / orig_img.height < 1.33:
+        # Create a blurred background
+        bg = orig_img.resize((target_width, target_height), Image.Resampling.LANCZOS)
+        bg = bg.filter(ImageFilter.GaussianBlur(15))
+        
+        # Resize portrait nicely without distortion
+        portrait = orig_img.copy()
+        portrait.thumbnail((target_width, target_height), Image.Resampling.LANCZOS)
+        
+        # Center the portrait on top of blurred background
+        x_offset = (target_width - portrait.width) // 2
+        y_offset = (target_height - portrait.height) // 2
+        bg.paste(portrait, (x_offset, y_offset), portrait if portrait.mode == 'RGBA' else None)
+        image = bg
+    else:
+        # Standard 16:9 backdrop resize
+        image = orig_img.resize((target_width, target_height), Image.Resampling.LANCZOS)
     
     logo_applied = False
     if logo_url:
@@ -446,9 +463,9 @@ def search_poster(message):
         send_fsub_prompt(message.chat.id)
         return
 
-    # Check PM Search restriction if query is sent in Private Chat (Allows Owner regardless)
+    # Check Global PM Search restriction if query is sent in Private Chat (Allows Owner regardless)
     if message.chat.type == "private" and user_id != OWNER_ID:
-        pm_enabled = database.get_pm_search_status(OWNER_ID)
+        pm_enabled = database.get_global_pm_search()
         if not pm_enabled:
             access_denied_text = (
                 "🔒 <b>access limited</b>\n\n"
@@ -518,7 +535,7 @@ def search_poster(message):
             backdrop_path = item.get("backdrop_path")
             poster_path = item.get("poster_path")
 
-            # --- Handle Season Specific Images and Unique Season Posters ---
+            # --- Handle Season Specific Images ---
             if season_number and media_type == "tv":
                 season_url = f"https://api.themoviedb.org/3/tv/{item_id}/season/{season_number}?api_key={TMDB_API_KEY}"
                 season_res = session.get(season_url, timeout=5)
@@ -527,28 +544,19 @@ def search_poster(message):
                     if season_data.get("poster_path"):
                         poster_path = season_data.get("poster_path")
                     title = f"{title} season {season_number}"
-                
-                # Fetch season-specific backdrop images
-                season_img_url = f"https://api.themoviedb.org/3/tv/{item_id}/season/{season_number}/images?api_key={TMDB_API_KEY}"
-                season_img_res = session.get(season_img_url, timeout=4)
-                if season_img_res.status_code == 200:
-                    season_images = season_img_res.json().get("posters", []) or season_img_res.json().get("backdrops", [])
-                    if season_images:
-                        path_key = "file_path" if "file_path" in season_images[0] else "poster_path"
-                        if season_images[0].get(path_key):
-                            backdrop_path = season_images[0].get(path_key)
 
-            # Ensure we fallback correctly to portrait if backdrop is missing, but always format to landscape widescreen via resize
+            # Ensure backdrop_url_original points to main backdrop if available so Telegram message image is 16:9 wide
             backdrop_url_original = f"https://image.tmdb.org/t/p/original{backdrop_path}" if backdrop_path else f"https://image.tmdb.org/t/p/original{poster_path}"
             portrait_url_original = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else backdrop_url_original
             
             logo_url = get_tmdb_logo_url(item_id, media_type)
             
+            # Fetch backdrop image for title overlay processing
             img_response = session.get(backdrop_url_original, timeout=8)
             if img_response.status_code == 200:
                 processed_image_io = add_title_overlay(img_response.content, title, logo_url)
                 
-                # Unique cache key per season so different seasons never overwrite each other
+                # Unique cache key per season
                 cache_key = f"{item_id}_s{season_number}" if season_number else item_id
                 file_path = os.path.join(CACHE_DIR, f"{cache_key}.jpg")
                 with open(file_path, "wb") as f:
