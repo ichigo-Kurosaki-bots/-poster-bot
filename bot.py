@@ -179,7 +179,7 @@ def handle_callbacks(call):
     elif call.data == "btn_about":
         about_text = (
             "⍟───[ <b>ᴍʏ ᴅᴇᴛᴀɪʟꜱ</b> ]───⍟\n\n"
-            "‣ <b>ᴍʏ ɴᴀᴍᴇ : <a href"\"https://t.me/Aero_Poster_bot\">ᴀᴇʀᴏ ᴘᴏsᴛᴇʀ ʙᴏᴛ</a></b>\n"
+            "‣ <b>ᴍʏ ɴᴀᴍᴇ : <a href=\"https://t.me/Aero_Poster_bot\">ᴀᴇʀᴏ ᴘᴏsᴛᴇʀ ʙᴏᴛ</a></b>\n"
             "‣ <b>ᴅᴇᴠᴇʟᴏᴘᴇʀ : <a href=\"https://t.me/Mr_Mohammed_29\"><b>ᴍᴏʜᴀᴍᴍᴇᴅ</b></a></b>\n"
             "‣ <b>ʟɪʙʀᴀʀʏ : ᴘʏʀᴏɢʀᴀᴍ / ᴛᴇʟᴇʙᴏᴛ</b>\n"
             "‣ <b>ʟᴀɴɢᴜᴀɢᴇ : <a href=\"https://www.python.org/download/releases/3.0/\">ᴘʏᴛʜᴏɴ 𝟹</a></b>\n"
