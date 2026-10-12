@@ -142,8 +142,9 @@ def toggle_pm_search(message):
         status_str = "🟢 <b>on</b>" if status else "🔴 <b>off</b>"
         bot.reply_to(message, f" <b>PM Sᴇᴀʀᴄʜ Sᴛᴀᴛᴜs:</b> {status_str}", parse_mode="HTML")
 
-@bot.callback_query_handler(func=lambda call: True)
+@bot.callback_query_handler(func=lambda call: not call.data.startswith("p_") and call.data != "noop")
 def handle_callbacks(call):
+    
     user_id = call.from_user.id
     
     if database.is_banned(user_id):
@@ -550,7 +551,7 @@ def build_poster_page(search_id, index=0):
         return backdrop_url_original, caption, markup
 
     return None, None, None
-
+    
 @bot.callback_query_handler(func=lambda call: call.data.startswith("p_") or call.data == "noop")
 def handle_pagination(call):
     if call.data == "noop":
@@ -571,8 +572,7 @@ def handle_pagination(call):
                 reply_markup=markup
             )
         except Exception as e:
-            print(f"Pagination error: {e}")
-            pass
+            print(f"Pagination edit error: {e}")
             
     bot.answer_callback_query(call.id)
 
