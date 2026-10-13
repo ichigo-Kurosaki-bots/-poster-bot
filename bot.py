@@ -679,12 +679,11 @@ def build_poster_page(search_id, index=0):
         safe_title = html.escape(title)
         
         caption_lines = [
-            f"<b> ›› Mᴏʜᴀᴍᴍᴇᴅ Pᴏsᴛᴇʀ Bᴏᴛ</b>\n",
-            f"• <b>ᴛɪᴛʟᴇ : {safe_title} ({year})</b>",
+            f"• <b>Tɪᴛʟᴇ : {safe_title} ({year})</b>",
             f"• <b>Lᴀɴɢᴜᴀɢᴇ : {language_str}</b>",
             f"• <b>Rᴇsᴏʟᴜᴛɪᴏɴs : {resolution_str}</b>",
-            f"• <b>Link :</b> <a href=\"{landscape_url}\"><b>Direct Link</b></a>",
-            f"• <b>Portrait :</b> <a href=\"{portrait_url}\"><b>Click here</b></a>\n",
+            f"• <b>Lɪɴᴋ :</b> <a href=\"{landscape_url}\"><b>Dɪʀᴇᴄᴛ Lɪɴᴋ</b></a>",
+            f"• <b>Pᴏʀᴛʀᴀɪᴛ :</b> <a href=\"{portrait_url}\"><b>Cʟɪᴄᴋ Hᴇʀᴇ</b></a>\n",
             f"<b>›› Pᴏᴡᴇʀᴇᴅ Bʏ : <a href=\"https://t.me/Aero_Unity\">Aᴇʀᴏ Uɴɪᴛʏ</a></b>"
         ]
         
