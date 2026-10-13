@@ -555,7 +555,7 @@ def get_tmdb_logo_url(item_id, media_type):
         res = session.get(url, timeout=4).json()
         logos = res.get("logos", [])
         if logos:
-            en_logos = [l for l in logos if l.get("iso_639_1"] == "en")
+            en_logos = [l for l in logos if l.get("iso_639_1") == "en"]
             selected_logo = en_logos[0] if en_logos else logos[0]
             return f"https://image.tmdb.org/t/p/original{selected_logo['file_path']}"
     except Exception:
