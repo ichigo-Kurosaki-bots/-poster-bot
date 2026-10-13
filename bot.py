@@ -85,7 +85,57 @@ def send_fsub_prompt(chat_id):
     except Exception:
         bot.send_message(chat_id, fsub_text, parse_mode="HTML", reply_markup=markup)
 
-@bot.message_handler(commands=['start', 'help'])
+# --- Help Command Handler with Instructions & Action Buttons ---
+@bot.message_handler(commands=['help'])
+def help_command(message):
+    user_id = message.from_user.id
+    database.add_user(user_id, message.from_user.first_name or "user")
+
+    if database.is_banned(user_id):
+        return
+
+    if not is_user_member(user_id):
+        send_fsub_prompt(message.chat.id)
+        return
+
+    help_text = (
+        "<b>📖 <u>How To Search & Use Aero Poster Bot</u></b>\n\n"
+        "<b>1️⃣ Direct Title Search:</b>\n"
+        "Just send any title to get poster images.\n"
+        "<i>Example:</i> <code>Doomsday</code>\n\n"
+        "<b>2️⃣ Title + Year Search:</b>\n"
+        "Narrow down to a specific release year.\n"
+        "<i>Example:</i> <code>Doomsday 2026</code>\n\n"
+        "<b>3️⃣ TV Series / Season Search:</b>\n"
+        "Specify the season number for TV shows.\n"
+        "<i>Example:</i> <code>The Mentalist S01</code> or <code>Stranger Things Season 2</code>\n\n"
+        "<b>4️⃣ Language & Regional Search:</b>\n"
+        "Add a language tag anywhere in your query to filter regional movies/dramas.\n"
+        "<i>Example:</i> <code>Crush Kdrama</code>, <code>Crush 2024 Chi</code>, or <code>Doomsday English</code>\n\n"
+        "<b>🌐 <u>Supported Language Keywords:</u></b>\n"
+        "• <b>Korean:</b> <code>kdrama</code>, <code>k-drama</code>, <code>korean</code>, <code>kr</code>\n"
+        "• <b>Chinese:</b> <code>chi</code>, <code>cdrama</code>, <code>chinese</code>, <code>mandarin</code>, <code>zh</code>\n"
+        "• <b>Japanese:</b> <code>jdrama</code>, <code>j-drama</code>, <code>japanese</code>, <code>jap</code>, <code>anime</code>, <code>ja</code>\n"
+        "• <b>Indian:</b> <code>hindi</code>, <code>tamil</code>, <code>telugu</code>, <code>malayalam</code>, <code>kannada</code>, <code>bengali</code>, <code>marathi</code>, <code>punjabi</code>\n"
+        "• <b>Global:</b> <code>english</code>, <code>spanish</code>, <code>french</code>, <code>german</code>, <code>italian</code>, <code>russian</code>, <code>portuguese</code>, <code>turkish</code>, <code>arabic</code>, <code>thai</code>\n\n"
+        "<b>🎬 <u>IMDb Info Lookup:</u></b>\n"
+        "Use <code>/imdb [Title]</code> to get detailed metadata cards and ratings."
+    )
+
+    markup = InlineKeyboardMarkup(row_width=2)
+    dev_btn = InlineKeyboardButton(text="• ᴅᴇᴠᴇʟᴏᴘᴇʀ •", url="https://t.me/Mr_Mohammed_29")
+    support_btn = InlineKeyboardButton(text="• sᴜᴘᴘᴏʀᴛ •", url="https://t.me/Coders_Grp")
+    close_btn = InlineKeyboardButton(text="• ᴄʟᴏsᴇ •", callback_data="imdb_close")
+
+    markup.row(dev_btn, support_btn)
+    markup.row(close_btn)
+
+    try:
+        bot.send_message(message.chat.id, help_text, parse_mode="HTML", reply_markup=markup)
+    except Exception as e:
+        print(f"Error sending help message: {e}")
+
+@bot.message_handler(commands=['start'])
 def send_welcome(message):
     user_id = message.from_user.id
     first_name = message.from_user.first_name or "user"
