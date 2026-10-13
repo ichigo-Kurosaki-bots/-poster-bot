@@ -547,8 +547,23 @@ def list_force_sub(message):
     else:
         bot.reply_to(message, "‼️<b>ɴᴏ sᴜʙsᴄʀɪᴘᴛɪᴏɴ ᴄʜᴀɴɴᴇʟs ᴀʀᴇ ᴄᴜʀʀᴇɴᴛʟʏ sᴇᴛ.</b>", parse_mode="HTML")
 
-# --- Poster Generation Logic (Clean Backdrops + Portrait Support) ---
-def add_title_overlay(image_bytes):
+# --- Helper: Fetch Official Title Logo PNG from TMDb ---
+def get_tmdb_logo_url(item_id, media_type):
+    endpoint = "movie" if media_type == "movie" else "tv"
+    url = f"https://api.themoviedb.org/3/{endpoint}/{item_id}/images?api_key={TMDB_API_KEY}"
+    try:
+        res = session.get(url, timeout=4).json()
+        logos = res.get("logos", [])
+        if logos:
+            en_logos = [l for l in logos if l.get("iso_639_1"] == "en")
+            selected_logo = en_logos[0] if en_logos else logos[0]
+            return f"https://image.tmdb.org/t/p/original{selected_logo['file_path']}"
+    except Exception:
+        pass
+    return None
+
+# --- Poster Generation Logic (Clean Backdrops + Smart Title/Logo Overlay + Portrait Support) ---
+def add_title_overlay(image_bytes, title_text="", logo_url=None):
     orig_img = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
     target_width, target_height = 1280, 720
     
@@ -566,6 +581,63 @@ def add_title_overlay(image_bytes):
     else:
         image = orig_img.resize((target_width, target_height), Image.Resampling.LANCZOS)
     
+    logo_applied = False
+    if logo_url:
+        try:
+            logo_res = session.get(logo_url, timeout=5)
+            if logo_res.status_code == 200:
+                logo_img = Image.open(io.BytesIO(logo_res.content)).convert("RGBA")
+                max_logo_w = int(target_width * 0.6)
+                max_logo_h = int(target_height * 0.3)
+                logo_img.thumbnail((max_logo_w, max_logo_h), Image.Resampling.LANCZOS)
+                logo_w, logo_h = logo_img.size
+                x = int((target_width - logo_w) / 2)
+                y = int(target_height - logo_h - (target_height * 0.08))
+                image.paste(logo_img, (x, y), logo_img)
+                logo_applied = True
+        except Exception:
+            pass
+
+    if not logo_applied and title_text:
+        rgb_image = image.convert("RGB")
+        draw = ImageDraw.Draw(rgb_image)
+        width, height = rgb_image.size
+        
+        try:
+            font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf"
+            font = ImageFont.truetype(font_path, int(height * 0.09))
+        except Exception:
+            font = ImageFont.load_default()
+
+        words = title_text.split()
+        if len(words) > 3:
+            mid = len(words) // 2
+            title_lines = [" ".join(words[:mid]), " ".join(words[mid:])]
+        else:
+            title_lines = [title_text]
+
+        line_heights, line_widths = [], []
+        for line in title_lines:
+            try:
+                bbox = draw.textbbox((0, 0), line, font=font)
+                w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
+            except Exception:
+                w, h = draw.textsize(line, font=font)
+            line_widths.append(w)
+            line_heights.append(h)
+
+        total_text_height = sum(line_heights) + (len(title_lines) - 1) * 10
+        y = height - total_text_height - int(height * 0.08)
+
+        for i, line in enumerate(title_lines):
+            x = (width - line_widths[i]) / 2
+            for adj_x in range(-3, 4):
+                for adj_y in range(-3, 4):
+                    draw.text((x + adj_x, y + adj_y), line, font=font, fill="black")
+            draw.text((x, y), line, font=font, fill="white")
+            y += line_heights[i] + 10
+        image = rgb_image
+
     output = io.BytesIO()
     image.convert("RGB").save(output, format="JPEG", quality=92)
     output.seek(0)
@@ -618,6 +690,9 @@ def build_poster_page(search_id, index=0):
         title = f"{title} season {season_number}"
 
     backdrop_url_original = f"https://image.tmdb.org/t/p/original{backdrop_path}" if backdrop_path else f"https://image.tmdb.org/t/p/original{poster_path}"
+    poster_url_original = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else backdrop_url_original
+    
+    logo_url = get_tmdb_logo_url(item_id, media_type)
     
     img_response = session.get(backdrop_url_original, timeout=8)
     if img_response.status_code == 200:
@@ -625,24 +700,33 @@ def build_poster_page(search_id, index=0):
         img_width, img_height = img_obj.size
         resolution_str = f"{img_width}x{img_height}"
 
-        # 1. Save clean Landscape image
-        processed_image_io = add_title_overlay(img_response.content)
         cache_key = f"{item_id}_s{season_number}_idx{index}" if season_number else f"{item_id}_idx{index}"
-        
+
+        # 1. Save Landscape image with Smart Title/Logo Overlay
+        processed_image_io = add_title_overlay(img_response.content, title, logo_url)
         landscape_file_path = os.path.join(CACHE_DIR, f"{cache_key}.jpg")
         with open(landscape_file_path, "wb") as f:
             f.write(processed_image_io.getvalue())
             
-        # 2. Save clean Portrait image
-        portrait_img = img_obj.convert("RGB")
-        portrait_io = io.BytesIO()
-        portrait_img.thumbnail((800, 1200), Image.Resampling.LANCZOS)
-        portrait_img.save(portrait_io, format="JPEG", quality=92)
-        portrait_io.seek(0)
-        
+        # 2. Save True Long/Tall Vertical Portrait Poster
         portrait_file_path = os.path.join(CACHE_DIR, f"{cache_key}_portrait.jpg")
-        with open(portrait_file_path, "wb") as f:
-            f.write(portrait_io.getvalue())
+        try:
+            port_res = session.get(poster_url_original, timeout=8)
+            if port_res.status_code == 200:
+                p_img = Image.open(io.BytesIO(port_res.content)).convert("RGB")
+                if p_img.width > p_img.height:
+                    p_img = p_img.resize((800, 1200), Image.Resampling.LANCZOS)
+                
+                portrait_io = io.BytesIO()
+                p_img.save(portrait_io, format="JPEG", quality=95)
+                with open(portrait_file_path, "wb") as f:
+                    f.write(portrait_io.getvalue())
+            else:
+                with open(portrait_file_path, "wb") as f:
+                    f.write(processed_image_io.getvalue())
+        except Exception:
+            with open(portrait_file_path, "wb") as f:
+                f.write(processed_image_io.getvalue())
         
         app_url = os.environ.get("RENDER_EXTERNAL_URL") or request.host_url.rstrip('/')
         landscape_url = f"{app_url}/poster/{cache_key}"
@@ -654,7 +738,7 @@ def build_poster_page(search_id, index=0):
             f"<b>Mᴏʜᴀᴍᴍᴇᴅ Pᴏsᴛᴇʀ Bᴏᴛ</b>\n\n",
             f"• <b>ᴛɪᴛʟᴇ : {safe_title} ({year})</b>",
             f"• <b>Lᴀɴɢᴜᴀɢᴇ : {language_str}</b>",
-            f"• <b>Rᴇsᴏʟᴜᴛɪᴏns : {resolution_str}</b>",
+            f"• <b>Rᴇsᴏʟᴜᴛɪᴏɴs : {resolution_str}</b>",
             f"• <b>Link :</b> <a href=\"{landscape_url}\"><b>Direct Link</b></a>",
             f"• <b>Portrait :</b> <a href=\"{portrait_url}\"><b>Click here</b></a>\n\n",
             f"<b>›› Pᴏᴡᴇʀᴇᴅ Bʏ : <a href=\"https://t.me/Aero_Unity\">Aᴇʀᴏ Uɴɪᴛʏ</a></b>"
