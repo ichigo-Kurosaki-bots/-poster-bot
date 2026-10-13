@@ -719,15 +719,58 @@ def search_poster(message):
     elif raw_query.startswith("/poster "):
         raw_query = raw_query[8:].strip()
 
-    # Extract year if present (e.g., "The Paradise 2026")
-    search_year = None
-    year_match = re.search(r'\b(19\d\d|20\d\d)\b', raw_query)
+    # Comprehensive Language Map
+    LANG_MAP = {
+        # East Asian / Dramas
+        r'(?i)\b(?:kdrama|k-drama|korean|kr)\b': 'ko',
+        r'(?i)\b(?:chi|cdrama|chinese|mandarin|zh)\b': 'zh',
+        r'(?i)\b(?:jdrama|j-drama|japanese|jap|anime|ja)\b': 'ja',
+        r'(?i)\b(?:thai|th)\b': 'th',
+        
+        # Indian Languages
+        r'(?i)\b(?:hindi|hin|hi)\b': 'hi',
+        r'(?i)\b(?:tamil|tam|ta)\b': 'ta',
+        r'(?i)\b(?:telugu|tel|te)\b': 'te',
+        r'(?i)\b(?:malayalam|mal|ml)\b': 'ml',
+        r'(?i)\b(?:kannada|kan|kn)\b': 'kn',
+        r'(?i)\b(?:bengali|ben|bn)\b': 'bn',
+        r'(?i)\b(?:marathi|mar|mr)\b': 'mr',
+        r'(?i)\b(?:punjabi|pun|pa)\b': 'pa',
+
+        # European Languages
+        r'(?i)\b(?:spanish|spa|es)\b': 'es',
+        r'(?i)\b(?:french|fre|fr)\b': 'fr',
+        r'(?i)\b(?:german|ger|de)\b': 'de',
+        r'(?i)\b(?:italian|ita|it)\b': 'it',
+        r'(?i)\b(?:russian|rus|ru)\b': 'ru',
+        r'(?i)\b(?:portuguese|por|pt)\b': 'pt',
+        r'(?i)\b(?:turkish|tur|tr)\b': 'tr',
+        
+        # Middle Eastern & English
+        r'(?i)\b(?:arabic|ara|ar)\b': 'ar',
+        r'(?i)\b(?:persian|farsi|fa)\b': 'fa',
+        r'(?i)\b(?:indonesian|indo|id)\b': 'id',
+        r'(?i)\b(?:english|eng|en)\b': 'en',
+    }
+
+    lang_filter = None
     clean_query = raw_query
+
+    # 1. Parse and extract language filter
+    for pattern, code in LANG_MAP.items():
+        if re.search(pattern, clean_query):
+            lang_filter = code
+            clean_query = re.sub(pattern, '', clean_query).strip()
+            break
+
+    # 2. Parse and extract year
+    search_year = None
+    year_match = re.search(r'\b(19\d\d|20\d\d)\b', clean_query)
     if year_match:
         search_year = year_match.group(1)
-        clean_query = re.sub(r'\b(19\d\d|20\d\d)\b', '', raw_query).strip()
+        clean_query = re.sub(r'\b(19\d\d|20\d\d)\b', '', clean_query).strip()
 
-    # Season Detection
+    # 3. Parse and extract TV season
     season_number = None
     season_match = re.search(r'(?i)\b(?:s|season)\s*0*(\d+)\b', clean_query)
     if season_match:
@@ -740,36 +783,53 @@ def search_poster(message):
         bot.edit_message_text("⚠️ <b>𝖾𝗋𝗋𝗈𝗋:</b> <code>tmdb_api_key</code> 𝗂𝗌 𝗆𝗂𝗌𝗌𝗂𝗇𝗀!.", message.chat.id, status_msg.message_id, parse_mode="HTML")
         return
 
-    # Build search query with release year filter
     year_param = f"&primary_release_year={search_year}" if search_year else ""
+    first_air_year_param = f"&first_air_date_year={search_year}" if search_year else ""
+    lang_param = f"&with_original_language={lang_filter}" if lang_filter else ""
     results = []
 
     try:
-        # 1. If a season/series flag is detected (e.g., "The Mentalist S01"), target the TV endpoint strictly
-        if season_number:
-            tv_url = f"https://api.themoviedb.org/3/search/tv?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}"
+        # 1. If TV season or Asian Drama tag is specified, search TV endpoint first
+        if season_number or lang_filter in ["ko", "zh", "ja"]:
+            tv_url = f"https://api.themoviedb.org/3/search/tv?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}{first_air_year_param}{lang_param}"
             tv_res = session.get(tv_url, timeout=5)
             if tv_res.status_code == 200:
                 results = tv_res.json().get("results", [])
                 for r in results:
                     r["media_type"] = "tv"
-        else:
-            # 2. For specific movie titles (like "Peddi" or "Avengers Endgame"), search the movie endpoint strictly first
-            movie_url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}{year_param}&region=IN"
+
+        # 2. Search Movie endpoint
+        if not results:
+            movie_url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}{year_param}{lang_param}"
             res = session.get(movie_url, timeout=5)
             if res.status_code == 200:
                 results = res.json().get("results", [])
                 for r in results:
                     r["media_type"] = "movie"
 
-            # If no movie is found, check if it's a strict TV series match
+            # 3. Fallback: Try searching title cleanly without filters if initial query yielded no matches
+            if not results and (year_param or lang_param):
+                fallback_url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}"
+                fallback_res = session.get(fallback_url, timeout=5)
+                if fallback_res.status_code == 200:
+                    results = fallback_res.json().get("results", [])
+                    for r in results:
+                        r["media_type"] = "movie"
+
+            # 4. Fallback to TV search
             if not results:
-                tv_url = f"https://api.themoviedb.org/3/search/tv?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}"
+                tv_url = f"https://api.themoviedb.org/3/search/tv?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}{first_air_year_param}{lang_param}"
                 tv_res = session.get(tv_url, timeout=5)
                 if tv_res.status_code == 200:
                     results = tv_res.json().get("results", [])
                     for r in results:
                         r["media_type"] = "tv"
+
+        # 5. Apply Python language filter if requested
+        if lang_filter and results:
+            strict_filtered = [i for i in results if i.get("original_language") == lang_filter]
+            if strict_filtered:
+                results = strict_filtered
 
         if results:
             valid_items = [i for i in results if i.get("backdrop_path") or i.get("poster_path")]
@@ -777,12 +837,10 @@ def search_poster(message):
                 bot.edit_message_text("‼️ ɪᴍᴀɢᴇ ʙᴀɴɴᴇʀ ɴᴏᴛ ᴀᴠᴀɪʟᴀʙʟᴇ ꜰᴏʀ ᴛʜɪs ᴛɪᴛʟᴇ.", message.chat.id, status_msg.message_id)
                 return
 
-            # Target the best/first matching title from the search
             target_item = valid_items[0]
             item_id = str(target_item.get("id"))
             media_type = target_item.get("media_type", "movie")
             
-            # Fetch all available backdrop/poster images for this specific title
             images_list = []
             img_endpoint = "tv" if (media_type == "tv" or season_number) else "movie"
             
@@ -795,7 +853,6 @@ def search_poster(message):
                 img_res = session.get(images_url, timeout=5)
                 if img_res.status_code == 200:
                     img_data = img_res.json()
-                    # Collect all backdrops, fallback to posters
                     backdrops = img_data.get("backdrops", [])
                     posters = img_data.get("posters", [])
                     
@@ -815,7 +872,6 @@ def search_poster(message):
             except Exception:
                 pass
 
-            # Fallback to main item if image gallery fetch fails
             if not images_list:
                 images_list = [target_item]
 
@@ -845,7 +901,6 @@ def search_poster(message):
         else:
             bot.edit_message_text("ᴘʟᴇᴀsᴇ ᴄʜᴇᴄᴋ ʏᴏᴜʀ sᴘᴇʟʟɪɴɢ.", message.chat.id, status_msg.message_id)
 
-            
     except Exception as e:
         try:
             bot.edit_message_text(f"⚠️ ᴀɴ ᴇʀʀᴏʀ ᴏᴄᴄᴜʀᴇᴅ: {html.escape(str(e))}", message.chat.id, status_msg.message_id, parse_mode="HTML")
