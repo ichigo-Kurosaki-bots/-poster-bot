@@ -562,11 +562,12 @@ def get_tmdb_logo_url(item_id, media_type):
         pass
     return None
 
-# --- Poster Generation Logic (Always shows title text on image) ---
+# --- Clean Backdrop Formatting (Native TMDb Title Layouts) ---
 def add_title_overlay(image_bytes, title_text="", logo_url=None):
     orig_img = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
     target_width, target_height = 1280, 720
     
+    # Maintain proper 16:9 aspect ratio with blurred background if image aspect ratio is non-standard
     if orig_img.width / orig_img.height < 1.33:
         bg = orig_img.resize((target_width, target_height), Image.Resampling.LANCZOS)
         bg = bg.filter(ImageFilter.GaussianBlur(15))
@@ -581,47 +582,6 @@ def add_title_overlay(image_bytes, title_text="", logo_url=None):
     else:
         image = orig_img.resize((target_width, target_height), Image.Resampling.LANCZOS)
     
-    # Always draw the title text onto the image
-    if title_text:
-        rgb_image = image.convert("RGB")
-        draw = ImageDraw.Draw(rgb_image)
-        width, height = rgb_image.size
-        
-        try:
-            font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf"
-            font = ImageFont.truetype(font_path, int(height * 0.09))
-        except Exception:
-            font = ImageFont.load_default()
-
-        words = title_text.split()
-        if len(words) > 3:
-            mid = len(words) // 2
-            title_lines = [" ".join(words[:mid]), " ".join(words[mid:])]
-        else:
-            title_lines = [title_text]
-
-        line_heights, line_widths = [], []
-        for line in title_lines:
-            try:
-                bbox = draw.textbbox((0, 0), line, font=font)
-                w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
-            except Exception:
-                w, h = draw.textsize(line, font=font)
-            line_widths.append(w)
-            line_heights.append(h)
-
-        total_text_height = sum(line_heights) + (len(title_lines) - 1) * 10
-        y = height - total_text_height - int(height * 0.08)
-
-        for i, line in enumerate(title_lines):
-            x = (width - line_widths[i]) / 2
-            for adj_x in range(-3, 4):
-                for adj_y in range(-3, 4):
-                    draw.text((x + adj_x, y + adj_y), line, font=font, fill="black")
-            draw.text((x, y), line, font=font, fill="white")
-            y += line_heights[i] + 10
-        image = rgb_image
-
     output = io.BytesIO()
     image.convert("RGB").save(output, format="JPEG", quality=92)
     output.seek(0)
