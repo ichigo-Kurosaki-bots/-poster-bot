@@ -562,7 +562,7 @@ def get_tmdb_logo_url(item_id, media_type):
         pass
     return None
 
-# --- Clean Backdrop Formatting (Native TMDb Title Layouts) ---
+# --- Clean Poster Generation Logic (Official TMDb Logos Only, No Drawn Text) ---
 def add_title_overlay(image_bytes, title_text="", logo_url=None):
     orig_img = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
     target_width, target_height = 1280, 720
@@ -582,6 +582,22 @@ def add_title_overlay(image_bytes, title_text="", logo_url=None):
     else:
         image = orig_img.resize((target_width, target_height), Image.Resampling.LANCZOS)
     
+    # Apply official TMDb logo PNG if available
+    if logo_url:
+        try:
+            logo_res = session.get(logo_url, timeout=5)
+            if logo_res.status_code == 200:
+                logo_img = Image.open(io.BytesIO(logo_res.content)).convert("RGBA")
+                max_logo_w = int(target_width * 0.6)
+                max_logo_h = int(target_height * 0.3)
+                logo_img.thumbnail((max_logo_w, max_logo_h), Image.Resampling.LANCZOS)
+                logo_w, logo_h = logo_img.size
+                x = int((target_width - logo_w) / 2)
+                y = int(target_height - logo_h - (target_height * 0.08))
+                image.paste(logo_img, (x, y), logo_img)
+        except Exception:
+            pass
+
     output = io.BytesIO()
     image.convert("RGB").save(output, format="JPEG", quality=92)
     output.seek(0)
