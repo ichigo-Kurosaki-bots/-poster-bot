@@ -547,6 +547,119 @@ def list_force_sub(message):
     else:
         bot.reply_to(message, "‼️<b>ɴᴏ sᴜʙsᴄʀɪᴘᴛɪᴏɴ ᴄʜᴀɴɴᴇʟs ᴀʀᴇ ᴄᴜʀʀᴇɴᴛʟʏ sᴇᴛ.</b>", parse_mode="HTML")
 
+# --- Broadcast Commands (Supports text, photos, videos, GIFs, stickers, and inline buttons) ---
+
+@bot.message_handler(commands=['broadcast'])
+def broadcast_message_handler(message):
+    if message.from_user.id != OWNER_ID:
+        bot.reply_to(message, "<b>ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ: ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴍʏ sᴇɴᴘᴀɪ</b>", parse_mode="HTML")
+        return
+        
+    if not message.reply_to_message:
+        bot.reply_to(message, "⚠️ Please **reply to a message** to broadcast it.", parse_mode="HTML")
+        return
+
+    reply_msg = message.reply_to_message
+    users = database.get_all_users()
+    
+    success = 0
+    failed = 0
+    removed_users = 0
+    
+    status_msg = bot.reply_to(message, "🚀 **Broadcast started...** Please wait.", parse_mode="HTML")
+
+    for uid, _ in users:
+        try:
+            reply_msg.copy(chat_id=uid)
+            success += 1
+        except Exception:
+            failed += 1
+            try:
+                database.ban_user(uid)  # Optional cleanup logic if user blocked
+                removed_users += 1
+            except Exception:
+                pass
+
+    bot.edit_message_text(
+        f"✅ **Broadcast Completed!**\n\n"
+        f"• **Successful:** {success}\n"
+        f"• **Failed:** {failed}",
+        message.chat.id,
+        status_msg.message_id,
+        parse_mode="HTML"
+    )
+
+@bot.message_handler(commands=['broadcastpin'])
+def broadcast_pin_handler(message):
+    if message.from_user.id != OWNER_ID:
+        bot.reply_to(message, "<b>ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ: ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴍʏ sᴇɴᴘᴀɪ</b>", parse_mode="HTML")
+        return
+        
+    if not message.reply_to_message:
+        bot.reply_to(message, "⚠️ Please **reply to a message** to broadcast and pin it.", parse_mode="HTML")
+        return
+
+    reply_msg = message.reply_to_message
+    users = database.get_all_users()
+    
+    success = 0
+    failed = 0
+    
+    status_msg = bot.reply_to(message, "🚀 **Broadcast & Pin started...** Please wait.", parse_mode="HTML")
+
+    for uid, _ in users:
+        try:
+            sent_msg = reply_msg.copy(chat_id=uid)
+            bot.pin_chat_message(chat_id=uid, message_id=sent_msg.message_id)
+            success += 1
+        except Exception:
+            failed += 1
+
+    bot.edit_message_text(
+        f"✅ **Broadcast & Pin Completed!**\n\n"
+        f"• **Successful:** {success}\n"
+        f"• **Failed:** {failed}",
+        message.chat.id,
+        status_msg.message_id,
+        parse_mode="HTML"
+    )
+
+@bot.message_handler(commands=['broadcastunpin'])
+def broadcast_unpin_handler(message):
+    if message.from_user.id != OWNER_ID:
+        bot.reply_to(message, "<b>ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ: ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴍʏ sᴇɴᴘᴀɪ</b>", parse_mode="HTML")
+        return
+        
+    if not message.reply_to_message:
+        bot.reply_to(message, "⚠️ Please **reply to a message** to broadcast, pin, and unpin it.", parse_mode="HTML")
+        return
+
+    reply_msg = message.reply_to_message
+    users = database.get_all_users()
+    
+    success = 0
+    failed = 0
+    
+    status_msg = bot.reply_to(message, "🚀 **Broadcast & Unpin started...** Please wait.", parse_mode="HTML")
+
+    for uid, _ in users:
+        try:
+            sent_msg = reply_msg.copy(chat_id=uid)
+            bot.pin_chat_message(chat_id=uid, message_id=sent_msg.message_id)
+            bot.unpin_chat_message(chat_id=uid, message_id=sent_msg.message_id)
+            success += 1
+        except Exception:
+            failed += 1
+
+    bot.edit_message_text(
+        f"✅ **Broadcast & Unpin Completed!**\n\n"
+        f"• **Successful:** {success}\n"
+        f"• **Failed:** {failed}",
+        message.chat.id,
+        status_msg.message_id,
+        parse_mode="HTML"
+    )
+
 # --- Helper: Fetch Official Title Logo PNG from TMDb ---
 def get_tmdb_logo_url(item_id, media_type):
     endpoint = "movie" if media_type == "movie" else "tv"
