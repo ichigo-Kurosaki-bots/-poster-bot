@@ -552,11 +552,11 @@ def list_force_sub(message):
 @bot.message_handler(commands=['broadcast'])
 def broadcast_message_handler(message):
     if message.from_user.id != OWNER_ID:
-        bot.reply_to(message, "<b>ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ: ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴍʏ sᴇɴᴘᴀɪ</b>", parse_mode="HTML")
+        bot.reply_to(message, "<b> ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴍʏ sᴇɴᴘᴀɪ</b>", parse_mode="HTML")
         return
         
     if not message.reply_to_message:
-        bot.reply_to(message, "⚠️ Please **reply to a message** to broadcast it.", parse_mode="HTML")
+        bot.reply_to(message, "⚠️ Please <b>reply to a message</b> to broadcast it.", parse_mode="HTML")
         return
 
     reply_msg = message.reply_to_message
@@ -565,21 +565,21 @@ def broadcast_message_handler(message):
     success = 0
     failed = 0
     
-    status_msg = bot.reply_to(message, "🚀 **Broadcast started...** Please wait.", parse_mode="HTML")
+    status_msg = bot.reply_to(message, "🚀 <b>Broadcast started...</b> Please wait.", parse_mode="HTML")
 
     for uid, _ in users:
         try:
             # Correct TeleBot syntax for copying any message type (text, photo, media, etc.)
-            bot.copy_message(chat_id=uid, from_chat_id=message.chat.id, message_id=reply_msg.message_id)
+            bot.copy_message(chat_id=uid, from_chat_id=message.chat.id, message_id=reply_msg.message_id, reply_markup=reply_msg.reply_markup)
             success += 1
         except Exception as e:
             print(f"Broadcast failed for {uid}: {e}")
             failed += 1
 
     bot.edit_message_text(
-        f"✅ **Broadcast Completed!**\n\n"
-        f"• **Successful:** {success}\n"
-        f"• **Failed:** {failed}",
+        f"✅ <b>Broadcast Completed!</b>\n\n"
+        f"• <b>Successful:</b> {success}\n"
+        f"• <b>Failed:</b> {failed}",
         message.chat.id,
         status_msg.message_id,
         parse_mode="HTML"
@@ -589,11 +589,11 @@ def broadcast_message_handler(message):
 @bot.message_handler(commands=['broadcastpin'])
 def broadcast_pin_handler(message):
     if message.from_user.id != OWNER_ID:
-        bot.reply_to(message, "<b>ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ: ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴍʏ sᴇɴᴘᴀɪ</b>", parse_mode="HTML")
+        bot.reply_to(message, "<b>ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴍʏ sᴇɴᴘᴀɪ</b>", parse_mode="HTML")
         return
         
     if not message.reply_to_message:
-        bot.reply_to(message, "⚠️ Please **reply to a message** to broadcast and pin it.", parse_mode="HTML")
+        bot.reply_to(message, "⚠️ Please <b>reply to a message</b> to broadcast and pin it.", parse_mode="HTML")
         return
 
     reply_msg = message.reply_to_message
@@ -602,11 +602,11 @@ def broadcast_pin_handler(message):
     success = 0
     failed = 0
     
-    status_msg = bot.reply_to(message, "🚀 **Broadcast & Pin started...** Please wait.", parse_mode="HTML")
+    status_msg = bot.reply_to(message, " <b>Broadcast & Pin started...</b> Please wait.", parse_mode="HTML")
 
     for uid, _ in users:
         try:
-            sent_msg = bot.copy_message(chat_id=uid, from_chat_id=message.chat.id, message_id=reply_msg.message_id)
+            sent_msg = bot.copy_message(chat_id=uid, from_chat_id=message.chat.id, message_id=reply_msg.message_id, reply_markup=reply_msg.reply_markup)
             bot.pin_chat_message(chat_id=uid, message_id=sent_msg.message_id)
             success += 1
         except Exception as e:
@@ -614,9 +614,9 @@ def broadcast_pin_handler(message):
             failed += 1
 
     bot.edit_message_text(
-        f"✅ **Broadcast & Pin Completed!**\n\n"
-        f"• **Successful:** {success}\n"
-        f"• **Failed:** {failed}",
+        f"✅ <b>Broadcast & Pin Completed!</b>\n\n"
+        f"• <b>Successful:</b> {success}\n"
+        f"• <b>Failed:</b> {failed}",
         message.chat.id,
         status_msg.message_id,
         parse_mode="HTML"
@@ -626,11 +626,11 @@ def broadcast_pin_handler(message):
 @bot.message_handler(commands=['broadcastunpin'])
 def broadcast_unpin_handler(message):
     if message.from_user.id != OWNER_ID:
-        bot.reply_to(message, "<b>ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ: ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴍʏ sᴇɴᴘᴀɪ</b>", parse_mode="HTML")
+        bot.reply_to(message, "<b>ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴍʏ sᴇɴᴘᴀɪ</b>", parse_mode="HTML")
         return
         
     if not message.reply_to_message:
-        bot.reply_to(message, "⚠️ Please **reply to a message** to broadcast, pin, and unpin it.", parse_mode="HTML")
+        bot.reply_to(message, "⚠️ Please <b>reply to a message</b> to broadcast, pin, and unpin it.", parse_mode="HTML")
         return
 
     reply_msg = message.reply_to_message
@@ -639,11 +639,11 @@ def broadcast_unpin_handler(message):
     success = 0
     failed = 0
     
-    status_msg = bot.reply_to(message, "🚀 **Broadcast & Unpin started...** Please wait.", parse_mode="HTML")
+    status_msg = bot.reply_to(message, "🚀 <b>Broadcast & Unpin started... Please wait.</b>", parse_mode="HTML")
 
     for uid, _ in users:
         try:
-            sent_msg = bot.copy_message(chat_id=uid, from_chat_id=message.chat.id, message_id=reply_msg.message_id)
+            sent_msg = bot.copy_message(chat_id=uid, from_chat_id=message.chat.id, message_id=reply_msg.message_id, reply_markup=reply_msg.reply_markup)
             bot.pin_chat_message(chat_id=uid, message_id=sent_msg.message_id)
             bot.unpin_chat_message(chat_id=uid, message_id=sent_msg.message_id)
             success += 1
@@ -652,9 +652,9 @@ def broadcast_unpin_handler(message):
             failed += 1
 
     bot.edit_message_text(
-        f"✅ **Broadcast & Unpin Completed!**\n\n"
-        f"• **Successful:** {success}\n"
-        f"• **Failed:** {failed}",
+        f"✅ <b>Broadcast & Unpin Completed!</b>\n\n"
+        f"• <b>Successful:</b> {success}\n"
+        f"• <b>Failed:</b> {failed}",
         message.chat.id,
         status_msg.message_id,
         parse_mode="HTML"
