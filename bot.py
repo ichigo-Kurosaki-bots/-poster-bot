@@ -547,7 +547,7 @@ def list_force_sub(message):
     else:
         bot.reply_to(message, "‼️<b>ɴᴏ sᴜʙsᴄʀɪᴘᴛɪᴏɴ ᴄʜᴀɴɴᴇʟs ᴀʀᴇ ᴄᴜʀʀᴇɴᴛʟʏ sᴇᴛ.</b>", parse_mode="HTML")
 
-# --- Broadcast Commands (Supports text, photos, videos, GIFs, stickers, and inline buttons) ---
+# --- Fixed Broadcast Commands for TeleBot ---
 
 @bot.message_handler(commands=['broadcast'])
 def broadcast_message_handler(message):
@@ -564,15 +564,16 @@ def broadcast_message_handler(message):
     
     success = 0
     failed = 0
-    removed_users = 0
     
     status_msg = bot.reply_to(message, "🚀 **Broadcast started...** Please wait.", parse_mode="HTML")
 
     for uid, _ in users:
         try:
-            reply_msg.copy(chat_id=uid)
+            # Correct TeleBot syntax for copying any message type (text, photo, media, etc.)
+            bot.copy_message(chat_id=uid, from_chat_id=message.chat.id, message_id=reply_msg.message_id)
             success += 1
-        except Exception:
+        except Exception as e:
+            print(f"Broadcast failed for {uid}: {e}")
             failed += 1
 
     bot.edit_message_text(
@@ -583,6 +584,7 @@ def broadcast_message_handler(message):
         status_msg.message_id,
         parse_mode="HTML"
     )
+
 
 @bot.message_handler(commands=['broadcastpin'])
 def broadcast_pin_handler(message):
@@ -604,10 +606,11 @@ def broadcast_pin_handler(message):
 
     for uid, _ in users:
         try:
-            sent_msg = reply_msg.copy(chat_id=uid)
+            sent_msg = bot.copy_message(chat_id=uid, from_chat_id=message.chat.id, message_id=reply_msg.message_id)
             bot.pin_chat_message(chat_id=uid, message_id=sent_msg.message_id)
             success += 1
-        except Exception:
+        except Exception as e:
+            print(f"Broadcast Pin failed for {uid}: {e}")
             failed += 1
 
     bot.edit_message_text(
@@ -618,6 +621,7 @@ def broadcast_pin_handler(message):
         status_msg.message_id,
         parse_mode="HTML"
     )
+
 
 @bot.message_handler(commands=['broadcastunpin'])
 def broadcast_unpin_handler(message):
@@ -639,11 +643,12 @@ def broadcast_unpin_handler(message):
 
     for uid, _ in users:
         try:
-            sent_msg = reply_msg.copy(chat_id=uid)
+            sent_msg = bot.copy_message(chat_id=uid, from_chat_id=message.chat.id, message_id=reply_msg.message_id)
             bot.pin_chat_message(chat_id=uid, message_id=sent_msg.message_id)
             bot.unpin_chat_message(chat_id=uid, message_id=sent_msg.message_id)
             success += 1
-        except Exception:
+        except Exception as e:
+            print(f"Broadcast Unpin failed for {uid}: {e}")
             failed += 1
 
     bot.edit_message_text(
