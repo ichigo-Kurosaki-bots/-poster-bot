@@ -574,11 +574,6 @@ def broadcast_message_handler(message):
             success += 1
         except Exception:
             failed += 1
-            try:
-                database.ban_user(uid)  # Optional cleanup logic if user blocked
-                removed_users += 1
-            except Exception:
-                pass
 
     bot.edit_message_text(
         f"✅ **Broadcast Completed!**\n\n"
