@@ -695,7 +695,7 @@ def add_title_overlay(image_bytes, title_text="", logo_url=None):
     else:
         image = orig_img.resize((target_width, target_height), Image.Resampling.LANCZOS)
     
-    # Apply official TMDb clean logo PNG directly on top with no background boxes or extra text
+    # Apply official TMDb clean logo PNG directly on top with its native colors and layout space
     if logo_url:
         try:
             logo_res = session.get(logo_url, timeout=5)
@@ -711,6 +711,8 @@ def add_title_overlay(image_bytes, title_text="", logo_url=None):
                 logo_w, logo_h = logo_img.size
                 x = int(target_width * 0.08)
                 y = int((target_height - logo_h) / 2)
+                
+                # Uses the logo's alpha channel as a mask to preserve its true official colors and transparency
                 image.paste(logo_img, (x, y), logo_img)
         except Exception:
             pass
