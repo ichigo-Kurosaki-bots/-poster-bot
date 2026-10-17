@@ -764,6 +764,8 @@ def build_poster_page(search_id, index=0):
     except Exception:
         pass
 
+    genres = ", ".join(genre_list) if genre_list else "Action, Adventure"
+
     # Fallback to original_language if no spoken languages found
     if not languages_list:
         languages_list = [item.get("original_language", "en").upper()]
