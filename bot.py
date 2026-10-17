@@ -1097,7 +1097,7 @@ def imdb_command(message):
         valid_results = [item for item in results if item.get("title") or item.get("name")]
         
         if not valid_results:
-            bot.edit_message_text("❌ <b>No titles found for your search!</b>", message.chat.id, status_msg.message_id, parse_mode="HTML")
+            bot.edit_message_text("‼️ <b>No titles found for your search!</b>", message.chat.id, status_msg.message_id, parse_mode="HTML")
             return
 
         search_id = str(message.message_id)
@@ -1113,7 +1113,7 @@ def imdb_command(message):
             callback_data = f"imdb_select_{search_id}_{idx}"
             markup.add(InlineKeyboardButton(text=button_text, callback_data=callback_data))
 
-        markup.add(InlineKeyboardButton(text="❌ Close", callback_data="imdb_close"))
+        markup.add(InlineKeyboardButton(text="• Cʟᴏsᴇ •", callback_data="imdb_close"))
 
         bot.delete_message(message.chat.id, status_msg.message_id)
         bot.send_message(
@@ -1144,7 +1144,7 @@ def movie_poster_handler(message):
     results = response.get("results", [])
 
     if not results:
-        bot.reply_to(message, f"❌ No results found for: <b>{query}</b>", parse_mode="HTML")
+        bot.reply_to(message, f"‼️ Nᴏ Rᴇsᴜʟᴛs Fᴏᴜɴᴅ Fᴏʀ ʏᴏᴜʀ <b>{query}</b>", parse_mode="HTML")
         return
 
     item = results[0]
@@ -1195,18 +1195,18 @@ def movie_poster_handler(message):
 
     # 4. Construct Caption and Inline Keyboard
     caption = (
-        f"🎬 <b>{html.escape(title)}</b>\n\n"
-        f"🏛️ <b>Type:</b> {media_type.upper()}\n"
-        f"🎭 <b>Genre:</b> {genres}\n"
-        f"🌐 <b>Language:</b> {languages}\n\n"
-        f"🖼️ <b>Banner:</b> <a href='{banner_url}'>Link</a>\n"
-        f"🖼️ <b>Poster:</b> <a href='{portrait_url}'>Link</a>"
+        f"• 🎬 <b>Tɪᴛʟᴇ : {html.escape(title)}</b>\n"
+        f"• 🏛️ <b>Tʏᴘᴇ : </b> {media_type.upper()}\n"
+        f"• 🎭 <b>Gᴇɴʀᴇ : </b> {genres}\n"
+        f"• 🌐 <b>Lᴀɴɢᴜᴀɢᴇ :</b> {languages}\n\n"
+        f"• 🖼️ <b>Bᴀɴɴᴇʀ :</b> <a href='{banner_url}'>Lɪɴᴋ</a>\n"
+        f"• 🖼️ <b>Pᴏsᴛᴇʀ :</b> <a href='{portrait_url}'>Lɪɴᴋ</a>"
     )
 
     markup = InlineKeyboardMarkup()
     markup.row(
-        InlineKeyboardButton("🖼️ Banner", url=banner_url),
-        InlineKeyboardButton("🖼️ Poster", url=portrait_url)
+        InlineKeyboardButton("• Bᴀɴɴᴇʀ •", url=banner_url),
+        InlineKeyboardButton("• Pᴏsᴛᴇʀ •", url=portrait_url)
     )
 
     # 5. Send Photo Preview
