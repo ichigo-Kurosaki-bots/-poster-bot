@@ -1120,6 +1120,77 @@ def imdb_command(message):
     except Exception as e:
         bot.edit_message_text(f"⚠️ <b>An error occurred:</b> <code>{html.escape(str(e))}</code>", message.chat.id, status_msg.message_id, parse_mode="HTML")
 
+@bot.message_handler(commands=['jhs', 'posters'])
+def movie_poster_handler(message):
+    # Extract the search query from the message
+    query = message.text.replace("/jhs", "").replace("/posters", "").strip()
+    
+    if not query:
+        bot.reply_to(
+            message, 
+            "<b>Usage:</b> /jhs [Search Query]\n<i>Example:</i> /jhs Iron man", 
+            parse_mode="HTML"
+        )
+        return
+
+    # Search TMDb API for the movie/series
+    search_url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={requests.utils.quote(query)}"
+    response = requests.get(search_url).json()
+    results = response.get("results", [])
+
+    if not results:
+        bot.reply_to(message, f"❌ No results found for: <b>{query}</b>", parse_mode="HTML")
+        return
+
+    # Take the first matched result
+    item = results[0]
+    media_type = item.get("media_type", "movie").upper()
+    title = item.get("title") or item.get("name") or "Unknown Title"
+    
+    # Fetch backdrop (Banner) and poster paths from TMDb
+    backdrop_path = item.get("backdrop_path")
+    poster_path = item.get("poster_path")
+
+    if not backdrop_path and not poster_path:
+        bot.reply_to(message, f"⚠️ Found <b>{title}</b>, but no image banners are available.", parse_mode="HTML")
+        return
+
+    # Construct full image URLs (using TMDb base image URL)
+    banner_url = f"https://image.tmdb.org/t/p/original{backdrop_path}" if backdrop_path else "https://via.placeholder.com/1280x720.png?text=No+Banner"
+    poster_url = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else "https://via.placeholder.com/500x750.png?text=No+Poster"
+
+    # Fetch additional details like genres (optional helper function or fallback)
+    genres = "Action, Adventure, Sci-Fi"  # You can map genre IDs from TMDb dynamically if you have a mapper
+    languages = item.get("original_language", "en").upper()
+
+    # Construct caption with clickable text links matching your screenshot layout
+    caption = (
+        f"🎬 <b>{title}</b>\n\n"
+        f"🏛️ <b>Type:</b> {media_type}\n"
+        f"🎭 <b>Genre:</b> {genres}\n"
+        f"🌐 <b>Language:</b> {languages}\n\n"
+        f"🖼️ <b>Banner:</b> <a href='{banner_url}'>Link</a>\n"
+        f"🖼️ <b>Poster:</b> <a href='{poster_url}'>Link</a>"
+    )
+
+    # Create Inline Keyboard buttons that prompt "Open Link" when clicked
+    markup = InlineKeyboardMarkup()
+    markup.row(
+        InlineKeyboardButton("🖼️ Banner", url=banner_url),
+        InlineKeyboardButton("🖼️ Poster", url=poster_url)
+    )
+
+    # Send the photo preview with metadata caption and buttons
+    try:
+        bot.send_photo(
+            chat_id=message.chat.id,
+            photo=banner_url,  # Displays banner as the preview image in chat
+            caption=caption,
+            parse_mode="HTML",
+            reply_markup=markup
+        )
+    except Exception as e:
+        bot.reply_to(message, f"❌ Error sending poster: {e}", parse_mode="HTML")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
