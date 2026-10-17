@@ -680,7 +680,7 @@ def add_title_overlay(image_bytes, title_text="", logo_url=None):
     orig_img = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
     target_width, target_height = 1280, 720
     
-    # Maintain proper 16:9 aspect ratio with blurred background if image aspect ratio is non-standard
+    # Maintain proper 16:9 aspect ratio with blurred background if non-standard
     if orig_img.width / orig_img.height < 1.33:
         bg = orig_img.resize((target_width, target_height), Image.Resampling.LANCZOS)
         bg = bg.filter(ImageFilter.GaussianBlur(15))
@@ -695,18 +695,22 @@ def add_title_overlay(image_bytes, title_text="", logo_url=None):
     else:
         image = orig_img.resize((target_width, target_height), Image.Resampling.LANCZOS)
     
-    # Apply official TMDb logo PNG if available
+    # Apply official TMDb clean logo PNG directly on top with no background boxes or extra text
     if logo_url:
         try:
             logo_res = session.get(logo_url, timeout=5)
             if logo_res.status_code == 200:
                 logo_img = Image.open(io.BytesIO(logo_res.content)).convert("RGBA")
-                max_logo_w = int(target_width * 0.6)
+                max_logo_w = int(target_width * 0.5)
                 max_logo_h = int(target_height * 0.3)
-                logo_img.thumbnail((max_logo_w, max_logo_h), Image.Resampling.LANCZOS)
+                
+                w_percent = (max_logo_w / float(logo_img.size[0]))
+                h_size = int(float(logo_img.size[1]) * float(w_percent))
+                logo_img = logo_img.resize((max_logo_w, h_size), Image.Resampling.LANCZOS)
+                
                 logo_w, logo_h = logo_img.size
-                x = int((target_width - logo_w) / 2)
-                y = int(target_height - logo_h - (target_height * 0.08))
+                x = int(target_width * 0.08)
+                y = int((target_height - logo_h) / 2)
                 image.paste(logo_img, (x, y), logo_img)
         except Exception:
             pass
