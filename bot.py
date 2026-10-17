@@ -823,6 +823,7 @@ def build_poster_page(search_id, index=0):
         
         caption_lines = [
             f"• <b>Tɪᴛʟᴇ : {safe_title} ({year})</b>",
+            f"• <b>Gᴇɴʀᴇ : {genres_str}</b>",
             f"• <b>Lᴀɴɢᴜᴀɢᴇ : {language_str}</b>",
             f"• <b>Rᴇsᴏʟᴜᴛɪᴏɴs : {resolution_str}</b>",
             f"• <b>Lɪɴᴋ :</b> <a href=\"{landscape_url}\"><b>Dɪʀᴇᴄᴛ Lɪɴᴋ</b></a>",
