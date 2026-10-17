@@ -1168,22 +1168,37 @@ def movie_poster_handler(message):
         bot.reply_to(message, f"⚠️ Found <b>{title}</b>, but no image banners are available.", parse_mode="HTML")
         return
 
-    # Fetch official genres dynamically from TMDb
-    genres_list = []
+    # Fetch detailed item info from TMDb to get all spoken languages and official genres
     endpoint = "movie" if media_type == "movie" else "tv"
     details_url = f"https://api.themoviedb.org/3/{endpoint}/{item_id}?api_key={TMDB_API_KEY}"
+    languages_list = []
+    genre_list = []
+    
     try:
         det_res = session.get(details_url, timeout=4)
         if det_res.status_code == 200:
             det_data = det_res.json()
+            
             for g in det_data.get("genres", []):
-                if g.get("name"):
-                    genres_list.append(g.get("name"))
+                genre_name = g.get("name")
+                if genre_name:
+                    genre_list.append(genre_name)
+                    
+            spoken = det_data.get("spoken_languages", [])
+            for lang in spoken:
+                name = lang.get("english_name") or lang.get("name")
+                if name:
+                    languages_list.append(name)
     except Exception:
         pass
 
-    genres = ", ".join(genres_list) if genres_list else "Action, Adventure"
+    # Ensure genres and language_str are properly defined here:
+    genres = ", ".join(genre_list) if genre_list else "Action, Adventure"
 
+    if not languages_list:
+        languages_list = [item.get("original_language", "en").upper()]
+
+    languages = ", ".join(languages_list)
 
     # 1. Fetch raw TMDb image & Official Title Logo PNG
     raw_backdrop_url = f"https://image.tmdb.org/t/p/original{backdrop_path}" if backdrop_path else f"https://image.tmdb.org/t/p/original{poster_path}"
@@ -1215,8 +1230,6 @@ def movie_poster_handler(message):
     app_url = os.environ.get("RENDER_EXTERNAL_URL") or request.host_url.rstrip('/')
     banner_url = f"{app_url}/poster/{cache_key}"
     portrait_url = f"{app_url}/poster/{cache_key}?type=portrait"
-
-    languages = item.get("original_language", "en").upper()
 
     # 4. Construct Caption and Inline Keyboard
     caption = (
