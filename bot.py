@@ -744,10 +744,18 @@ def build_poster_page(search_id, index=0):
     endpoint = "movie" if media_type == "movie" else "tv"
     details_url = f"https://api.themoviedb.org/3/{endpoint}/{item_id}?api_key={TMDB_API_KEY}"
     languages_list = []
+    genre_list = []
+    
     try:
         det_res = session.get(details_url, timeout=4)
         if det_res.status_code == 200:
             det_data = det_res.json()
+            
+            for g in det_data.get("genres", []):
+                genre_name = g.get("name")
+                if genre_name:
+                    genre_list.append(genre_name)
+                    
             spoken = det_data.get("spoken_languages", [])
             for lang in spoken:
                 name = lang.get("english_name") or lang.get("name")
@@ -1159,6 +1167,22 @@ def movie_poster_handler(message):
         bot.reply_to(message, f"⚠️ Found <b>{title}</b>, but no image banners are available.", parse_mode="HTML")
         return
 
+    # Fetch official genres dynamically from TMDb
+    genres_list = []
+    endpoint = "movie" if media_type == "movie" else "tv"
+    details_url = f"https://api.themoviedb.org/3/{endpoint}/{item_id}?api_key={TMDB_API_KEY}"
+    try:
+        det_res = session.get(details_url, timeout=4)
+        if det_res.status_code == 200:
+            det_data = det_res.json()
+            for g in det_data.get("genres", []):
+                if g.get("name"):
+                    genres_list.append(g.get("name"))
+    except Exception:
+        pass
+
+    genres = ", ".join(genres_list) if genres_list else "Action, Adventure"
+
     # 1. Fetch raw TMDb image & Official Title Logo PNG
     raw_backdrop_url = f"https://image.tmdb.org/t/p/original{backdrop_path}" if backdrop_path else f"https://image.tmdb.org/t/p/original{poster_path}"
     poster_url_original = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else raw_backdrop_url
@@ -1191,7 +1215,6 @@ def movie_poster_handler(message):
     portrait_url = f"{app_url}/poster/{cache_key}?type=portrait"
 
     languages = item.get("original_language", "en").upper()
-    genres = "Action, Adventure, Sci-Fi"
 
     # 4. Construct Caption and Inline Keyboard
     caption = (
@@ -1231,7 +1254,6 @@ def movie_poster_handler(message):
             )
     except Exception as e:
         bot.reply_to(message, f"❌ Error sending poster: {e}", parse_mode="HTML")
-
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
