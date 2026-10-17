@@ -1184,6 +1184,7 @@ def movie_poster_handler(message):
 
     genres = ", ".join(genres_list) if genres_list else "Action, Adventure"
 
+
     # 1. Fetch raw TMDb image & Official Title Logo PNG
     raw_backdrop_url = f"https://image.tmdb.org/t/p/original{backdrop_path}" if backdrop_path else f"https://image.tmdb.org/t/p/original{poster_path}"
     poster_url_original = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else raw_backdrop_url
