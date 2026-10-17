@@ -1128,7 +1128,6 @@ def imdb_command(message):
 
 @bot.message_handler(commands=['jhs', 'posters'])
 def movie_poster_handler(message):
-    # Extract the search query from the message
     query = message.text.replace("/jhs", "").replace("/posters", "").strip()
     
     if not query:
@@ -1148,12 +1147,11 @@ def movie_poster_handler(message):
         bot.reply_to(message, f"❌ No results found for: <b>{query}</b>", parse_mode="HTML")
         return
 
-    # Take the first matched result
     item = results[0]
-    media_type = item.get("media_type", "movie").upper()
+    media_type = item.get("media_type", "movie")
+    item_id = str(item.get("id"))
     title = item.get("title") or item.get("name") or "Unknown Title"
     
-    # Fetch backdrop (Banner) and poster paths from TMDb
     backdrop_path = item.get("backdrop_path")
     poster_path = item.get("poster_path")
 
@@ -1161,42 +1159,79 @@ def movie_poster_handler(message):
         bot.reply_to(message, f"⚠️ Found <b>{title}</b>, but no image banners are available.", parse_mode="HTML")
         return
 
-    # Construct full image URLs (using TMDb base image URL)
-    banner_url = f"https://image.tmdb.org/t/p/original{backdrop_path}" if backdrop_path else "https://via.placeholder.com/1280x720.png?text=No+Banner"
-    poster_url = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else "https://via.placeholder.com/500x750.png?text=No+Poster"
+    # 1. Fetch raw TMDb image & Official Title Logo PNG
+    raw_backdrop_url = f"https://image.tmdb.org/t/p/original{backdrop_path}" if backdrop_path else f"https://image.tmdb.org/t/p/original{poster_path}"
+    poster_url_original = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else raw_backdrop_url
+    logo_url = get_tmdb_logo_url(item_id, media_type)
 
-    # Fetch additional details like genres (optional helper function or fallback)
-    genres = "Action, Adventure, Sci-Fi"  # You can map genre IDs from TMDb dynamically if you have a mapper
+    # 2. Process image with add_title_overlay and save to CACHE_DIR
+    cache_key = f"{item_id}_jhs"
+    landscape_file_path = os.path.join(CACHE_DIR, f"{cache_key}.jpg")
+    portrait_file_path = os.path.join(CACHE_DIR, f"{cache_key}_portrait.jpg")
+
+    try:
+        img_response = session.get(raw_backdrop_url, timeout=8)
+        if img_response.status_code == 200:
+            # Generate and save overlay banner (with TMDb logo)
+            processed_io = add_title_overlay(img_response.content, title, logo_url)
+            with open(landscape_file_path, "wb") as f:
+                f.write(processed_io.getvalue())
+        
+        # Save portrait image
+        port_res = session.get(poster_url_original, timeout=8)
+        if port_res.status_code == 200:
+            with open(portrait_file_path, "wb") as f:
+                f.write(port_res.content)
+    except Exception as e:
+        print(f"Error caching images: {e}")
+
+    # 3. Build Flask domain URLs so links open the processed image with the logo
+    app_url = os.environ.get("RENDER_EXTERNAL_URL") or request.host_url.rstrip('/')
+    banner_url = f"{app_url}/poster/{cache_key}"
+    portrait_url = f"{app_url}/poster/{cache_key}?type=portrait"
+
     languages = item.get("original_language", "en").upper()
+    genres = "Action, Adventure, Sci-Fi"
 
-    # Construct caption with clickable text links matching your screenshot layout
+    # 4. Construct Caption and Inline Keyboard
     caption = (
-        f"🎬 <b>{title}</b>\n\n"
-        f"🏛️ <b>Type:</b> {media_type}\n"
+        f"🎬 <b>{html.escape(title)}</b>\n\n"
+        f"🏛️ <b>Type:</b> {media_type.upper()}\n"
         f"🎭 <b>Genre:</b> {genres}\n"
         f"🌐 <b>Language:</b> {languages}\n\n"
         f"🖼️ <b>Banner:</b> <a href='{banner_url}'>Link</a>\n"
-        f"🖼️ <b>Poster:</b> <a href='{poster_url}'>Link</a>"
+        f"🖼️ <b>Poster:</b> <a href='{portrait_url}'>Link</a>"
     )
 
-    # Create Inline Keyboard buttons that prompt "Open Link" when clicked
     markup = InlineKeyboardMarkup()
     markup.row(
         InlineKeyboardButton("🖼️ Banner", url=banner_url),
-        InlineKeyboardButton("🖼️ Poster", url=poster_url)
+        InlineKeyboardButton("🖼️ Poster", url=portrait_url)
     )
 
-    # Send the photo preview with metadata caption and buttons
+    # 5. Send Photo Preview
     try:
-        bot.send_photo(
-            chat_id=message.chat.id,
-            photo=banner_url,  # Displays banner as the preview image in chat
-            caption=caption,
-            parse_mode="HTML",
-            reply_markup=markup
-        )
+        # Check if cached file exists to send, otherwise fallback to web URL
+        if os.path.exists(landscape_file_path):
+            with open(landscape_file_path, 'rb') as photo:
+                bot.send_photo(
+                    chat_id=message.chat.id,
+                    photo=photo,
+                    caption=caption,
+                    parse_mode="HTML",
+                    reply_markup=markup
+                )
+        else:
+            bot.send_photo(
+                chat_id=message.chat.id,
+                photo=banner_url,
+                caption=caption,
+                parse_mode="HTML",
+                reply_markup=markup
+            )
     except Exception as e:
         bot.reply_to(message, f"❌ Error sending poster: {e}", parse_mode="HTML")
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
