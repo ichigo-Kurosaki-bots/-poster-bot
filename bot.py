@@ -429,7 +429,7 @@ def handle_all_callbacks(call):
             pass
         return
 
-        if call.data.startswith("media_card_"):
+    if call.data.startswith("media_card_"):
         parts = call.data.split("_")
         search_id = parts[2]
         target_index = int(parts[3])
