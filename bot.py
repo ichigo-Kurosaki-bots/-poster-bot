@@ -285,16 +285,17 @@ def toggle_pm_search(message):
 @bot.callback_query_handler(func=lambda call: True)
 def handle_all_callbacks(call):
     user_id = call.from_user.id
-
+    
     if database.is_banned(user_id):
         bot.answer_callback_query(call.id, " you are banned from using this bot.", show_alert=True)
         return
-
+    
+    # 1. Handle Poster Pagination
     if call.data.startswith("p_") or call.data == "noop":
         if call.data == "noop":
             bot.answer_callback_query(call.id)
             return
-
+        
         parts = call.data.split("_")
         search_id = parts[1]
         index = int(parts[2])
@@ -310,10 +311,11 @@ def handle_all_callbacks(call):
                 )
             except Exception as e:
                 print(f"Pagination edit error: {e}")
-
+                
         bot.answer_callback_query(call.id)
         return
 
+    # 2. Handle IMDb Selection & Close Button
     if call.data.startswith("imdb_select_") or call.data == "imdb_close":
         try:
             bot.answer_callback_query(call.id)
@@ -330,7 +332,7 @@ def handle_all_callbacks(call):
         parts = call.data.split("_")
         if len(parts) < 4:
             return
-
+            
         search_id = parts[2]
         item_idx = int(parts[3])
 
@@ -348,12 +350,12 @@ def handle_all_callbacks(call):
 
         endpoint = "movie" if media_type == "movie" else "tv"
         details_url = f"https://api.themoviedb.org/3/{endpoint}/{item_id}?api_key={TMDB_API_KEY}&append_to_response=external_ids"
-
+        
         try:
             det_res = session.get(details_url, timeout=5)
             if det_res.status_code == 200:
                 details = det_res.json()
-
+                
                 title = details.get("title") or details.get("name") or "Unknown"
                 release_date = details.get("release_date") or details.get("first_air_date") or ""
                 year = release_date.split("-")[0] if release_date else "N/A"
@@ -418,13 +420,75 @@ def handle_all_callbacks(call):
             print(f"IMDb details error: {e}")
         return
 
+    # 4. Handle Custom Anime/Manga Card Pagination (PREV / NEXT)
+    if call.data.startswith("media_card_"):
+        parts = call.data.split("_")
+        search_id = parts[2]
+        target_index = int(parts[3])
+
+        data = SEARCH_CACHE.get(search_id)
+        if not data:
+            try:
+                bot.answer_callback_query(call.id, "Session expired, please search again.", show_alert=True)
+            except Exception:
+                pass
+            return
+
+        artworks = data["artworks"]
+        total_pages = len(artworks)
+        current_index = target_index % total_pages  # Loop seamlessly
+
+        try:
+            img_bytes = session.get(artworks[current_index], timeout=5).content
+            branding = "Manga Aero" if data["type"] == "manga" else "Anime Aero"
+            card_io = generate_custom_media_card(img_bytes, data["title"], data["genres"], data["synopsis"], branding=branding)
+
+            markup = InlineKeyboardMarkup()
+            prev_idx = (current_index - 1) % total_pages
+            next_idx = (current_index + 1) % total_pages
+
+            markup.row(
+                InlineKeyboardButton(text="🔄 ◀ prev", callback_data=f"media_card_{search_id}_{prev_idx}"),
+                InlineKeyboardButton(text=f"{current_index+1:02d}/{total_pages:02d}", callback_data="noop"),
+                InlineKeyboardButton(text="next ▶", callback_data=f"media_card_{search_id}_{next_idx}")
+            )
+            markup.row(InlineKeyboardButton(text="👤 cancel", callback_data="cancel_session"))
+
+            bot.edit_message_media(
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                media=telebot.types.InputMediaPhoto(card_io, caption=f"<b>{'📚 Manga' if data['type'] == 'manga' else '🎬 Anime'}: {html.escape(data['title'].upper())}</b>", parse_mode="HTML"),
+                reply_markup=markup
+            )
+        except Exception as e:
+            print(f"Media card pagination error: {e}")
+
+        try:
+            bot.answer_callback_query(call.id)
+        except Exception:
+            pass
+        return
+
+    # 5. Handle Cancel Session Action
+    if call.data == "cancel_session":
+        try:
+            bot.delete_message(call.message.chat.id, call.message.message_id)
+        except Exception:
+            pass
+        try:
+            bot.answer_callback_query(call.id, "Session cancelled.")
+        except Exception:
+            pass
+        return
+
+    # 6. Handle Static Menu Buttons (About, Home, Force Sub Check)
     if call.data == "check_fsub":
         if is_user_member(user_id):
             try:
                 bot.delete_message(call.message.chat.id, call.message.message_id)
             except Exception:
                 pass
-
+            
             welcome_text = (
                 "✅ <b>VᴇʀɪғɪᴄᴀᴛɪᴏN Sᴜᴄᴄᴇssғᴜʟ</b>\n\n"
                 "<b>Wᴇʟᴄᴏᴍᴇ Bᴀᴄᴋ 𝗌𝖾𝗇𝖽 𝗆𝖾 𝖺𝗇𝗒 𝗍𝗂𝗍𝗅𝖾 (𝗆𝗈𝗏𝗂𝖾𝗌, 𝗌𝖾𝗋𝗂𝖾𝗌, 𝖺𝗇𝗂𝗆𝖾, 𝗄-𝖽𝗋𝖺𝗆𝖺𝗌, 𝖾𝗍𝖼.), "
@@ -436,11 +500,11 @@ def handle_all_callbacks(call):
             owner_btn = telebot.types.InlineKeyboardButton(text="• Oᴡɴᴇʀ •", url="https://t.me/Mr_Mohammed_29")
             markup.row(about_btn, updates_btn)
             markup.row(owner_btn)
-
+            
             bot.send_photo(call.message.chat.id, START_IMAGE_URL, caption=welcome_text, parse_mode="HTML", reply_markup=markup)
         else:
             bot.answer_callback_query(call.id, "›› ‼️ ʟᴏᴏᴋs ʟɪᴋᴇ ʏᴏᴜ ʜᴀᴠᴇɴ'ᴛ ᴊᴏɪɴᴇᴅ ᴛᴏ ᴏᴜʀ ᴄʜᴀɴɴᴇʟs", show_alert=True)
-
+            
     elif call.data == "btn_about":
         about_text = (
             "⍟───[ <b>ᴍʏ ᴅᴇᴛᴀɪʟꜱ</b> ]───⍟\n\n"
@@ -485,7 +549,7 @@ def handle_all_callbacks(call):
         owner_btn = telebot.types.InlineKeyboardButton(text="• Oᴡɴᴇʀ •", url="https://t.me/Mr_Mohammed_29")
         markup.row(about_btn, updates_btn)
         markup.row(owner_btn)
-
+        
         try:
             bot.edit_message_media(
                 chat_id=call.message.chat.id,
@@ -504,7 +568,7 @@ def handle_all_callbacks(call):
                 )
             except Exception:
                 bot.send_photo(call.message.chat.id, START_IMAGE_URL, caption=welcome_text, parse_mode="HTML", reply_markup=markup)
-
+                
     bot.answer_callback_query(call.id)
 
 # ------------------------ #
