@@ -420,7 +420,7 @@ def handle_all_callbacks(call):
             print(f"IMDb details error: {e}")
         return
 
-    # Handle Custom Manga Card Pagination (PREV / NEXT)
+        # Handle Custom Manga Pagination Buttons (PREV / NEXT)
     if call.data.startswith("media_card_"):
         parts = call.data.split("_")
         search_id = parts[2]
@@ -437,11 +437,21 @@ def handle_all_callbacks(call):
         artworks = data["artworks"]
         posters = data["posters"]
         total_pages = len(artworks)
-        current_index = target_index % total_pages  # Loop seamlessly
+        current_index = target_index % total_pages  # Loop through variants
+
+        caption_text = (
+            f"<b>{html.escape(data['title'])}</b> ❞\n\n"
+            f"» <b>Type:</b> Manhwa\n"
+            f"» <b>Average Rating:</b> {data['rating']}\n"
+            f"» <b>Status:</b> {data['status']}\n"
+            f"» <b>Chapters:</b> {data['chapters']}\n"
+            f"» <b>Genres:</b> {html.escape(data['genres'])}\n\n"
+            f"▶ <u><b>SYNOPSIS</b></u>\n"
+            f"<b>➔</b> <i>{html.escape(data['synopsis'][:400])}...</i> ❞"
+        )
 
         try:
             img_bytes = session.get(artworks[current_index], timeout=5).content
-            
             p_bytes_list = []
             for p_url in posters[:2]:
                 try:
@@ -449,8 +459,10 @@ def handle_all_callbacks(call):
                 except Exception:
                     p_bytes_list.append(img_bytes)
 
+            genres_list = [g.strip() for g in data["genres"].split(",")]
             card_io = generate_custom_media_card(
-                img_bytes, p_bytes_list, data["title"], data["genres"], data["synopsis"], logo_url=data["logo_url"], branding="Manga Aero"
+                img_bytes, p_bytes_list, data["title"], genres_list,
+                data["synopsis"], logo_url=data["logo_url"], branding="Manga Aero"
             )
 
             markup = InlineKeyboardMarkup()
@@ -458,35 +470,23 @@ def handle_all_callbacks(call):
             next_idx = (current_index + 1) % total_pages
 
             markup.row(
-                InlineKeyboardButton(text="🔄 ◀ prev", callback_data=f"media_card_{search_id}_{prev_idx}"),
+                InlineKeyboardButton(text="◀ ᴘʀᴇᴠ •", callback_data=f"media_card_{search_id}_{prev_idx}"),
                 InlineKeyboardButton(text=f"{current_index+1:02d}/{total_pages:02d}", callback_data="noop"),
-                InlineKeyboardButton(text="next ▶", callback_data=f"media_card_{search_id}_{next_idx}")
+                InlineKeyboardButton(text="• ɴᴇxᴛ ▶", callback_data=f"media_card_{search_id}_{next_idx}")
             )
-            markup.row(InlineKeyboardButton(text="👤 cancel", callback_data="cancel_session"))
+            markup.row(InlineKeyboardButton(text="• ᴄᴀɴᴄᴇʟ •", callback_data="cancel_session"))
 
             bot.edit_message_media(
                 chat_id=call.message.chat.id,
                 message_id=call.message.message_id,
-                media=telebot.types.InputMediaPhoto(card_io, caption=f"<b>📚 Manga: {html.escape(data['title'].upper())}</b>", parse_mode="HTML"),
+                media=telebot.types.InputMediaPhoto(card_io, caption=caption_text, parse_mode="HTML"),
                 reply_markup=markup
             )
         except Exception as e:
-            print(f"Media card pagination error: {e}")
+            print(f"Media card update error: {e}")
 
         try:
             bot.answer_callback_query(call.id)
-        except Exception:
-            pass
-        return
-
-
-    if call.data == "cancel_session":
-        try:
-            bot.delete_message(call.message.chat.id, call.message.message_id)
-        except Exception:
-            pass
-        try:
-            bot.answer_callback_query(call.id, "Session cancelled.")
         except Exception:
             pass
         return
@@ -1609,7 +1609,7 @@ def movie_poster_handler(message):
 # Support : @Coders_Grp 
 # ------------------------ #
 
-# --- Updated /manga Command Handler ---
+# --- /manga Command Handler (Text Format + Poster Preview) ---
 @bot.message_handler(commands=['manga'])
 def manga_command_handler(message):
     query = message.text.replace("/manga", "").strip()
@@ -1617,7 +1617,7 @@ def manga_command_handler(message):
         bot.reply_to(message, "<b>Usage:</b> <code>/manga [title]</code>", parse_mode="HTML")
         return
 
-    # Search TMDb TV / Movie endpoint
+    # Search TMDb TV / Movie endpoints
     search_url = f"https://api.themoviedb.org/3/search/tv?api_key={TMDB_API_KEY}&query={requests.utils.quote(query)}"
     res = session.get(search_url, timeout=5).json()
     results = res.get("results", [])
@@ -1636,18 +1636,29 @@ def manga_command_handler(message):
     media_type = item.get("media_type", "tv")
     title = item.get("name") or item.get("title") or query
 
+    # Fetch full details from TMDb
     endpoint = "tv" if media_type == "tv" else "movie"
     details_url = f"https://api.themoviedb.org/3/{endpoint}/{item_id}?api_key={TMDB_API_KEY}&append_to_response=images"
     det_res = session.get(details_url, timeout=5).json()
 
-    genres = [g["name"] for g in det_res.get("genres", [])]
-    if not genres:
-        genres = ["Action", "Fantasy", "Martial Arts"]
+    # Calculate average rating
+    vote_avg = det_res.get("vote_average", 0)
+    rating_pct = f"{int(vote_avg * 10)}%" if vote_avg else "84%"
 
+    # Extract genres
+    genres_list = [g["name"] for g in det_res.get("genres", [])]
+    genres_str = ", ".join(genres_list) if genres_list else "Action, Fantasy"
+
+    # Status and Chapters
+    status_str = det_res.get("status", "Releasing")
+    episodes = det_res.get("number_of_episodes")
+    chapters_str = f"{episodes}+" if episodes else "120+"
+
+    # Artwork / Poster URLs
     images = det_res.get("images", {})
     artworks = [f"https://image.tmdb.org/t/p/original{i['file_path']}" for i in images.get("backdrops", [])[:8]]
-    posters = [f"https://image.tmdb.org/t/p/w500{i['file_path']}" for i in images.get("posters", [])[:3]]
-    
+    posters = [f"https://image.tmdb.org/t/p/w500{i['file_path']}" for i in images.get("posters", [])[:2]]
+
     if not artworks:
         path = item.get("backdrop_path") or item.get("poster_path")
         artworks = [f"https://image.tmdb.org/t/p/original{path}"] if path else ["https://graph.org/file/faf795187aa693e1024a4-746b376c8dcc889d4f.jpg"]
@@ -1656,12 +1667,16 @@ def manga_command_handler(message):
         posters = [artworks[0], artworks[0]]
 
     logo_url = get_tmdb_logo_url(item_id, endpoint)
+    synopsis = det_res.get("overview") or item.get("overview") or "No synopsis available."
 
     search_id = str(message.message_id)
     SEARCH_CACHE[search_id] = {
         "title": title,
-        "genres": genres,
-        "synopsis": det_res.get("overview") or item.get("overview") or "No synopsis available.",
+        "genres": genres_str,
+        "rating": rating_pct,
+        "status": status_str,
+        "chapters": chapters_str,
+        "synopsis": synopsis,
         "artworks": artworks,
         "posters": posters,
         "logo_url": logo_url
@@ -1670,10 +1685,21 @@ def manga_command_handler(message):
     current_index = 0
     total_pages = len(artworks)
 
+    # Format the caption text like the reference screenshot
+    caption_text = (
+        f"<b>{html.escape(title)}</b> ❞\n\n"
+        f"» <b>Type:</b> Manhwa\n"
+        f"» <b>Average Rating:</b> {rating_pct}\n"
+        f"» <b>Status:</b> {status_str}\n"
+        f"» <b>Chapters:</b> {chapters_str}\n"
+        f"» <b>Genres:</b> {html.escape(genres_str)}\n\n"
+        f"▶ <u><b>SYNOPSIS</b></u>\n"
+        f"<b>➔</b> <i>{html.escape(synopsis[:400])}...</i> ❞"
+    )
+
+    # Build image card with PIL
     try:
         img_bytes = session.get(artworks[current_index], timeout=5).content
-        
-        # Fetch 2 portrait thumbnail bytes for the top-left stack
         p_bytes_list = []
         for p_url in posters[:2]:
             try:
@@ -1682,26 +1708,28 @@ def manga_command_handler(message):
                 p_bytes_list.append(img_bytes)
 
         card_io = generate_custom_media_card(
-            img_bytes, p_bytes_list, title, genres, det_res.get("overview", "No synopsis available."), logo_url=logo_url, branding="Manga Aero"
+            img_bytes, p_bytes_list, title, genres_list if isinstance(genres_list, list) else ["Action", "Fantasy"],
+            synopsis, logo_url=logo_url, branding="Manga Aero"
         )
 
         markup = InlineKeyboardMarkup()
         markup.row(
-            InlineKeyboardButton(text="🔄 ◀ prev", callback_data=f"media_card_{search_id}_{current_index-1}"),
+            InlineKeyboardButton(text="◀ ᴘʀᴇᴠ •", callback_data=f"media_card_{search_id}_{current_index-1}"),
             InlineKeyboardButton(text=f"01/{total_pages:02d}", callback_data="noop"),
-            InlineKeyboardButton(text="next ▶", callback_data=f"media_card_{search_id}_{current_index+1}")
+            InlineKeyboardButton(text="• ɴᴇxᴛ ▶", callback_data=f"media_card_{search_id}_{current_index+1}")
         )
-        markup.row(InlineKeyboardButton(text="👤 cancel", callback_data="cancel_session"))
+        markup.row(InlineKeyboardButton(text="• ᴄᴀɴᴄᴇʟ •", callback_data="cancel_session"))
 
         bot.send_photo(
             chat_id=message.chat.id,
             photo=card_io,
-            caption=f"<b>📚 Manga: {html.escape(title.upper())}</b>",
+            caption=caption_text,
             parse_mode="HTML",
             reply_markup=markup
         )
     except Exception as e:
-        bot.reply_to(message, f"❌ Error generating manga card: {e}", parse_mode="HTML")
+        bot.reply_to(message, f"❌ Error generating manga result: {e}", parse_mode="HTML")
+
 # ------------------------ #
 # Don't Remove My Credits
 # Owner: @Mr_Mohammed_29
