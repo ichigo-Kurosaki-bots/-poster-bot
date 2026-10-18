@@ -675,44 +675,55 @@ def get_tmdb_logo_url(item_id, media_type):
         pass
     return None
 
-# --- Clean Poster Generation Logic (Official TMDb Logos Only, No Drawn Text) ---
-def add_title_overlay(image_bytes, title_text="", logo_url=None):
+# --- Clean Poster Generation Logic with Dynamic Positions (center, left, right, up, down) ---
+def add_title_overlay(image_bytes, title_text="", logo_url=None, position="center"):
     orig_img = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
     target_width, target_height = 1280, 720
     
-    # Maintain proper 16:9 aspect ratio with blurred background if non-standard
     if orig_img.width / orig_img.height < 1.33:
         bg = orig_img.resize((target_width, target_height), Image.Resampling.LANCZOS)
         bg = bg.filter(ImageFilter.GaussianBlur(15))
-        
         portrait = orig_img.copy()
         portrait.thumbnail((target_width, target_height), Image.Resampling.LANCZOS)
-        
-        x_offset = (target_width - portrait.width) // 2
-        y_offset = (target_height - portrait.height) // 2
-        bg.paste(portrait, (x_offset, y_offset), portrait if portrait.mode == 'RGBA' else None)
+        bg.paste(portrait, ((target_width - portrait.width) // 2, (target_height - portrait.height) // 2), portrait if portrait.mode == 'RGBA' else None)
         image = bg
     else:
         image = orig_img.resize((target_width, target_height), Image.Resampling.LANCZOS)
     
-    # Apply official TMDb clean logo PNG directly on top with its native colors and layout space
     if logo_url:
         try:
             logo_res = session.get(logo_url, timeout=5)
             if logo_res.status_code == 200:
                 logo_img = Image.open(io.BytesIO(logo_res.content)).convert("RGBA")
-                max_logo_w = int(target_width * 0.5)
-                max_logo_h = int(target_height * 0.3)
+                max_logo_w = int(target_width * 0.55)
+                max_logo_h = int(target_height * 0.35)
                 
                 w_percent = (max_logo_w / float(logo_img.size[0]))
                 h_size = int(float(logo_img.size[1]) * float(w_percent))
+                
+                if h_size > max_logo_h:
+                    h_percent = (max_logo_h / float(logo_img.size[1]))
+                    max_logo_w = int(float(logo_img.size[0]) * float(h_percent))
+                    h_size = max_logo_h
+                    
                 logo_img = logo_img.resize((max_logo_w, h_size), Image.Resampling.LANCZOS)
-                
                 logo_w, logo_h = logo_img.size
-                x = int(target_width * 0.08)
-                y = int((target_height - logo_h) / 2)
                 
-                # Uses the logo's alpha channel as a mask to preserve its true official colors and transparency
+                margin_x = int(target_width * 0.08)
+                margin_y = int(target_height * 0.08)
+                
+                pos = position.lower()
+                if pos == "left":
+                    x, y = margin_x, (target_height - logo_h) // 2
+                elif pos == "right":
+                    x, y = target_width - logo_w - margin_x, (target_height - logo_h) // 2
+                elif pos in ["up", "top"]:
+                    x, y = (target_width - logo_w) // 2, margin_y
+                elif pos in ["down", "bottom"]:
+                    x, y = (target_width - logo_w) // 2, target_height - logo_h - margin_y
+                else:
+                    x, y = (target_width - logo_w) // 2, (target_height - logo_h) // 2
+                
                 image.paste(logo_img, (x, y), logo_img)
         except Exception:
             pass
@@ -791,8 +802,12 @@ def build_poster_page(search_id, index=0):
 
         cache_key = f"{item_id}_s{season_number}_idx{index}" if season_number else f"{item_id}_idx{index}"
 
+        # Determine position dynamically based on pagination index (Center -> Left -> Right -> Up -> Down)
+        positions_list = ["center", "left", "right", "up", "down"]
+        assigned_position = positions_list[index % len(positions_list)]
+
         # 1. Save Landscape image with Smart Title/Logo Overlay
-        processed_image_io = add_title_overlay(img_response.content, title, logo_url)
+        processed_image_io = add_title_overlay(img_response.content, title, logo_url, position=assigned_position)
         landscape_file_path = os.path.join(CACHE_DIR, f"{cache_key}.jpg")
         with open(landscape_file_path, "wb") as f:
             f.write(processed_image_io.getvalue())
@@ -1192,6 +1207,10 @@ def movie_poster_handler(message):
     poster_url_original = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else raw_backdrop_url
     logo_url = get_tmdb_logo_url(item_id, media_type)
 
+    # Assign dynamic position for /jhs command as well
+    positions_list = ["center", "left", "right", "up", "down"]
+    assigned_position = positions_list[int(item_id) % len(positions_list)]
+
     # 2. Process image with add_title_overlay and save to CACHE_DIR
     cache_key = f"{item_id}_jhs"
     landscape_file_path = os.path.join(CACHE_DIR, f"{cache_key}.jpg")
@@ -1200,8 +1219,8 @@ def movie_poster_handler(message):
     try:
         img_response = session.get(raw_backdrop_url, timeout=8)
         if img_response.status_code == 200:
-            # Generate and save overlay banner (with TMDb logo)
-            processed_io = add_title_overlay(img_response.content, title, logo_url)
+            # Generate and save overlay banner (with TMDb logo and dynamic position)
+            processed_io = add_title_overlay(img_response.content, title, logo_url, position=assigned_position)
             with open(landscape_file_path, "wb") as f:
                 f.write(processed_io.getvalue())
         
@@ -1212,6 +1231,7 @@ def movie_poster_handler(message):
                 f.write(port_res.content)
     except Exception as e:
         print(f"Error caching images: {e}")
+
 
     # 3. Build Flask domain URLs so links open the processed image with the logo
     app_url = os.environ.get("RENDER_EXTERNAL_URL") or request.host_url.rstrip('/')
