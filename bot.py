@@ -420,7 +420,7 @@ def handle_all_callbacks(call):
             print(f"IMDb details error: {e}")
         return
 
-    # 4. Handle Custom Anime/Manga Card Pagination (PREV / NEXT)
+    # Handle Custom Manga Card Pagination (PREV / NEXT)
     if call.data.startswith("media_card_"):
         parts = call.data.split("_")
         search_id = parts[2]
@@ -435,13 +435,23 @@ def handle_all_callbacks(call):
             return
 
         artworks = data["artworks"]
+        posters = data["posters"]
         total_pages = len(artworks)
         current_index = target_index % total_pages  # Loop seamlessly
 
         try:
             img_bytes = session.get(artworks[current_index], timeout=5).content
-            branding = "Manga Aero" if data["type"] == "manga" else "Anime Aero"
-            card_io = generate_custom_media_card(img_bytes, data["title"], data["genres"], data["synopsis"], branding=branding)
+            
+            p_bytes_list = []
+            for p_url in posters[:2]:
+                try:
+                    p_bytes_list.append(session.get(p_url, timeout=4).content)
+                except Exception:
+                    p_bytes_list.append(img_bytes)
+
+            card_io = generate_custom_media_card(
+                img_bytes, p_bytes_list, data["title"], data["genres"], data["synopsis"], logo_url=data["logo_url"], branding="Manga Aero"
+            )
 
             markup = InlineKeyboardMarkup()
             prev_idx = (current_index - 1) % total_pages
@@ -457,7 +467,7 @@ def handle_all_callbacks(call):
             bot.edit_message_media(
                 chat_id=call.message.chat.id,
                 message_id=call.message.message_id,
-                media=telebot.types.InputMediaPhoto(card_io, caption=f"<b>{'📚 Manga' if data['type'] == 'manga' else '🎬 Anime'}: {html.escape(data['title'].upper())}</b>", parse_mode="HTML"),
+                media=telebot.types.InputMediaPhoto(card_io, caption=f"<b>📚 Manga: {html.escape(data['title'].upper())}</b>", parse_mode="HTML"),
                 reply_markup=markup
             )
         except Exception as e:
@@ -468,6 +478,7 @@ def handle_all_callbacks(call):
         except Exception:
             pass
         return
+
 
     if call.data == "cancel_session":
         try:
