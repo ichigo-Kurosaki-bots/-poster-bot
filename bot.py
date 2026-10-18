@@ -1514,6 +1514,8 @@ def movie_poster_handler(message):
         )
         return
 
+    status_msg = bot.reply_to(message, "<b>Fᴇᴛᴄʜɪɴɢ ᴩᴏsᴛᴇʀ, ᴡᴀɪᴛ a sec...</b>", parse_mode="HTML")
+
     search_url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={requests.utils.quote(query)}"
     response = requests.get(search_url).json()
     results = response.get("results", [])
