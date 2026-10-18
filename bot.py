@@ -23,7 +23,7 @@ import threading
 
 from flask import Flask, send_file, request
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
-from PIL import Image, ImageDraw, ImageFont,ImageFilter
+from PIL import Image, ImageDraw, ImageFont,ImageFilter, ImageOps
 
 # ------------------------ #
 # Don't Remove My Credits
@@ -469,7 +469,6 @@ def handle_all_callbacks(call):
             pass
         return
 
-    # 5. Handle Cancel Session Action
     if call.data == "cancel_session":
         try:
             bot.delete_message(call.message.chat.id, call.message.message_id)
@@ -481,7 +480,6 @@ def handle_all_callbacks(call):
             pass
         return
 
-    # 6. Handle Static Menu Buttons (About, Home, Force Sub Check)
     if call.data == "check_fsub":
         if is_user_member(user_id):
             try:
@@ -950,35 +948,27 @@ def add_title_overlay(image_bytes, title_text="", logo_url=None, position="cente
 # Support : @Coders_Grp 
 # ------------------------ #
 
-# --- Custom PIL Card Renderer for /anime and /manga ---
-def generate_custom_media_card(poster_bytes, title, genres, synopsis, branding="Manga Aero"):
+def generate_custom_media_card(poster_bytes, title, genres, synopsis, logo_url=None, branding="Manga Aero"):
     target_w, target_h = 1280, 720
     
-    canvas = Image.new("RGBA", (target_w, target_h), (25, 23, 22, 255))
+    canvas = Image.new("RGBA", (target_w, target_h), (22, 20, 20, 255))
     
     try:
-        main_art = Image.open(io.BytesIO(poster_bytes)).convert("RGBA")
-        art_right = main_art.resize((680, target_h), Image.Resampling.LANCZOS)
+        raw_art = Image.open(io.BytesIO(poster_bytes)).convert("RGBA")
+        art_right = ImageOps.fit(raw_art, (680, target_h), method=Image.Resampling.LANCZOS)
         canvas.paste(art_right, (600, 0))
     except Exception as e:
-        print(f"Error loading base image: {e}")
-
-    left_panel = Image.new("RGBA", (620, target_h), (35, 30, 28, 240))
+        print(f"Error processing artwork: {e}")
+        
+    left_panel = Image.new("RGBA", (620, target_h), (32, 28, 27, 245))
     canvas.paste(left_panel, (0, 0), left_panel)
 
-    synopsis_box = Image.new("RGBA", (540, 260), (45, 38, 35, 220))
-    canvas.paste(synopsis_box, (40, 140), synopsis_box)
-
-    genre_box = Image.new("RGBA", (540, 240), (28, 33, 42, 240))
-    canvas.paste(genre_box, (40, 430), genre_box)
-
     draw = ImageDraw.Draw(canvas)
+    draw.text((40, 35), branding, fill=(255, 255, 255))
+    draw.text((180, 40), "COUNTLESS STORIES, ONE PERFECT DESTINATION", fill=(180, 180, 180))
+    draw.rounded_rectangle([40, 130, 580, 380], radius=15, fill=(48, 42, 40, 230), outline=(80, 72, 70), width=1)
+    draw.text((220, 150), "SYNOPSIS  »»»", fill=(255, 255, 255))
 
-    draw.text((40, 40), branding, fill=(255, 255, 255))
-    draw.text((180, 45), "COUNTLESS STORIES, ONE PERFECT DESTINATION", fill=(180, 180, 180))
-
-    draw.text((220, 160), "SYNOPSIS  »»»", fill=(255, 255, 255))
-    
     words = synopsis.split()
     lines, curr_line = [], ""
     for w in words:
@@ -988,24 +978,39 @@ def generate_custom_media_card(poster_bytes, title, genres, synopsis, branding="
             lines.append(curr_line)
             curr_line = w
     lines.append(curr_line)
-    
-    y_pos = 195
-    for line in lines[:5]:
-        draw.text((70, y_pos), line, fill=(210, 210, 210))
-        y_pos += 22
 
-    draw.text((60, 450), title.upper()[:30], fill=(255, 255, 255))
-    
-    gx, gy = 60, 500
+    y_pos = 185
+    for line in lines[:7]:
+        draw.text((60, y_pos), line, fill=(220, 220, 220))
+        y_pos += 24
+
+    draw.rounded_rectangle([40, 420, 580, 660], radius=15, fill=(25, 30, 38, 240), outline=(60, 70, 85), width=1)
+    draw.text((60, 440), title.upper()[:28], fill=(255, 255, 255))
+
+    gx, gy = 60, 490
     for g in genres[:6]:
-        draw.rectangle([gx, gy, gx + 110, gy + 32], outline=(150, 150, 150), width=1)
-        draw.text((gx + 12, gy + 8), g.upper()[:10], fill=(220, 220, 220))
-        gx += 125
-        if gx > 480:
+        draw.rounded_rectangle([gx, gy, gx + 115, gy + 34], radius=10, outline=(140, 150, 165), width=1)
+        draw.text((gx + 12, gy + 8), g.upper()[:10], fill=(210, 220, 235))
+        gx += 130
+        if gx > 460:
             gx = 60
-            gy += 42
+            gy += 45
 
-    draw.text((240, 630), branding.upper(), fill=(140, 140, 140))
+    draw.text((230, 625), branding.upper(), fill=(140, 140, 140))
+
+    if logo_url:
+        try:
+            logo_res = session.get(logo_url, timeout=5)
+            if logo_res.status_code == 200:
+                logo_img = Image.open(io.BytesIO(logo_res.content)).convert("RGBA")
+                logo_img.thumbnail((450, 200), Image.Resampling.LANCZOS)
+                
+                # Position on bottom right corner of the poster artwork
+                lx = 600 + (680 - logo_img.width) // 2
+                ly = target_h - logo_img.height - 40
+                canvas.paste(logo_img, (lx, ly), mask=logo_img)
+        except Exception as e:
+            print(f"Error drawing TMDb logo overlay: {e}")
 
     output = io.BytesIO()
     canvas.convert("RGB").save(output, format="JPEG", quality=95)
