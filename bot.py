@@ -1403,6 +1403,12 @@ def search_poster(message):
                     for r in results:
                         r["media_type"] = "tv"
 
+            if not results:
+                multi_url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={requests.utils.quote(raw_query)}&include_adult=true"
+                multi_res = session.get(multi_url, timeout=5)
+                if multi_res.status_code == 200:
+                    results = [r for r in multi_res.json().get("results", []) if r.get("media_type") in ["tv", "movie"]]
+
         if lang_filter and results:
             strict_filtered = [i for i in results if i.get("original_language") == lang_filter]
             if strict_filtered:
@@ -1506,7 +1512,7 @@ def imdb_command(message):
     query = args[1].strip()
     status_msg = bot.reply_to(message, "<b><i>Searching TMDb...</i></b>", parse_mode="HTML")
 
-    search_url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={requests.utils.quote(query)}"
+    search_url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={requests.utils.quote(query)}&include_adult=true"
 
     try:
         res = session.get(search_url, timeout=5)
@@ -1571,7 +1577,7 @@ def movie_poster_handler(message):
 
     status_msg = bot.reply_to(message, "<b>Fᴇᴛᴄʜɪɴɢ ᴩᴏsᴛᴇʀ, ᴡᴀɪᴛ a sec...</b>", parse_mode="HTML")
 
-    search_url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={requests.utils.quote(query)}"
+    search_url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={requests.utils.quote(query)}&include_adult=true"
     response = requests.get(search_url).json()
     results = response.get("results", [])
 
@@ -1696,12 +1702,12 @@ def manga_command_handler(message):
 
     status_msg = bot.reply_to(message, "⚙️ <b>ɢᴇɴᴇʀᴀᴛɪɴɢ ᴩᴏsᴛᴇʀ, ᴡᴀɪᴛ a sec...</b>", parse_mode="HTML")
         
-    search_url = f"https://api.themoviedb.org/3/search/tv?api_key={TMDB_API_KEY}&query={requests.utils.quote(query)}"
+    search_url = f"https://api.themoviedb.org/3/search/tv?api_key={TMDB_API_KEY}&query={requests.utils.quote(query)}&include_adult=true"
     res = session.get(search_url, timeout=5).json()
     results = res.get("results", [])
 
     if not results:
-        search_url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={requests.utils.quote(query)}"
+        search_url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={requests.utils.quote(query)}&include_adult=true"
         res = session.get(search_url, timeout=5).json()
         results = res.get("results", [])
 
