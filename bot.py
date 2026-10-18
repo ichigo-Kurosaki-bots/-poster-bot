@@ -429,7 +429,7 @@ def handle_all_callbacks(call):
             pass
         return
 
-    if call.data.startswith("media_card_"):
+        if call.data.startswith("media_card_"):
         parts = call.data.split("_")
         search_id = parts[2]
         target_index = int(parts[3])
@@ -458,16 +458,44 @@ def handle_all_callbacks(call):
             f"<b>➔</b> <i>{html.escape(data['synopsis'][:400])}...</i> ❞"
         )
 
+        markup = InlineKeyboardMarkup()
+        prev_idx = (current_index - 1) % total_pages
+        next_idx = (current_index + 1) % total_pages
+
+        markup.row(
+            InlineKeyboardButton(text="◀ ᴘʀᴇᴠ •", callback_data=f"media_card_{search_id}_{prev_idx}"),
+            InlineKeyboardButton(text=f"{current_index+1:02d}/{total_pages:02d}", callback_data="noop"),
+            InlineKeyboardButton(text="• ɴᴇxᴛ ▶", callback_data=f"media_card_{search_id}_{next_idx}")
+        )
+        markup.row(InlineKeyboardButton(text="• ᴄᴀɴᴄᴇʟ •", callback_data="cancel_session"))
+
+        # 1. INSTANT LOAD: Check if this page was already sent once (re-uses Telegram file_id)
+        file_ids = data.get("file_ids", {})
+        if current_index in file_ids:
+            try:
+                bot.edit_message_media(
+                    chat_id=call.message.chat.id,
+                    message_id=call.message.message_id,
+                    media=telebot.types.InputMediaPhoto(file_ids[current_index], caption=caption_text, parse_mode="HTML"),
+                    reply_markup=markup
+                )
+                bot.answer_callback_query(call.id)
+                return
+            except Exception as e:
+                print(f"Fast edit cache error: {e}")
+
+        # 2. RENDER: If not cached yet, generate PIL card with fast connection pool & rating parsing
         try:
-            img_bytes = session.get(artworks[current_index], timeout=5).content
+            img_bytes = session.get(artworks[current_index], timeout=4).content
             p_bytes_list = []
             for p_url in posters[:2]:
                 try:
-                    p_bytes_list.append(session.get(p_url, timeout=4).content)
+                    p_bytes_list.append(session.get(p_url, timeout=3).content)
                 except Exception:
                     p_bytes_list.append(img_bytes)
 
             genres_list = [g.strip() for g in data["genres"].split(",")]
+            
             # Convert percentage/rating to numerical score format (e.g., 8.4 / 10)
             raw_rating = data.get("rating", "8.4")
             if "%" in str(raw_rating):
@@ -487,23 +515,19 @@ def handle_all_callbacks(call):
                 branding="Manga Aero"
             )
 
-            markup = InlineKeyboardMarkup()
-            prev_idx = (current_index - 1) % total_pages
-            next_idx = (current_index + 1) % total_pages
-
-            markup.row(
-                InlineKeyboardButton(text="◀ ᴘʀᴇᴠ •", callback_data=f"media_card_{search_id}_{prev_idx}"),
-                InlineKeyboardButton(text=f"{current_index+1:02d}/{total_pages:02d}", callback_data="noop"),
-                InlineKeyboardButton(text="• ɴᴇxᴛ ▶", callback_data=f"media_card_{search_id}_{next_idx}")
-            )
-            markup.row(InlineKeyboardButton(text="• ᴄᴀɴᴄᴇʟ •", callback_data="cancel_session"))
-
-            bot.edit_message_media(
+            edited_msg = bot.edit_message_media(
                 chat_id=call.message.chat.id,
                 message_id=call.message.message_id,
                 media=telebot.types.InputMediaPhoto(card_io, caption=caption_text, parse_mode="HTML"),
                 reply_markup=markup
             )
+
+            # Store Telegram's uploaded photo file_id for lightning-fast subsequent switches
+            if edited_msg and edited_msg.photo:
+                if "file_ids" not in data:
+                    data["file_ids"] = {}
+                data["file_ids"][current_index] = edited_msg.photo[-1].file_id
+
         except Exception as e:
             print(f"Media card update error: {e}")
 
