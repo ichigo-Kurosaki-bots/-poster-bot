@@ -418,6 +418,17 @@ def handle_all_callbacks(call):
             print(f"IMDb details error: {e}")
         return
 
+    if call.data == "cancel_session":
+        try:
+            bot.answer_callback_query(call.id, "Session cancelled.")
+        except Exception:
+            pass
+        try:
+            bot.delete_message(call.message.chat.id, call.message.message_id)
+        except Exception:
+            pass
+        return
+
     if call.data.startswith("media_card_"):
         parts = call.data.split("_")
         search_id = parts[2]
