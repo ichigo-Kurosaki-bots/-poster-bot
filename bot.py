@@ -967,57 +967,57 @@ def add_title_overlay(image_bytes, title_text="", logo_url=None, position="cente
 # Support : @Coders_Grp 
 # ------------------------ #
 
-def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres, synopsis, logo_url=None, branding="Manga Aero"):
+def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres, synopsis, logo_url=None, branding="Manga Cruise"):
     target_w, target_h = 1280, 720
     
-    canvas = Image.new("RGBA", (target_w, target_h), (18, 16, 16, 255))
+    # 1. Clean white canvas for the right panel background
+    canvas = Image.new("RGBA", (target_w, target_h), (255, 255, 255, 255))
     
+    # 2. Left Side: Vertical Poster Artwork (Width 500px, Height 720px)
     try:
         raw_art = Image.open(io.BytesIO(poster_bytes)).convert("RGBA")
-        art_right = ImageOps.fit(raw_art, (680, target_h), method=Image.Resampling.LANCZOS)
-        canvas.paste(art_right, (600, 0))
+        art_left = ImageOps.fit(raw_art, (500, target_h), method=Image.Resampling.LANCZOS)
+        canvas.paste(art_left, (0, 0))
     except Exception as e:
         print(f"Error processing artwork: {e}")
-        raw_art = None
-        
-    if raw_art:
-        bg_blur = raw_art.resize((600, target_h), Image.Resampling.LANCZOS)
-        bg_blur = bg_blur.filter(ImageFilter.GaussianBlur(25))
-        # Dark overlay tint over the blurred image
-        dark_tint = Image.new("RGBA", (600, target_h), (25, 20, 18, 210))
-        bg_blur.paste(dark_tint, (0, 0), dark_tint)
-        canvas.paste(bg_blur, (0, 0))
-    else:
-        left_panel = Image.new("RGBA", (600, target_h), (28, 24, 22, 255))
-        canvas.paste(left_panel, (0, 0))
 
     draw = ImageDraw.Draw(canvas)
 
-    # 4. Top Header Branding (Manga Aero)
-    draw.text((40, 25), branding, fill=(255, 255, 255))
-    draw.text((170, 30), "CRUISE THROUGH INFINITE CHAPTERS", fill=(180, 180, 180))
+    # Watermark at bottom-left of the poster artwork
+    draw.text((25, target_h - 35), "@Aero_Unity", fill=(240, 240, 240, 210))
 
-    thumb_coords = [(40, 75), (40, 210)]
-    for idx, p_bytes in enumerate(portrait_bytes_list[:2]):
-        try:
-            th_img = Image.open(io.BytesIO(p_bytes)).convert("RGBA")
-            th_img = ImageOps.fit(th_img, (100, 120), method=Image.Resampling.LANCZOS)
-            tx, ty = thumb_coords[idx]
-            canvas.paste(th_img, (tx, ty))
-            draw.rectangle([tx, ty, tx + 100, ty + 120], outline=(240, 240, 240), width=2)
-        except Exception:
-            pass
-            
-    syn_box_x1, syn_box_y1, syn_box_x2, syn_box_y2 = 155, 75, 570, 340
-    draw.rounded_rectangle([syn_box_x1, syn_box_y1, syn_box_x2, syn_box_y2], radius=12, fill=(35, 30, 28, 200), outline=(65, 55, 50), width=1)    
-    box_center_x = (syn_box_x1 + syn_box_x2) // 2
-    syn_title = "SYNOPSIS  »»»"
-    draw.text((box_center_x - (len(syn_title) * 3.5), 88), syn_title, fill=(255, 255, 255))
+    # 3. Top-Right Branding: "MANGA CRUISE" Badge
+    draw.text((1080, 35), "MANGA AERO", fill=(20, 20, 20))
+    draw.text((1080, 55), "​INSTANT ART, ENDLESS STORIES", fill=(0, 136, 204))
 
-    words = synopsis.split()
+    # 4. Title (Large, Bold, Black on Right Panel)
+    clean_title = title.upper()[:22]
+    draw.text((560, 130), clean_title, fill=(15, 15, 15))
+
+    # 5. Dynamic TMDb Genres & Star Rating Row
+    gx, gy = 560, 195
+    # Render up to 2-3 dynamic genre pills from TMDb data
+    for g in genres[:3]:
+        tag_text = str(g).upper()[:12]
+        text_w = len(tag_text) * 7
+        pill_w = max(90, text_w + 30)
+        draw.rounded_rectangle([gx, gy, gx + pill_w, gy + 32], radius=16, outline=(200, 200, 200), width=1, fill=(245, 245, 245))
+        draw.text((gx + 15, gy + 8), tag_text, fill=(60, 60, 60))
+        gx += pill_w + 15
+
+    # Rating Display Label
+    rating_text = "Avg Ratings: ⭐⭐⭐⭐⭐"
+    draw.text((gx + 5, gy + 8), rating_text, fill=(40, 40, 40))
+
+    # 6. Horizontal Divider Line 1
+    draw.line([(560, 255), (1220, 255)], fill=(220, 220, 220), width=1)
+
+    # 7. Official TMDb Synopsis Text Block (Word Wrapped & Cleanly Formatted)
+    clean_synopsis = synopsis if synopsis else "No synopsis available from TMDb."
+    words = clean_synopsis.split()
     lines, curr_line = [], ""
     for w in words:
-        if len(curr_line + " " + w) < 30:
+        if len(curr_line + " " + w) < 72:
             curr_line += " " + w
         else:
             lines.append(curr_line.strip())
@@ -1025,46 +1025,30 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
     if curr_line:
         lines.append(curr_line.strip())
 
-    y_pos = 120
+    y_pos = 285
     for line in lines[:5]:
-        line_w = len(line) * 6.5
-        lx = box_center_x - (line_w / 2)
-        draw.text((lx, y_pos), line, fill=(215, 215, 215))
-        y_pos += 20
+        draw.text((560, y_pos), line.upper(), fill=(95, 95, 95))
+        y_pos += 24
 
-    sub_tag = f"»»» {branding}"
-    draw.text((box_center_x - (len(sub_tag) * 3.5), y_pos + 8), sub_tag, fill=(180, 180, 180))
-    title_box_x1, title_box_y1, title_box_x2, title_box_y2 = 40, 360, 570, 670
-    draw.rounded_rectangle([title_box_x1, title_box_y1, title_box_x2, title_box_y2], radius=15, fill=(18, 24, 32, 235), outline=(45, 58, 72), width=1) 
-    clean_title = title.upper()[:24]
-    bottom_center_x = (title_box_x1 + title_box_x2) // 2
-    title_x = bottom_center_x - (len(clean_title) * 4.5)
-    draw.text((title_x, 380), clean_title, fill=(255, 255, 255))
+    # 8. Horizontal Divider Line 2
+    draw.line([(560, 445), (1220, 445)], fill=(220, 220, 220), width=1)
 
-    gx, gy = 60, 440
-    for g in genres[:6]:
-        tag_text = g.upper()[:12]
-        draw.rounded_rectangle([gx, gy, gx + 125, gy + 32], radius=16, outline=(120, 135, 150), width=1)
-        draw.text((gx + 16, gy + 8), tag_text, fill=(210, 220, 235))
-        gx += 140
-        if gx > 460:
-            gx = 60
-            gy += 45
+    # 9. Bottom Action Buttons ("READ NOW!!" pill and bookmark circle)
+    btn_x, btn_y = 560, 490
+    draw.rounded_rectangle([btn_x, btn_y, btn_x + 160, btn_y + 50], radius=25, fill=(15, 15, 15))
+    draw.text((btn_x + 25, btn_y + 16), "READ ", fill=(255, 255, 255))
+    draw.text((btn_x + 75, btn_y + 16), "NOW!!", fill=(255, 50, 50))
 
-    draw.text((bottom_center_x - (len(branding) * 3.5), 625), branding.upper(), fill=(140, 140, 140))
+    bm_x = btn_x + 185
+    draw.ellipse([bm_x, btn_y, bm_x + 50, btn_y + 50], fill=(15, 15, 15))
+    draw.polygon([
+        (bm_x + 20, btn_y + 15), 
+        (bm_x + 30, btn_y + 15), 
+        (bm_x + 30, btn_y + 35), 
+        (bm_x + 25, btn_y + 30), 
+        (bm_x + 20, btn_y + 35)
+    ], fill=(255, 255, 255))
 
-    if logo_url:
-        try:
-            logo_res = session.get(logo_url, timeout=5)
-            if logo_res.status_code == 200:
-                logo_img = Image.open(io.BytesIO(logo_res.content)).convert("RGBA")
-                logo_img.thumbnail((450, 180), Image.Resampling.LANCZOS)
-                lx = 600 + (680 - logo_img.width) // 2
-                ly = target_h - logo_img.height - 40
-                canvas.paste(logo_img, (lx, ly), mask=logo_img)
-        except Exception as e:
-            print(f"Error drawing logo overlay: {e}")
-            
     output = io.BytesIO()
     canvas.convert("RGB").save(output, format="JPEG", quality=95, subsampling=0)
     output.seek(0)
