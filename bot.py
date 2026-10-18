@@ -1572,7 +1572,7 @@ def movie_poster_handler(message):
 # Support : @Coders_Grp 
 # ------------------------ #
 
-# --- /manga Command Handler (Direct Visual Card) ---
+# --- Updated /manga Command Handler (With TMDb Logo & Dual-Panel Layout) ---
 @bot.message_handler(commands=['manga'])
 def manga_command_handler(message):
     query = message.text.replace("/manga", "").strip()
@@ -1580,12 +1580,13 @@ def manga_command_handler(message):
         bot.reply_to(message, "<b>Usage:</b> <code>/manga [title]</code>", parse_mode="HTML")
         return
 
+    # 1. Search TMDb TV / Movie endpoint
     search_url = f"https://api.themoviedb.org/3/search/tv?api_key={TMDB_API_KEY}&query={requests.utils.quote(query)}"
     res = session.get(search_url, timeout=5).json()
     results = res.get("results", [])
-    
+
     if not results:
-        search_url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={requests.utils.quote(query)}"
+        search_url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={requests.utils.quote(query)}"
         res = session.get(search_url, timeout=5).json()
         results = res.get("results", [])
 
@@ -1595,15 +1596,17 @@ def manga_command_handler(message):
 
     item = results[0]
     item_id = str(item.get("id"))
+    media_type = item.get("media_type", "tv")
     title = item.get("name") or item.get("title") or query
-    
-    # Fetch official TMDb details for genres and backdrops
-    details_url = f"https://api.themoviedb.org/3/tv/{item_id}?api_key={TMDB_API_KEY}&append_to_response=images"
+
+    # 2. Fetch full details, genres, and backdrops
+    endpoint = "tv" if media_type == "tv" else "movie"
+    details_url = f"https://api.themoviedb.org/3/{endpoint}/{item_id}?api_key={TMDB_API_KEY}&append_to_response=images"
     det_res = session.get(details_url, timeout=5).json()
-    
+
     genres = [g["name"] for g in det_res.get("genres", [])]
     if not genres:
-        genres = ["Action", "Fantasy", "Adventure"]
+        genres = ["Action", "Fantasy", "Martial Arts"]
 
     images = det_res.get("images", {})
     artworks = [f"https://image.tmdb.org/t/p/original{i['file_path']}" for i in images.get("backdrops", [])[:8]]
@@ -1611,12 +1614,16 @@ def manga_command_handler(message):
         path = item.get("backdrop_path") or item.get("poster_path")
         artworks = [f"https://image.tmdb.org/t/p/original{path}"] if path else ["https://graph.org/file/faf795187aa693e1024a4-746b376c8dcc889d4f.jpg"]
 
+    # Get official TMDb title logo
+    logo_url = get_tmdb_logo_url(item_id, endpoint)
+
     search_id = str(message.message_id)
     SEARCH_CACHE[search_id] = {
         "title": title,
         "genres": genres,
         "synopsis": det_res.get("overview") or item.get("overview") or "No synopsis available.",
         "artworks": artworks,
+        "logo_url": logo_url,
         "type": "manga"
     }
 
@@ -1625,12 +1632,14 @@ def manga_command_handler(message):
 
     try:
         img_bytes = session.get(artworks[current_index], timeout=5).content
-        card_io = generate_custom_media_card(img_bytes, title, genres, det_res.get("overview", "No synopsis available."), branding="Manga Aero")
+        card_io = generate_custom_media_card(
+            img_bytes, title, genres, det_res.get("overview", "No synopsis available."), logo_url=logo_url, branding="Manga Aero"
+        )
 
         markup = InlineKeyboardMarkup()
         markup.row(
             InlineKeyboardButton(text="🔄 ◀ prev", callback_data=f"media_card_{search_id}_{current_index-1}"),
-            InlineKeyboardButton(text=f"{current_index+1:02d}/{total_pages:02d}", callback_data="noop"),
+            InlineKeyboardButton(text=f"01/{total_pages:02d}", callback_data="noop"),
             InlineKeyboardButton(text="next ▶", callback_data=f"media_card_{search_id}_{current_index+1}")
         )
         markup.row(InlineKeyboardButton(text="👤 cancel", callback_data="cancel_session"))
@@ -1646,7 +1655,7 @@ def manga_command_handler(message):
         bot.reply_to(message, f"❌ Error generating manga card: {e}", parse_mode="HTML")
 
 
-# --- /anime Command Handler (Direct Visual Card) ---
+# --- Updated /anime Command Handler (With TMDb Logo & Dual-Panel Layout) ---
 @bot.message_handler(commands=['anime'])
 def anime_command_handler(message):
     query = message.text.replace("/anime", "").strip()
@@ -1659,14 +1668,21 @@ def anime_command_handler(message):
     results = res.get("results", [])
 
     if not results:
+        search_url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={requests.utils.quote(query)}"
+        res = session.get(search_url, timeout=5).json()
+        results = res.get("results", [])
+
+    if not results:
         bot.reply_to(message, f"‼️ No results found for <b>{html.escape(query)}</b>", parse_mode="HTML")
         return
 
     item = results[0]
     item_id = str(item.get("id"))
+    media_type = item.get("media_type", "tv")
     title = item.get("name") or item.get("title") or query
     
-    details_url = f"https://api.themoviedb.org/3/tv/{item_id}?api_key={TMDB_API_KEY}&append_to_response=images"
+    endpoint = "tv" if media_type == "tv" else "movie"
+    details_url = f"https://api.themoviedb.org/3/{endpoint}/{item_id}?api_key={TMDB_API_KEY}&append_to_response=images"
     det_res = session.get(details_url, timeout=5).json()
     
     genres = [g["name"] for g in det_res.get("genres", [])]
@@ -1679,12 +1695,15 @@ def anime_command_handler(message):
         path = item.get("backdrop_path") or item.get("poster_path")
         artworks = [f"https://image.tmdb.org/t/p/original{path}"] if path else ["https://graph.org/file/faf795187aa693e1024a4-746b376c8dcc889d4f.jpg"]
 
+    logo_url = get_tmdb_logo_url(item_id, endpoint)
+
     search_id = str(message.message_id)
     SEARCH_CACHE[search_id] = {
         "title": title,
         "genres": genres,
         "synopsis": det_res.get("overview") or item.get("overview") or "No synopsis available.",
         "artworks": artworks,
+        "logo_url": logo_url,
         "type": "anime"
     }
 
@@ -1693,7 +1712,9 @@ def anime_command_handler(message):
 
     try:
         img_bytes = session.get(artworks[current_index], timeout=5).content
-        card_io = generate_custom_media_card(img_bytes, title, genres, det_res.get("overview", "No synopsis available."), branding="Anime Aero")
+        card_io = generate_custom_media_card(
+            img_bytes, title, genres, det_res.get("overview", "No synopsis available."), logo_url=logo_url, branding="Anime Aero"
+        )
 
         markup = InlineKeyboardMarkup()
         markup.row(
