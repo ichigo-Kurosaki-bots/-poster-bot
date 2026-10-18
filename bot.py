@@ -1281,6 +1281,163 @@ def movie_poster_handler(message):
     except Exception as e:
         bot.reply_to(message, f"❌ Error sending poster: {e}", parse_mode="HTML")
 
+# --- 1. /anime Command & Interactive Control Panel (Option B) ---
+@bot.message_handler(commands=['anime'])
+def anime_command_handler(message):
+    query = message.text.replace("/anime", "").strip()
+    if not query:
+        bot.reply_to(message, "<b>Usage:</b> <code>/anime [Title]</code>", parse_mode="HTML")
+        return
+
+    search_id = str(message.message_id)
+    # Simulated multi-source results (TMDB, AniList, Kitsu, etc.)
+    results = [
+        {"title": f"{query.upper()} (2026)", "source": "TMDB", "id": "1"},
+        {"title": f"{query.title()} (2026)", "source": "KUROIRU", "id": "2"},
+        {"title": f"{query.upper()} (2026)", "source": "ANILIST", "id": "3"},
+        {"title": f"{query.upper()} (2026)", "source": "ANICULTURE", "id": "4"},
+        {"title": f"{query.upper()} (2026)", "source": "KITSU", "id": "5"},
+    ]
+    
+    markup = InlineKeyboardMarkup()
+    for res in results:
+        btn_text = f"{res['title']} • {res['source']}"
+        markup.add(InlineKeyboardButton(text=btn_text, callback_data=f"ani_select_{search_id}_{res['id']}"))
+        
+    markup.add(InlineKeyboardButton(text="👤 CANCEL", callback_data="cancel_session"))
+
+    caption = (
+        f"<b>• SEARCH RESULTS FOR '{html.escape(query)}'</b>\n\n"
+        "<i>Select the correct title from the list below:</i>"
+    )
+    bot.send_message(message.chat.id, caption, parse_mode="HTML", reply_markup=markup)
+
+
+# --- 2. /manga Command & Source Selection Menu (Option A) ---
+@bot.message_handler(commands=['manga'])
+def manga_command_handler(message):
+    query = message.text.replace("/manga", "").strip()
+    if not query:
+        bot.reply_to(message, "<b>Usage:</b> <code>/manga [Title]</code>", parse_mode="HTML")
+        return
+
+    markup = InlineKeyboardMarkup()
+    markup.row(
+        InlineKeyboardButton(text="• SEARCH ON SITE", callback_data=f"manga_site_{query}"),
+        InlineKeyboardButton(text="✓ • SEARCH ON ALL", callback_data=f"manga_all_{query}")
+    )
+    markup.row(InlineKeyboardButton(text="• PORNHWAS •", callback_data=f"manga_porn_{query}"))
+    markup.row(InlineKeyboardButton(text="👤 • CANCEL •", callback_data="cancel_session"))
+
+    caption = (
+        f"<b>📚 Manga Search Mode</b>\n\n"
+        f"<b>≡ SEARCHING FOR:</b> <i>{html.escape(query)}</i>\n\n"
+        "• <b>SEARCH ON SITE:</b> PICK A SPECIFIC SOURCE\n"
+        "• <b>SEARCH ON ALL:</b> STREAM RESULTS LIVE FROM ALL SOURCES"
+    )
+    bot.send_message(message.chat.id, caption, parse_mode="HTML", reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith(("ani_", "manga_", "cancel_session")))
+def handle_media_callbacks(call):
+    if call.data == "cancel_session":
+        try:
+            bot.delete_message(call.message.chat.id, call.message.message_id)
+        except Exception:
+            pass
+        bot.answer_callback_query(call.id, "Session cancelled.")
+        return
+
+    # Handle Anime Details & Artwork Pagination (PREV / NEXT / 02/08)
+    if call.data.startswith("ani_select_") or call.data.startswith("ani_page_"):
+        parts = call.data.split("_")
+        search_id = parts[2]
+        
+        # Get current page index (defaults to 0 if opening for the first time)
+        current_index = int(parts[3]) if len(parts) > 3 else 0
+        total_pages = 8  # Total artwork variants available
+
+        markup = InlineKeyboardMarkup()
+        
+        prev_idx = (current_index - 1) % total_pages
+        next_idx = (current_index + 1) % total_pages
+        
+        # Row 1: Pagination Controls (PREV | 02/08 | NEXT)[span_6](start_span)[span_6](end_span)
+        markup.row(
+            InlineKeyboardButton(text="🔄 ◀ PREV", callback_data=f"ani_page_{search_id}_{prev_idx}"),
+            InlineKeyboardButton(text=f"{current_index+1:02d}/{total_pages:02d}", callback_data="noop"),
+            InlineKeyboardButton(text="NEXT ▶", callback_data=f"ani_page_{search_id}_{next_idx}")
+        )
+        
+        # Row 2: Edit Data[span_7](start_span)[span_7](end_span)
+        markup.row(InlineKeyboardButton(text="✏️ EDIT DATA", callback_data=f"edit_data_{search_id}"))
+        
+        # Row 3: Banner & Thumbnail Controls[span_8](start_span)[span_8](end_span)
+        markup.row(
+            InlineKeyboardButton(text="🔖 GEN BANNER", callback_data=f"gen_banner_{search_id}"),
+            InlineKeyboardButton(text="⏭ SKIP THUMB", callback_data=f"skip_thumb_{search_id}")
+        )
+        
+        # Row 4: Cancel[span_9](start_span)[span_9](end_span)
+        markup.row(InlineKeyboardButton(text="👤 CANCEL", callback_data="cancel_session"))
+
+        content_text = (
+            "<b>Raised by Demons: Panda Li</b>\n\n"
+            "» <b>Type:</b> TV\n"
+            "» <b>Average Rating:</b> 87%\n"
+            "» <b>Status:</b> Returning\n"
+            "» <b>Episodes:</b> 18+\n"
+            "» <b>Genre:</b> Animation, Action & Adventure, Sci-Fi & Fantasy\n\n"
+            "➢ <b>Synopsis:</b> Li Xiongmao, a human boy raised by demons, who leaves the Black and White Mountain on his master's orders to kill three enemies...\n\n"
+            f"<i>[Artwork Variant: {current_index + 1} of {total_pages}]</i>"
+        )
+
+        try:
+            bot.edit_message_text(
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                text=content_text,
+                parse_mode="HTML",
+                reply_markup=markup
+            )
+        except Exception as e:
+            print(f"Pagination update error: {e}")
+
+    # Handle Manga Site Selection Flow (Mocking source list like MangaDex, MangaBaka, etc.)
+    elif call.data.startswith(("manga_site_", "manga_all_", "manga_porn_")):
+        query = call.data.split("_", 2)[2]
+        
+        markup = InlineKeyboardMarkup()
+        markup.add(InlineKeyboardButton(text="MYST, MIGHT, MAYHEM • MANGADEX", callback_data=f"manga_detail_1"))
+        markup.add(InlineKeyboardButton(text="GOERYEOK NANSIN • MANGABAKA", callback_data=f"manga_detail_2"))
+        markup.add(InlineKeyboardButton(text="MONOCHROME MYST • MANGAUPDATES", callback_data=f"manga_detail_3"))
+        
+        # Bottom pagination row for manga source list (1/2, NEXT, BACK, CANCEL)[span_10](start_span)[span_10](end_span)
+        markup.row(
+            InlineKeyboardButton(text="1/2", callback_data="noop"),
+            InlineKeyboardButton(text="NEXT ➡️", callback_data=f"manga_page_2_{query}")
+        )
+        markup.row(
+            InlineKeyboardButton(text="« BACK", callback_data=f"manga_back"),
+            InlineKeyboardButton(text="CANCEL", callback_data="cancel_session")
+        )
+
+        sources_text = (
+            f"<b>• SEARCH RESULTS FOR '{html.escape(query)}'</b>\n"
+            "<i>Select the correct title from the list below:</i>"
+        )
+        try:
+            bot.edit_message_text(
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                text=sources_text,
+                parse_mode="HTML",
+                reply_markup=markup
+            )
+        except Exception:
+            pass
+
+    bot.answer_callback_query(call.id)
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
