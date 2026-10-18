@@ -290,7 +290,6 @@ def handle_all_callbacks(call):
         bot.answer_callback_query(call.id, " you are banned from using this bot.", show_alert=True)
         return
     
-    # 1. Handle Poster Pagination
     if call.data.startswith("p_") or call.data == "noop":
         if call.data == "noop":
             bot.answer_callback_query(call.id)
@@ -314,8 +313,7 @@ def handle_all_callbacks(call):
                 
         bot.answer_callback_query(call.id)
         return
-
-    # 2. Handle IMDb Selection & Close Button
+        
     if call.data.startswith("imdb_select_") or call.data == "imdb_close":
         try:
             bot.answer_callback_query(call.id)
@@ -975,7 +973,7 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
 
     draw = ImageDraw.Draw(canvas)
     draw.text((40, 28), branding, fill=(255, 255, 255))
-    draw.text((170, 33), "COUNTLESS STORIES, ONE PERFECT DESTINATION", fill=(170, 170, 170))
+    draw.text((170, 33), "​CRUISE THROUGH INFINITE CHAPTERS", fill=(170, 170, 170))
 
     thumb_coords = [(40, 80), (40, 220)]
     for idx, p_bytes in enumerate(portrait_bytes_list[:2]):
@@ -985,7 +983,7 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
             
             tx, ty = thumb_coords[idx]
             canvas.paste(th_img, (tx, ty))
-            # White rounded-style border frame around each thumbnail
+
             draw.rectangle([tx, ty, tx + 105, ty + 125], outline=(220, 220, 220), width=2)
         except Exception:
             pass
