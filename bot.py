@@ -1019,8 +1019,16 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
     font_small = get_font(11, bold=False)
     font_badge_title = get_font(18, bold=True)
 
-    # Watermark at bottom-left of the poster artwork
-    draw.text((25, target_h - 35), "@Aero_Unity", fill=(240, 240, 240, 210), font=font_reg)
+    # Watermark at bottom-left with a high-contrast dark outline / shadow
+    wm_x, wm_y = 25, target_h - 38
+    wm_text = "@Aero_Unity"
+    
+    # Black outline / drop-shadow behind text
+    for offset_x, offset_y in [(-1, -1), (1, -1), (-1, 1), (1, 1), (0, 2), (2, 0)]:
+        draw.text((wm_x + offset_x, wm_y + offset_y), wm_text, fill=(0, 0, 0, 255), font=font_bold)
+        
+    # Main vibrant white/blue/red text on top
+    draw.text((wm_x, wm_y), wm_text, fill=(255, 255, 255, 255), font=font_bold)
 
     # 3. Top-Right Branding Badge: "MANGA AERO" & Subtitle
     draw.text((980, 28), "MANGA AERO", fill=(20, 20, 20), font=font_badge_title)
@@ -1042,7 +1050,7 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
 
     # 6. Ratings (Numerical score format placed below genres)
     rating_y = gy + 42
-    draw.text((560, rating_y), "Avg Ratings:", fill=(40, 40, 40), font=font_bold)
+    draw.text((560, rating_y), "Avg Ratings : ", fill=(40, 40, 40), font=font_bold)
     
     score_display = f"{rating_val} / 10" if "/" not in str(rating_val) else rating_val
     draw.text((670, rating_y), score_display, fill=(0, 136, 204), font=font_bold)
@@ -1091,7 +1099,6 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
     canvas.convert("RGB").save(output, format="JPEG", quality=95, subsampling=0)
     output.seek(0)
     return output
-
 
 # ------------------------ #
 # Don't Remove My Credits
