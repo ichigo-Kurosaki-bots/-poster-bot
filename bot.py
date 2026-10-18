@@ -394,7 +394,7 @@ def handle_all_callbacks(call):
                 caption_text = "\n".join(caption_lines)
 
                 markup = InlineKeyboardMarkup()
-                markup.add(InlineKeyboardButton(text="📺 IMDb Page", url=imdb_link))
+                markup.add(InlineKeyboardButton(text="• ɪᴍᴅʙ ɪᴍᴀɢᴇ •", url=imdb_link))
 
                 try:
                     bot.delete_message(call.message.chat.id, call.message.message_id)
@@ -420,7 +420,6 @@ def handle_all_callbacks(call):
             print(f"IMDb details error: {e}")
         return
 
-        # Handle Custom Manga Pagination Buttons (PREV / NEXT)
     if call.data.startswith("media_card_"):
         parts = call.data.split("_")
         search_id = parts[2]
@@ -437,11 +436,11 @@ def handle_all_callbacks(call):
         artworks = data["artworks"]
         posters = data["posters"]
         total_pages = len(artworks)
-        current_index = target_index % total_pages  # Loop through variants
+        current_index = target_index % total_pages
 
         caption_text = (
             f"<b>{html.escape(data['title'])}</b> ❞\n\n"
-            f"» <b>Type:</b> Manhwa\n"
+            f"» <b>Type:</b> {data.get('type', 'Manhwa')}\n"
             f"» <b>Average Rating:</b> {data['rating']}\n"
             f"» <b>Status:</b> {data['status']}\n"
             f"» <b>Chapters:</b> {data['chapters']}\n"
@@ -1609,15 +1608,13 @@ def movie_poster_handler(message):
 # Support : @Coders_Grp 
 # ------------------------ #
 
-# --- /manga Command Handler (Text Format + Poster Preview) ---
 @bot.message_handler(commands=['manga'])
 def manga_command_handler(message):
     query = message.text.replace("/manga", "").strip()
     if not query:
         bot.reply_to(message, "<b>Usage:</b> <code>/manga [title]</code>", parse_mode="HTML")
         return
-
-    # Search TMDb TV / Movie endpoints
+        
     search_url = f"https://api.themoviedb.org/3/search/tv?api_key={TMDB_API_KEY}&query={requests.utils.quote(query)}"
     res = session.get(search_url, timeout=5).json()
     results = res.get("results", [])
@@ -1635,26 +1632,30 @@ def manga_command_handler(message):
     item_id = str(item.get("id"))
     media_type = item.get("media_type", "tv")
     title = item.get("name") or item.get("title") or query
-
-    # Fetch full details from TMDb
     endpoint = "tv" if media_type == "tv" else "movie"
     details_url = f"https://api.themoviedb.org/3/{endpoint}/{item_id}?api_key={TMDB_API_KEY}&append_to_response=images"
     det_res = session.get(details_url, timeout=5).json()
+    orig_lang = det_res.get("original_language", "ja").lower()
+    adult = det_res.get("adult", False)
+    genres_list = [g["name"] for g in det_res.get("genres", [])]
 
-    # Calculate average rating
+    if adult or any(g.lower() in ["erotica", "hentai", "ecchi"] for g in genres_list):
+        detected_type = "Pornhwa" if orig_lang == "ko" else "Hentai"
+    elif orig_lang == "ko":
+        detected_type = "Manhwa"
+    elif orig_lang == "zh":
+        detected_type = "Manhua"
+    elif orig_lang == "ja":
+        detected_type = "Manga"
+    else:
+        detected_type = "Manga" if media_type == "tv" else "Comic"
+
     vote_avg = det_res.get("vote_average", 0)
     rating_pct = f"{int(vote_avg * 10)}%" if vote_avg else "84%"
-
-    # Extract genres
-    genres_list = [g["name"] for g in det_res.get("genres", [])]
     genres_str = ", ".join(genres_list) if genres_list else "Action, Fantasy"
-
-    # Status and Chapters
     status_str = det_res.get("status", "Releasing")
     episodes = det_res.get("number_of_episodes")
     chapters_str = f"{episodes}+" if episodes else "120+"
-
-    # Artwork / Poster URLs
     images = det_res.get("images", {})
     artworks = [f"https://image.tmdb.org/t/p/original{i['file_path']}" for i in images.get("backdrops", [])[:8]]
     posters = [f"https://image.tmdb.org/t/p/w500{i['file_path']}" for i in images.get("posters", [])[:2]]
@@ -1672,6 +1673,7 @@ def manga_command_handler(message):
     search_id = str(message.message_id)
     SEARCH_CACHE[search_id] = {
         "title": title,
+        "type": detected_type,
         "genres": genres_str,
         "rating": rating_pct,
         "status": status_str,
@@ -1685,10 +1687,9 @@ def manga_command_handler(message):
     current_index = 0
     total_pages = len(artworks)
 
-    # Format the caption text like the reference screenshot
     caption_text = (
         f"<b>{html.escape(title)}</b> ❞\n\n"
-        f"» <b>Type:</b> Manhwa\n"
+        f"» <b>Type:</b> {detected_type}\n"
         f"» <b>Average Rating:</b> {rating_pct}\n"
         f"» <b>Status:</b> {status_str}\n"
         f"» <b>Chapters:</b> {chapters_str}\n"
@@ -1697,7 +1698,6 @@ def manga_command_handler(message):
         f"<b>➔</b> <i>{html.escape(synopsis[:400])}...</i> ❞"
     )
 
-    # Build image card with PIL
     try:
         img_bytes = session.get(artworks[current_index], timeout=5).content
         p_bytes_list = []
@@ -1718,7 +1718,7 @@ def manga_command_handler(message):
             InlineKeyboardButton(text=f"01/{total_pages:02d}", callback_data="noop"),
             InlineKeyboardButton(text="• ɴᴇxᴛ ▶", callback_data=f"media_card_{search_id}_{current_index+1}")
         )
-        markup.row(InlineKeyboardButton(text="• ᴄᴀɴᴄᴇʟ •", callback_data="cancel_session"))
+        markup.row(InlineKeyboardButton(text="• ᴄᴀɴᴄᴇʟ•", callback_data="cancel_session"))
 
         bot.send_photo(
             chat_id=message.chat.id,
