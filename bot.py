@@ -1605,10 +1605,11 @@ def movie_poster_handler(message):
         InlineKeyboardButton("• Bᴀɴɴᴇʀ •", url=banner_url),
         InlineKeyboardButton("• Pᴏsᴛᴇʀ •", url=portrait_url)
     )
+    
     try:
-            bot.delete_message(message.chat.id, status_msg.message_id)
-        except Exception:
-            pass
+        bot.delete_message(message.chat.id, status_msg.message_id)
+    except Exception:
+        pass
 
     try:
 
