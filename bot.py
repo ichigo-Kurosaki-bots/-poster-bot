@@ -967,7 +967,7 @@ def add_title_overlay(image_bytes, title_text="", logo_url=None, position="cente
 # Support : @Coders_Grp 
 # ------------------------ #
 
-def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres, synopsis, logo_url=None, branding="Manga Aero"):
+def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres, synopsis, rating_val="8.4", logo_url=None, branding="Manga Aero"):
     target_w, target_h = 1280, 720
     
     # 1. Clean white canvas for the right panel background
@@ -1026,10 +1026,12 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
         draw.text((gx + 12, gy + 6), tag_text, fill=(60, 60, 60), font=font_reg)
         gx += pill_w + 10
 
-    # 6. Ratings & Stars (Placed Downside of Genres)
+    # 6. Ratings (Numerical score format placed below genres)
     rating_y = gy + 42
     draw.text((560, rating_y), "Avg Ratings:", fill=(40, 40, 40), font=font_bold)
-    draw.text((670, rating_y - 2), "⭐⭐⭐⭐⭐", fill=(255, 180, 0), font=font_reg)
+    
+    score_display = f"{rating_val} / 10" if "/" not in str(rating_val) else rating_val
+    draw.text((670, rating_y), score_display, fill=(0, 136, 204), font=font_bold)
 
     # 7. Horizontal Divider Line 1
     draw.line([(560, 255), (1220, 255)], fill=(220, 220, 220), width=1)
