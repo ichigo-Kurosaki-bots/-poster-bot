@@ -675,7 +675,7 @@ def get_tmdb_logo_url(item_id, media_type):
         pass
     return None
 
-# --- Clean Poster Generation Logic with Dynamic Positions (center, left, right, up, down) ---
+# --- Clean Poster Generation Logic with Dynamic Positions & Full-Color Logos ---
 def add_title_overlay(image_bytes, title_text="", logo_url=None, position="center"):
     orig_img = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
     target_width, target_height = 1280, 720
@@ -692,7 +692,8 @@ def add_title_overlay(image_bytes, title_text="", logo_url=None, position="cente
     
     if logo_url:
         try:
-            logo_res = session.get(logo_url, timeout=5)
+            headers = {"User-Agent": "Mozilla/5.0"}
+            logo_res = session.get(logo_url, headers=headers, timeout=5)
             if logo_res.status_code == 200:
                 logo_img = Image.open(io.BytesIO(logo_res.content)).convert("RGBA")
                 max_logo_w = int(target_width * 0.55)
@@ -724,12 +725,13 @@ def add_title_overlay(image_bytes, title_text="", logo_url=None, position="cente
                 else:
                     x, y = (target_width - logo_w) // 2, (target_height - logo_h) // 2
                 
-                image.paste(logo_img, (x, y), logo_img)
-        except Exception:
-            pass
+                # FIX: Pass mask=logo_img to preserve full original color and transparency
+                image.paste(logo_img, (x, y), mask=logo_img)
+        except Exception as e:
+            print(f"Error applying logo overlay: {e}")
 
     output = io.BytesIO()
-    image.convert("RGB").save(output, format="JPEG", quality=92)
+    image.convert("RGB").save(output, format="JPEG", quality=95)
     output.seek(0)
     return output
 
