@@ -967,7 +967,7 @@ def add_title_overlay(image_bytes, title_text="", logo_url=None, position="cente
 # Support : @Coders_Grp 
 # ------------------------ #
 
-def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres, synopsis, logo_url=None, branding="Manga Cruise"):
+def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres, synopsis, logo_url=None, branding="Manga Aero"):
     target_w, target_h = 1280, 720
     
     # 1. Clean white canvas for the right panel background
@@ -983,41 +983,63 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
 
     draw = ImageDraw.Draw(canvas)
 
+    # Helper for loading fonts safely with fallbacks so text can be scaled up cleanly
+    def get_font(size, bold=False):
+        font_paths = [
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/liberation/LiberationSans.ttf",
+            "/usr/share/fonts/truetype/msttcorefonts/Arial_Bold.ttf" if bold else "/usr/share/fonts/truetype/msttcorefonts/Arial.ttf",
+            "arialbd.ttf" if bold else "arial.ttf",
+            "DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf"
+        ]
+        for path in font_paths:
+            try:
+                return ImageFont.truetype(path, size)
+            except Exception:
+                continue
+        return ImageFont.load_default()
+
+    font_title = get_font(34, bold=True)
+    font_bold = get_font(16, bold=True)
+    font_reg = get_font(14, bold=False)
+    font_small = get_font(11, bold=False)
+    font_badge_title = get_font(18, bold=True)
+
     # Watermark at bottom-left of the poster artwork
-    draw.text((25, target_h - 35), "@Aero_Unity", fill=(240, 240, 240, 210))
+    draw.text((25, target_h - 35), "@Aero_Unity", fill=(240, 240, 240, 210), font=font_reg)
 
-    # 3. Top-Right Branding: "MANGA CRUISE" Badge
-    draw.text((1080, 35), "MANGA AERO", fill=(20, 20, 20))
-    draw.text((1080, 55), "​INSTANT ART, ENDLESS STORIES", fill=(0, 136, 204))
+    # 3. Top-Right Branding Badge: "MANGA AERO" & Subtitle
+    draw.text((980, 28), "MANGA AERO", fill=(20, 20, 20), font=font_badge_title)
+    draw.text((980, 50), "INSTANT ART, ENDLESS STORIES", fill=(0, 136, 204), font=font_small)
 
-    # 4. Title (Large, Bold, Black on Right Panel)
-    clean_title = title.upper()[:22]
-    draw.text((560, 130), clean_title, fill=(15, 15, 15))
+    # 4. Title (Large, Bold, Prominent on Right Panel)
+    clean_title = title.upper()[:24]
+    draw.text((560, 105), clean_title, fill=(15, 15, 15), font=font_title)
 
-    # 5. Dynamic TMDb Genres & Star Rating Row
-    gx, gy = 560, 195
-    # Render up to 2-3 dynamic genre pills from TMDb data
+    # 5. Dynamic TMDb Genres Row
+    gx, gy = 560, 165
     for g in genres[:3]:
         tag_text = str(g).upper()[:12]
         text_w = len(tag_text) * 7
-        pill_w = max(90, text_w + 30)
-        draw.rounded_rectangle([gx, gy, gx + pill_w, gy + 32], radius=16, outline=(200, 200, 200), width=1, fill=(245, 245, 245))
-        draw.text((gx + 15, gy + 8), tag_text, fill=(60, 60, 60))
-        gx += pill_w + 15
+        pill_w = max(85, text_w + 24)
+        draw.rounded_rectangle([gx, gy, gx + pill_w, gy + 30], radius=15, outline=(200, 200, 200), width=1, fill=(245, 245, 245))
+        draw.text((gx + 12, gy + 6), tag_text, fill=(60, 60, 60), font=font_reg)
+        gx += pill_w + 10
 
-    # Rating Display Label
-    rating_text = "Avg Ratings: ⭐⭐⭐⭐⭐"
-    draw.text((gx + 5, gy + 8), rating_text, fill=(40, 40, 40))
+    # 6. Ratings & Stars (Placed Downside of Genres)
+    rating_y = gy + 42
+    draw.text((560, rating_y), "Avg Ratings:", fill=(40, 40, 40), font=font_bold)
+    draw.text((670, rating_y - 2), "⭐⭐⭐⭐⭐", fill=(255, 180, 0), font=font_reg)
 
-    # 6. Horizontal Divider Line 1
+    # 7. Horizontal Divider Line 1
     draw.line([(560, 255), (1220, 255)], fill=(220, 220, 220), width=1)
 
-    # 7. Official TMDb Synopsis Text Block (Word Wrapped & Cleanly Formatted)
+    # 8. Official TMDb Synopsis Text Block (Word Wrapped & Expanded to Fill Down)
     clean_synopsis = synopsis if synopsis else "No synopsis available from TMDb."
     words = clean_synopsis.split()
     lines, curr_line = [], ""
     for w in words:
-        if len(curr_line + " " + w) < 72:
+        if len(curr_line + " " + w) < 75:
             curr_line += " " + w
         else:
             lines.append(curr_line.strip())
@@ -1025,34 +1047,35 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
     if curr_line:
         lines.append(curr_line.strip())
 
-    y_pos = 285
-    for line in lines[:5]:
-        draw.text((560, y_pos), line.upper(), fill=(95, 95, 95))
-        y_pos += 24
+    y_pos = 280
+    for line in lines[:8]:
+        draw.text((560, y_pos), line.upper(), fill=(95, 95, 95), font=font_reg)
+        y_pos += 22
 
-    # 8. Horizontal Divider Line 2
-    draw.line([(560, 445), (1220, 445)], fill=(220, 220, 220), width=1)
+    # 9. Horizontal Divider Line 2
+    draw.line([(560, 500), (1220, 500)], fill=(220, 220, 220), width=1)
 
-    # 9. Bottom Action Buttons ("READ NOW!!" pill and bookmark circle)
-    btn_x, btn_y = 560, 490
-    draw.rounded_rectangle([btn_x, btn_y, btn_x + 160, btn_y + 50], radius=25, fill=(15, 15, 15))
-    draw.text((btn_x + 25, btn_y + 16), "READ ", fill=(255, 255, 255))
-    draw.text((btn_x + 75, btn_y + 16), "NOW!!", fill=(255, 50, 50))
+    # 10. Bottom Action Buttons ("READ NOW!!" pill and bookmark circle)
+    btn_x, btn_y = 560, 535
+    draw.rounded_rectangle([btn_x, btn_y, btn_x + 160, btn_y + 48], radius=24, fill=(15, 15, 15))
+    draw.text((btn_x + 22, btn_y + 14), "READ ", fill=(255, 255, 255), font=font_bold)
+    draw.text((btn_x + 72, btn_y + 14), "NOW!!", fill=(255, 50, 50), font=font_bold)
 
     bm_x = btn_x + 185
-    draw.ellipse([bm_x, btn_y, bm_x + 50, btn_y + 50], fill=(15, 15, 15))
+    draw.ellipse([bm_x, btn_y, bm_x + 48, btn_y + 48], fill=(15, 15, 15))
     draw.polygon([
-        (bm_x + 20, btn_y + 15), 
-        (bm_x + 30, btn_y + 15), 
-        (bm_x + 30, btn_y + 35), 
-        (bm_x + 25, btn_y + 30), 
-        (bm_x + 20, btn_y + 35)
+        (bm_x + 18, btn_y + 14), 
+        (bm_x + 30, btn_y + 14), 
+        (bm_x + 30, btn_y + 34), 
+        (bm_x + 24, btn_y + 28), 
+        (bm_x + 18, btn_y + 34)
     ], fill=(255, 255, 255))
 
     output = io.BytesIO()
     canvas.convert("RGB").save(output, format="JPEG", quality=95, subsampling=0)
     output.seek(0)
     return output
+
 
 # ------------------------ #
 # Don't Remove My Credits
@@ -1469,6 +1492,7 @@ def imdb_command(message):
         markup.add(InlineKeyboardButton(text="• Cʟᴏsᴇ •", callback_data="imdb_close"))
 
         bot.delete_message(message.chat.id, status_msg.message_id)
+        
         bot.send_message(
             chat_id=message.chat.id,
             text="<b>Select The Correct Title From Below Results :</b>",
@@ -1581,6 +1605,10 @@ def movie_poster_handler(message):
         InlineKeyboardButton("• Bᴀɴɴᴇʀ •", url=banner_url),
         InlineKeyboardButton("• Pᴏsᴛᴇʀ •", url=portrait_url)
     )
+    try:
+            bot.delete_message(message.chat.id, status_msg.message_id)
+        except Exception:
+            pass
 
     try:
 
