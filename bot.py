@@ -1738,7 +1738,8 @@ def manga_command_handler(message):
         "synopsis": synopsis,
         "artworks": artworks,
         "posters": posters,
-        "logo_url": logo_url
+        "logo_url": logo_url,
+        "file_ids": {}
     }
 
     current_index = 0
