@@ -948,56 +948,83 @@ def add_title_overlay(image_bytes, title_text="", logo_url=None, position="cente
 # Support : @Coders_Grp 
 # ------------------------ #
 
-def generate_custom_media_card(poster_bytes, title, genres, synopsis, logo_url=None, branding="Manga Aero"):
+# --- Custom PIL Card Renderer Matching Reference Layout ---
+def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres, synopsis, logo_url=None, branding="Manga Aero"):
     target_w, target_h = 1280, 720
     
+    # 1. Base dark background canvas
     canvas = Image.new("RGBA", (target_w, target_h), (22, 20, 20, 255))
     
+    # 2. Right Side: Fit and Crop Artwork (Fills 680x720 cleanly without distortion)
     try:
         raw_art = Image.open(io.BytesIO(poster_bytes)).convert("RGBA")
         art_right = ImageOps.fit(raw_art, (680, target_h), method=Image.Resampling.LANCZOS)
         canvas.paste(art_right, (600, 0))
     except Exception as e:
         print(f"Error processing artwork: {e}")
-        
+
+    # 3. Left Side: Dark Info Panel background
     left_panel = Image.new("RGBA", (620, target_h), (32, 28, 27, 245))
     canvas.paste(left_panel, (0, 0), left_panel)
 
     draw = ImageDraw.Draw(canvas)
+
+    # 4. Draw Header Branding (Manga Aero)
     draw.text((40, 35), branding, fill=(255, 255, 255))
     draw.text((180, 40), "COUNTLESS STORIES, ONE PERFECT DESTINATION", fill=(180, 180, 180))
-    draw.rounded_rectangle([40, 130, 580, 380], radius=15, fill=(48, 42, 40, 230), outline=(80, 72, 70), width=1)
-    draw.text((220, 150), "SYNOPSIS  »»»", fill=(255, 255, 255))
 
+    # 5. Draw Two Stacked Small Thumbnails on Top-Left (Reference Style)
+    thumb_coords = [(40, 110), (40, 250)]
+    for idx, p_bytes in enumerate(portrait_bytes_list[:2]):
+        try:
+            th_img = Image.open(io.BytesIO(p_bytes)).convert("RGBA")
+            th_img = ImageOps.fit(th_img, (110, 125), method=Image.Resampling.LANCZOS)
+            
+            # Draw white rounded border frame around each thumbnail
+            tx, ty = thumb_coords[idx]
+            canvas.paste(th_img, (tx, ty))
+            draw.rectangle([tx, ty, tx + 110, ty + 125], outline=(220, 220, 220), width=2)
+        except Exception:
+            pass
+
+    # 6. Draw Synopsis Card Box (To the right of the thumbnails)
+    draw.rounded_rectangle([165, 110, 580, 375], radius=15, fill=(45, 40, 38, 230), outline=(80, 72, 70), width=1)
+    draw.text((330, 130), "SYNOPSIS  »»»", fill=(255, 255, 255))
+
+    # Word Wrap for Synopsis Text
     words = synopsis.split()
     lines, curr_line = [], ""
     for w in words:
-        if len(curr_line + " " + w) < 42:
+        if len(curr_line + " " + w) < 36:
             curr_line += " " + w
         else:
             lines.append(curr_line)
             curr_line = w
     lines.append(curr_line)
 
-    y_pos = 185
+    y_pos = 165
     for line in lines[:7]:
-        draw.text((60, y_pos), line, fill=(220, 220, 220))
+        draw.text((185, y_pos), line, fill=(220, 220, 220))
         y_pos += 24
 
-    draw.rounded_rectangle([40, 420, 580, 660], radius=15, fill=(25, 30, 38, 240), outline=(60, 70, 85), width=1)
-    draw.text((60, 440), title.upper()[:28], fill=(255, 255, 255))
+    # 7. Draw Bottom Container for Title & Genre Capsule Tags
+    draw.rounded_rectangle([140, 395, 580, 665], radius=15, fill=(25, 30, 38, 240), outline=(60, 70, 85), width=1)
+    draw.text((160, 415), title.upper()[:26], fill=(255, 255, 255))
 
-    gx, gy = 60, 490
+    # Draw Capsule Tag Badges
+    gx, gy = 160, 465
     for g in genres[:6]:
-        draw.rounded_rectangle([gx, gy, gx + 115, gy + 34], radius=10, outline=(140, 150, 165), width=1)
-        draw.text((gx + 12, gy + 8), g.upper()[:10], fill=(210, 220, 235))
+        draw.rounded_rectangle([gx, gy, gx + 115, gy + 34], radius=15, outline=(140, 150, 165), width=1)
+        draw.text((gx + 15, gy + 8), g.upper()[:10], fill=(210, 220, 235))
         gx += 130
-        if gx > 460:
-            gx = 60
+        if gx > 480:
+            gx = 160
             gy += 45
 
-    draw.text((230, 625), branding.upper(), fill=(140, 140, 140))
+    # Footer Branding Tag inside the bottom box
+    draw.text((310, 625), branding.upper(), fill=(140, 140, 140))
 
+    # 8. Apply Official TMDb Logo Overlay onto Right Image Panel (If available)
     if logo_url:
         try:
             logo_res = session.get(logo_url, timeout=5)
@@ -1005,7 +1032,6 @@ def generate_custom_media_card(poster_bytes, title, genres, synopsis, logo_url=N
                 logo_img = Image.open(io.BytesIO(logo_res.content)).convert("RGBA")
                 logo_img.thumbnail((450, 200), Image.Resampling.LANCZOS)
                 
-                # Position on bottom right corner of the poster artwork
                 lx = 600 + (680 - logo_img.width) // 2
                 ly = target_h - logo_img.height - 40
                 canvas.paste(logo_img, (lx, ly), mask=logo_img)
@@ -1016,7 +1042,7 @@ def generate_custom_media_card(poster_bytes, title, genres, synopsis, logo_url=N
     canvas.convert("RGB").save(output, format="JPEG", quality=95)
     output.seek(0)
     return output
-
+    
 # ------------------------ #
 # Don't Remove My Credits
 # Owner: @Mr_Mohammed_29
@@ -1572,7 +1598,7 @@ def movie_poster_handler(message):
 # Support : @Coders_Grp 
 # ------------------------ #
 
-# --- Updated /manga Command Handler (With TMDb Logo & Dual-Panel Layout) ---
+# --- Updated /manga Command Handler ---
 @bot.message_handler(commands=['manga'])
 def manga_command_handler(message):
     query = message.text.replace("/manga", "").strip()
@@ -1580,7 +1606,7 @@ def manga_command_handler(message):
         bot.reply_to(message, "<b>Usage:</b> <code>/manga [title]</code>", parse_mode="HTML")
         return
 
-    # 1. Search TMDb TV / Movie endpoint
+    # Search TMDb TV / Movie endpoint
     search_url = f"https://api.themoviedb.org/3/search/tv?api_key={TMDB_API_KEY}&query={requests.utils.quote(query)}"
     res = session.get(search_url, timeout=5).json()
     results = res.get("results", [])
@@ -1599,7 +1625,6 @@ def manga_command_handler(message):
     media_type = item.get("media_type", "tv")
     title = item.get("name") or item.get("title") or query
 
-    # 2. Fetch full details, genres, and backdrops
     endpoint = "tv" if media_type == "tv" else "movie"
     details_url = f"https://api.themoviedb.org/3/{endpoint}/{item_id}?api_key={TMDB_API_KEY}&append_to_response=images"
     det_res = session.get(details_url, timeout=5).json()
@@ -1610,11 +1635,15 @@ def manga_command_handler(message):
 
     images = det_res.get("images", {})
     artworks = [f"https://image.tmdb.org/t/p/original{i['file_path']}" for i in images.get("backdrops", [])[:8]]
+    posters = [f"https://image.tmdb.org/t/p/w500{i['file_path']}" for i in images.get("posters", [])[:3]]
+    
     if not artworks:
         path = item.get("backdrop_path") or item.get("poster_path")
         artworks = [f"https://image.tmdb.org/t/p/original{path}"] if path else ["https://graph.org/file/faf795187aa693e1024a4-746b376c8dcc889d4f.jpg"]
 
-    # Get official TMDb title logo
+    if not posters:
+        posters = [artworks[0], artworks[0]]
+
     logo_url = get_tmdb_logo_url(item_id, endpoint)
 
     search_id = str(message.message_id)
@@ -1623,8 +1652,8 @@ def manga_command_handler(message):
         "genres": genres,
         "synopsis": det_res.get("overview") or item.get("overview") or "No synopsis available.",
         "artworks": artworks,
-        "logo_url": logo_url,
-        "type": "manga"
+        "posters": posters,
+        "logo_url": logo_url
     }
 
     current_index = 0
@@ -1632,8 +1661,17 @@ def manga_command_handler(message):
 
     try:
         img_bytes = session.get(artworks[current_index], timeout=5).content
+        
+        # Fetch 2 portrait thumbnail bytes for the top-left stack
+        p_bytes_list = []
+        for p_url in posters[:2]:
+            try:
+                p_bytes_list.append(session.get(p_url, timeout=4).content)
+            except Exception:
+                p_bytes_list.append(img_bytes)
+
         card_io = generate_custom_media_card(
-            img_bytes, title, genres, det_res.get("overview", "No synopsis available."), logo_url=logo_url, branding="Manga Aero"
+            img_bytes, p_bytes_list, title, genres, det_res.get("overview", "No synopsis available."), logo_url=logo_url, branding="Manga Aero"
         )
 
         markup = InlineKeyboardMarkup()
@@ -1653,87 +1691,6 @@ def manga_command_handler(message):
         )
     except Exception as e:
         bot.reply_to(message, f"❌ Error generating manga card: {e}", parse_mode="HTML")
-
-
-# --- Updated /anime Command Handler (With TMDb Logo & Dual-Panel Layout) ---
-@bot.message_handler(commands=['anime'])
-def anime_command_handler(message):
-    query = message.text.replace("/anime", "").strip()
-    if not query:
-        bot.reply_to(message, "<b>Usage:</b> <code>/anime [title]</code>", parse_mode="HTML")
-        return
-
-    search_url = f"https://api.themoviedb.org/3/search/tv?api_key={TMDB_API_KEY}&query={requests.utils.quote(query)}"
-    res = session.get(search_url, timeout=5).json()
-    results = res.get("results", [])
-
-    if not results:
-        search_url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={requests.utils.quote(query)}"
-        res = session.get(search_url, timeout=5).json()
-        results = res.get("results", [])
-
-    if not results:
-        bot.reply_to(message, f"‼️ No results found for <b>{html.escape(query)}</b>", parse_mode="HTML")
-        return
-
-    item = results[0]
-    item_id = str(item.get("id"))
-    media_type = item.get("media_type", "tv")
-    title = item.get("name") or item.get("title") or query
-    
-    endpoint = "tv" if media_type == "tv" else "movie"
-    details_url = f"https://api.themoviedb.org/3/{endpoint}/{item_id}?api_key={TMDB_API_KEY}&append_to_response=images"
-    det_res = session.get(details_url, timeout=5).json()
-    
-    genres = [g["name"] for g in det_res.get("genres", [])]
-    if not genres:
-        genres = ["Animation", "Action", "Sci-Fi"]
-
-    images = det_res.get("images", {})
-    artworks = [f"https://image.tmdb.org/t/p/original{i['file_path']}" for i in images.get("backdrops", [])[:8]]
-    if not artworks:
-        path = item.get("backdrop_path") or item.get("poster_path")
-        artworks = [f"https://image.tmdb.org/t/p/original{path}"] if path else ["https://graph.org/file/faf795187aa693e1024a4-746b376c8dcc889d4f.jpg"]
-
-    logo_url = get_tmdb_logo_url(item_id, endpoint)
-
-    search_id = str(message.message_id)
-    SEARCH_CACHE[search_id] = {
-        "title": title,
-        "genres": genres,
-        "synopsis": det_res.get("overview") or item.get("overview") or "No synopsis available.",
-        "artworks": artworks,
-        "logo_url": logo_url,
-        "type": "anime"
-    }
-
-    current_index = 0
-    total_pages = len(artworks)
-
-    try:
-        img_bytes = session.get(artworks[current_index], timeout=5).content
-        card_io = generate_custom_media_card(
-            img_bytes, title, genres, det_res.get("overview", "No synopsis available."), logo_url=logo_url, branding="Anime Aero"
-        )
-
-        markup = InlineKeyboardMarkup()
-        markup.row(
-            InlineKeyboardButton(text="🔄 ◀ prev", callback_data=f"media_card_{search_id}_{current_index-1}"),
-            InlineKeyboardButton(text=f"01/{total_pages:02d}", callback_data="noop"),
-            InlineKeyboardButton(text="next ▶", callback_data=f"media_card_{search_id}_{current_index+1}")
-        )
-        markup.row(InlineKeyboardButton(text="👤 cancel", callback_data="cancel_session"))
-
-        bot.send_photo(
-            chat_id=message.chat.id,
-            photo=card_io,
-            caption=f"<b>🎬 Anime: {html.escape(title.upper())}</b>",
-            parse_mode="HTML",
-            reply_markup=markup
-        )
-    except Exception as e:
-        bot.reply_to(message, f"❌ Error generating anime card: {e}", parse_mode="HTML")
-
 # ------------------------ #
 # Don't Remove My Credits
 # Owner: @Mr_Mohammed_29
