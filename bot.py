@@ -468,9 +468,23 @@ def handle_all_callbacks(call):
                     p_bytes_list.append(img_bytes)
 
             genres_list = [g.strip() for g in data["genres"].split(",")]
+            # Convert percentage/rating to numerical score format (e.g., 8.4 / 10)
+            raw_rating = data.get("rating", "8.4")
+            if "%" in str(raw_rating):
+                try:
+                    raw_rating = round(float(raw_rating.replace("%", "")) / 10.0, 1)
+                except ValueError:
+                    raw_rating = "8.4"
+
             card_io = generate_custom_media_card(
-                img_bytes, p_bytes_list, data["title"], genres_list,
-                data["synopsis"], logo_url=data["logo_url"], branding="Manga Aero"
+                poster_bytes=img_bytes,
+                portrait_bytes_list=p_bytes_list,
+                title=data["title"],
+                genres=genres_list,
+                synopsis=data["synopsis"],
+                rating_val=raw_rating,
+                logo_url=data["logo_url"],
+                branding="Manga Aero"
             )
 
             markup = InlineKeyboardMarkup()
@@ -1744,8 +1758,14 @@ def manga_command_handler(message):
                 p_bytes_list.append(img_bytes)
 
         card_io = generate_custom_media_card(
-            img_bytes, p_bytes_list, title, genres_list if isinstance(genres_list, list) else ["Action", "Fantasy"],
-            synopsis, logo_url=logo_url, branding="Manga Aero"
+            poster_bytes=img_bytes,
+            portrait_bytes_list=p_bytes_list,
+            title=title,
+            genres=genres_list if isinstance(genres_list, list) else ["Action", "Fantasy"],
+            synopsis=synopsis,
+            rating_val=round(vote_avg, 1) if vote_avg else "8.4",
+            logo_url=logo_url,
+            branding="Manga Aero"
         )
 
         markup = InlineKeyboardMarkup()
