@@ -970,79 +970,106 @@ def add_title_overlay(image_bytes, title_text="", logo_url=None, position="cente
 def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres, synopsis, logo_url=None, branding="Manga Aero"):
     target_w, target_h = 1280, 720
     
+    # 1. Base Dark Canvas
     canvas = Image.new("RGBA", (target_w, target_h), (22, 20, 20, 255))
     
+    # 2. Right Side: Artwork
     try:
         raw_art = Image.open(io.BytesIO(poster_bytes)).convert("RGBA")
         art_right = ImageOps.fit(raw_art, (680, target_h), method=Image.Resampling.LANCZOS)
         canvas.paste(art_right, (600, 0))
     except Exception as e:
         print(f"Error processing artwork: {e}")
-        
+
+    # 3. Left Side: Dark Panel (Width 600)
     left_panel = Image.new("RGBA", (600, target_h), (28, 25, 24, 255))
     canvas.paste(left_panel, (0, 0), left_panel)
 
     draw = ImageDraw.Draw(canvas)
-    draw.text((40, 28), branding, fill=(255, 255, 255))
-    draw.text((170, 33), "​CRUISE THROUGH INFINITE CHAPTERS", fill=(170, 170, 170))
 
+    # 4. Header Branding
+    draw.text((40, 28), branding, fill=(255, 255, 255))
+    draw.text((170, 33), "CRUISE THROUGH INFINITE CHAPTERS", fill=(170, 170, 170))
+
+    # 5. Top-Left Thumbnails Frame (With Rounded Corners Frame)
     thumb_coords = [(40, 80), (40, 220)]
     for idx, p_bytes in enumerate(portrait_bytes_list[:2]):
         try:
             th_img = Image.open(io.BytesIO(p_bytes)).convert("RGBA")
             th_img = ImageOps.fit(th_img, (105, 125), method=Image.Resampling.LANCZOS)
-            
             tx, ty = thumb_coords[idx]
             canvas.paste(th_img, (tx, ty))
-
             draw.rectangle([tx, ty, tx + 105, ty + 125], outline=(220, 220, 220), width=2)
         except Exception:
             pass
-            
-    draw.rounded_rectangle([155, 80, 570, 355], radius=12, fill=(38, 34, 33, 240), outline=(75, 68, 65), width=1)
-    draw.text((325, 95), "SYNOPSIS  »»»", fill=(255, 255, 255))
+
+    # 6. Synopsis Card Box (No background border fill, clean dark container)
+    syn_box_x1, syn_box_y1, syn_box_x2, syn_box_y2 = 155, 80, 570, 355
+    draw.rounded_rectangle([syn_box_x1, syn_box_y1, syn_box_x2, syn_box_y2], radius=12, fill=(38, 34, 33, 220), outline=(65, 58, 55), width=1)
     
+    # "SYNOPSIS >>>" Center Header
+    syn_title = "SYNOPSIS  »»»"
+    draw.text((310, 95), syn_title, fill=(255, 255, 255))
+
+    # Center-Aligned Synopsis Lines
     words = synopsis.split()
     lines, curr_line = [], ""
     for w in words:
-        if len(curr_line + " " + w) < 38:
+        if len(curr_line + " " + w) < 32:
             curr_line += " " + w
         else:
-            lines.append(curr_line)
+            lines.append(curr_line.strip())
             curr_line = w
-    lines.append(curr_line)
+    if curr_line:
+        lines.append(curr_line.strip())
 
     y_pos = 130
-    for line in lines[:7]:
-        draw.text((175, y_pos), line, fill=(210, 210, 210))
-        y_pos += 24
+    box_center_x = (syn_box_x1 + syn_box_x2) // 2
+    for line in lines[:5]:
+        # Approximate center math for simple PIL rendering
+        line_w = len(line) * 6.5
+        lx = box_center_x - (line_w / 2)
+        draw.text((lx, y_pos), line, fill=(210, 210, 210))
+        y_pos += 22
 
-    draw.rounded_rectangle([40, 375, 570, 680], radius=12, fill=(25, 30, 38, 245), outline=(55, 65, 80), width=1)
-    draw.text((60, 395), title.upper()[:28], fill=(255, 255, 255))
+    # Accent Divider Subtext: ">>> Manga Aero"
+    sub_tag = f"»»» {branding}"
+    draw.text((box_center_x - (len(sub_tag) * 3.5), y_pos + 10), sub_tag, fill=(180, 180, 180))
 
+    # 7. Bottom Title & Genre Box (Matching Reference Image 1)
+    title_box_x1, title_box_y1, title_box_x2, title_box_y2 = 40, 375, 570, 680
+    draw.rounded_rectangle([title_box_x1, title_box_y1, title_box_x2, title_box_y2], radius=15, fill=(20, 25, 33, 245), outline=(50, 60, 75), width=1)
+    
+    # Prominent Bold White Title
+    clean_title = title.upper()[:24]
+    draw.text((60, 395), clean_title, fill=(255, 255, 255))
+
+    # Pill-Capsule Genre Tags
     gx, gy = 60, 450
     for g in genres[:6]:
-        draw.rounded_rectangle([gx, gy, gx + 130, gy + 34], radius=16, outline=(130, 140, 155), width=1)
-        draw.text((gx + 15, gy + 8), g.upper()[:12], fill=(210, 220, 235))
-        gx += 145
-        if gx > 480:
+        tag_text = g.upper()[:12]
+        draw.rounded_rectangle([gx, gy, gx + 120, gy + 32], radius=16, outline=(130, 140, 155), width=1)
+        draw.text((gx + 18, gy + 8), tag_text, fill=(210, 220, 235))
+        gx += 135
+        if gx > 460:
             gx = 60
             gy += 45
 
+    # Footer Branding
     draw.text((250, 635), branding.upper(), fill=(140, 140, 140))
 
+    # 8. TMDb Logo Overlay on Right Side Panel
     if logo_url:
         try:
             logo_res = session.get(logo_url, timeout=5)
             if logo_res.status_code == 200:
                 logo_img = Image.open(io.BytesIO(logo_res.content)).convert("RGBA")
                 logo_img.thumbnail((450, 180), Image.Resampling.LANCZOS)
-                
                 lx = 600 + (680 - logo_img.width) // 2
                 ly = target_h - logo_img.height - 40
                 canvas.paste(logo_img, (lx, ly), mask=logo_img)
         except Exception as e:
-            print(f"Error drawing TMDb logo overlay: {e}")
+            print(f"Error drawing logo overlay: {e}")
 
     output = io.BytesIO()
     canvas.convert("RGB").save(output, format="JPEG", quality=95)
@@ -1610,6 +1637,8 @@ def manga_command_handler(message):
     if not query:
         bot.reply_to(message, "<b>Usage:</b> <code>/manga [title]</code>", parse_mode="HTML")
         return
+
+    status_msg = bot.reply_to(message, "⚙️ <b>ɢᴇɴᴇʀᴀᴛɪɴɢ ᴩᴏsᴛᴇʀ, ᴡᴀɪᴛ a sec...</b>", parse_mode="HTML")
         
     search_url = f"https://api.themoviedb.org/3/search/tv?api_key={TMDB_API_KEY}&query={requests.utils.quote(query)}"
     res = session.get(search_url, timeout=5).json()
@@ -1715,6 +1744,11 @@ def manga_command_handler(message):
             InlineKeyboardButton(text="• ɴᴇxᴛ ▶", callback_data=f"media_card_{search_id}_{current_index+1}")
         )
         markup.row(InlineKeyboardButton(text="• ᴄᴀɴᴄᴇʟ•", callback_data="cancel_session"))
+
+        try:
+            bot.delete_message(message.chat.id, status_msg.message_id)
+        except Exception:
+            pass
 
         bot.send_photo(
             chat_id=message.chat.id,
