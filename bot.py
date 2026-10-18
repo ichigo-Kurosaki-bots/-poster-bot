@@ -958,89 +958,76 @@ def add_title_overlay(image_bytes, title_text="", logo_url=None, position="cente
 # Support : @Coders_Grp 
 # ------------------------ #
 
-# --- Custom PIL Card Renderer Matching Reference Layout ---
 def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres, synopsis, logo_url=None, branding="Manga Aero"):
     target_w, target_h = 1280, 720
     
-    # 1. Base dark background canvas
     canvas = Image.new("RGBA", (target_w, target_h), (22, 20, 20, 255))
     
-    # 2. Right Side: Fit and Crop Artwork (Fills 680x720 cleanly without distortion)
     try:
         raw_art = Image.open(io.BytesIO(poster_bytes)).convert("RGBA")
         art_right = ImageOps.fit(raw_art, (680, target_h), method=Image.Resampling.LANCZOS)
         canvas.paste(art_right, (600, 0))
     except Exception as e:
         print(f"Error processing artwork: {e}")
-
-    # 3. Left Side: Dark Info Panel background
-    left_panel = Image.new("RGBA", (620, target_h), (32, 28, 27, 245))
+        
+    left_panel = Image.new("RGBA", (600, target_h), (28, 25, 24, 255))
     canvas.paste(left_panel, (0, 0), left_panel)
 
     draw = ImageDraw.Draw(canvas)
+    draw.text((40, 28), branding, fill=(255, 255, 255))
+    draw.text((170, 33), "COUNTLESS STORIES, ONE PERFECT DESTINATION", fill=(170, 170, 170))
 
-    # 4. Draw Header Branding (Manga Aero)
-    draw.text((40, 35), branding, fill=(255, 255, 255))
-    draw.text((180, 40), "COUNTLESS STORIES, ONE PERFECT DESTINATION", fill=(180, 180, 180))
-
-    # 5. Draw Two Stacked Small Thumbnails on Top-Left (Reference Style)
-    thumb_coords = [(40, 110), (40, 250)]
+    thumb_coords = [(40, 80), (40, 220)]
     for idx, p_bytes in enumerate(portrait_bytes_list[:2]):
         try:
             th_img = Image.open(io.BytesIO(p_bytes)).convert("RGBA")
-            th_img = ImageOps.fit(th_img, (110, 125), method=Image.Resampling.LANCZOS)
+            th_img = ImageOps.fit(th_img, (105, 125), method=Image.Resampling.LANCZOS)
             
-            # Draw white rounded border frame around each thumbnail
             tx, ty = thumb_coords[idx]
             canvas.paste(th_img, (tx, ty))
-            draw.rectangle([tx, ty, tx + 110, ty + 125], outline=(220, 220, 220), width=2)
+            # White rounded-style border frame around each thumbnail
+            draw.rectangle([tx, ty, tx + 105, ty + 125], outline=(220, 220, 220), width=2)
         except Exception:
             pass
-
-    # 6. Draw Synopsis Card Box (To the right of the thumbnails)
-    draw.rounded_rectangle([165, 110, 580, 375], radius=15, fill=(45, 40, 38, 230), outline=(80, 72, 70), width=1)
-    draw.text((330, 130), "SYNOPSIS  »»»", fill=(255, 255, 255))
-
-    # Word Wrap for Synopsis Text
+            
+    draw.rounded_rectangle([155, 80, 570, 355], radius=12, fill=(38, 34, 33, 240), outline=(75, 68, 65), width=1)
+    draw.text((325, 95), "SYNOPSIS  »»»", fill=(255, 255, 255))
+    
     words = synopsis.split()
     lines, curr_line = [], ""
     for w in words:
-        if len(curr_line + " " + w) < 36:
+        if len(curr_line + " " + w) < 38:
             curr_line += " " + w
         else:
             lines.append(curr_line)
             curr_line = w
     lines.append(curr_line)
 
-    y_pos = 165
+    y_pos = 130
     for line in lines[:7]:
-        draw.text((185, y_pos), line, fill=(220, 220, 220))
+        draw.text((175, y_pos), line, fill=(210, 210, 210))
         y_pos += 24
 
-    # 7. Draw Bottom Container for Title & Genre Capsule Tags
-    draw.rounded_rectangle([140, 395, 580, 665], radius=15, fill=(25, 30, 38, 240), outline=(60, 70, 85), width=1)
-    draw.text((160, 415), title.upper()[:26], fill=(255, 255, 255))
+    draw.rounded_rectangle([40, 375, 570, 680], radius=12, fill=(25, 30, 38, 245), outline=(55, 65, 80), width=1)
+    draw.text((60, 395), title.upper()[:28], fill=(255, 255, 255))
 
-    # Draw Capsule Tag Badges
-    gx, gy = 160, 465
+    gx, gy = 60, 450
     for g in genres[:6]:
-        draw.rounded_rectangle([gx, gy, gx + 115, gy + 34], radius=15, outline=(140, 150, 165), width=1)
-        draw.text((gx + 15, gy + 8), g.upper()[:10], fill=(210, 220, 235))
-        gx += 130
+        draw.rounded_rectangle([gx, gy, gx + 130, gy + 34], radius=16, outline=(130, 140, 155), width=1)
+        draw.text((gx + 15, gy + 8), g.upper()[:12], fill=(210, 220, 235))
+        gx += 145
         if gx > 480:
-            gx = 160
+            gx = 60
             gy += 45
 
-    # Footer Branding Tag inside the bottom box
-    draw.text((310, 625), branding.upper(), fill=(140, 140, 140))
+    draw.text((250, 635), branding.upper(), fill=(140, 140, 140))
 
-    # 8. Apply Official TMDb Logo Overlay onto Right Image Panel (If available)
     if logo_url:
         try:
             logo_res = session.get(logo_url, timeout=5)
             if logo_res.status_code == 200:
                 logo_img = Image.open(io.BytesIO(logo_res.content)).convert("RGBA")
-                logo_img.thumbnail((450, 200), Image.Resampling.LANCZOS)
+                logo_img.thumbnail((450, 180), Image.Resampling.LANCZOS)
                 
                 lx = 600 + (680 - logo_img.width) // 2
                 ly = target_h - logo_img.height - 40
