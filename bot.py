@@ -1347,40 +1347,35 @@ def handle_media_callbacks(call):
         bot.answer_callback_query(call.id, "Session cancelled.")
         return
 
-    # Handle Anime Details & Artwork Pagination (PREV / NEXT / 02/08)
+    # Handle Anime Title Selection -> Send Poster Card Photo + Control Panel
     if call.data.startswith("ani_select_") or call.data.startswith("ani_page_"):
         parts = call.data.split("_")
         search_id = parts[2]
-        
-        # Get current page index (defaults to 0 if opening for the first time)
         current_index = int(parts[3]) if len(parts) > 3 else 0
-        total_pages = 8  # Total artwork variants available
+        total_pages = 8  # Total artwork variants
 
         markup = InlineKeyboardMarkup()
-        
         prev_idx = (current_index - 1) % total_pages
         next_idx = (current_index + 1) % total_pages
         
-        # Row 1: Pagination Controls (PREV | 02/08 | NEXT)[span_6](start_span)[span_6](end_span)
+        # Row 1: Pagination Controls (PREV | 02/08 | NEXT)[span_2](start_span)[span_2](end_span)
         markup.row(
             InlineKeyboardButton(text="🔄 ◀ PREV", callback_data=f"ani_page_{search_id}_{prev_idx}"),
             InlineKeyboardButton(text=f"{current_index+1:02d}/{total_pages:02d}", callback_data="noop"),
             InlineKeyboardButton(text="NEXT ▶", callback_data=f"ani_page_{search_id}_{next_idx}")
         )
-        
-        # Row 2: Edit Data[span_7](start_span)[span_7](end_span)
+        # Row 2: Edit Data[span_3](start_span)[span_3](end_span)
         markup.row(InlineKeyboardButton(text="✏️ EDIT DATA", callback_data=f"edit_data_{search_id}"))
         
-        # Row 3: Banner & Thumbnail Controls[span_8](start_span)[span_8](end_span)
+        # Row 3: Banner & Skip Controls[span_4](start_span)[span_4](end_span)
         markup.row(
             InlineKeyboardButton(text="🔖 GEN BANNER", callback_data=f"gen_banner_{search_id}"),
             InlineKeyboardButton(text="⏭ SKIP THUMB", callback_data=f"skip_thumb_{search_id}")
         )
-        
-        # Row 4: Cancel[span_9](start_span)[span_9](end_span)
+        # Row 4: Cancel[span_5](start_span)[span_5](end_span)
         markup.row(InlineKeyboardButton(text="👤 CANCEL", callback_data="cancel_session"))
 
-        content_text = (
+        caption_text = (
             "<b>Raised by Demons: Panda Li</b>\n\n"
             "» <b>Type:</b> TV\n"
             "» <b>Average Rating:</b> 87%\n"
@@ -1391,18 +1386,36 @@ def handle_media_callbacks(call):
             f"<i>[Artwork Variant: {current_index + 1} of {total_pages}]</i>"
         )
 
-        try:
-            bot.edit_message_text(
+        # Sample poster image URL to display as the card photo
+        sample_poster_url = "https://graph.org/file/faf795187aa693e1024a4-746b376c8dcc889d4f.jpg"
+
+        if call.data.startswith("ani_select_"):
+            # When first clicking the button from search list, delete text and send photo card
+            try:
+                bot.delete_message(call.message.chat.id, call.message.message_id)
+            except Exception:
+                pass
+            bot.send_photo(
                 chat_id=call.message.chat.id,
-                message_id=call.message.message_id,
-                text=content_text,
+                photo=sample_poster_url,
+                caption=caption_text,
                 parse_mode="HTML",
                 reply_markup=markup
             )
-        except Exception as e:
-            print(f"Pagination update error: {e}")
+        else:
+            # When clicking PREV or NEXT, update the existing photo card smoothly
+            try:
+                bot.edit_message_caption(
+                    chat_id=call.message.chat.id,
+                    message_id=call.message.message_id,
+                    caption=caption_text,
+                    parse_mode="HTML",
+                    reply_markup=markup
+                )
+            except Exception as e:
+                print(f"Pagination update error: {e}")
 
-    # Handle Manga Site Selection Flow (Mocking source list like MangaDex, MangaBaka, etc.)
+    # Handle Manga Site Selection Flow
     elif call.data.startswith(("manga_site_", "manga_all_", "manga_porn_")):
         query = call.data.split("_", 2)[2]
         
@@ -1411,7 +1424,6 @@ def handle_media_callbacks(call):
         markup.add(InlineKeyboardButton(text="GOERYEOK NANSIN • MANGABAKA", callback_data=f"manga_detail_2"))
         markup.add(InlineKeyboardButton(text="MONOCHROME MYST • MANGAUPDATES", callback_data=f"manga_detail_3"))
         
-        # Bottom pagination row for manga source list (1/2, NEXT, BACK, CANCEL)[span_10](start_span)[span_10](end_span)
         markup.row(
             InlineKeyboardButton(text="1/2", callback_data="noop"),
             InlineKeyboardButton(text="NEXT ➡️", callback_data=f"manga_page_2_{query}")
