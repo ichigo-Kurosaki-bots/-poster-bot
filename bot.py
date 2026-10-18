@@ -1,67 +1,112 @@
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
 import os
 import io
 import re
 import html
 import telebot
 import requests
-from flask import Flask, send_file, request
+import database 
 import threading
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
-import database
 
-# Load credentials from Render Environment Variables
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
+from flask import Flask, send_file, request
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+from PIL import Image, ImageDraw, ImageFont,ImageFilter
+
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 TMDB_API_KEY = os.environ.get("TMDB_API_KEY")
-
-# Official Group link for the restriction button
 POSTER_GROUP_URL = os.environ.get("POSTER_GROUP_URL", "https://t.me/+VXY_za8DNjQzYmVl")
 
 bot = telebot.TeleBot(BOT_TOKEN)
 app = Flask(__name__)
 
-session = requests.Session()
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
 
-# Memory cache for active search results pagination
+database.init_db()
+session = requests.Session()
 SEARCH_CACHE = {}
 IMDB_SEARCH_CACHE = {}
-
-# Persistent directory cache for processed images so web links never expire with an Internal Server Error
 CACHE_DIR = "poster_cache"
 os.makedirs(CACHE_DIR, exist_ok=True)
+OWNER_ID = 7284759394 #replace your Telegram ID 
 
-# YOUR OWNER ID
-OWNER_ID = 7284759394
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
 
 # Custom Image URLs
 START_IMAGE_URL = "https://telegra.ph/file/2ab528ba65c23832cdcf6-4ff26f1b433ef961eb.jpg"
 ABOUT_IMAGE_URL = "https://graph.org/file/283e03b08d8306b8d85af-8436c3be9697b2374c.jpg"
 FSUB_IMAGE_URL  = "https://graph.org/file/faf795187aa693e1024a4-746b376c8dcc889d4f.jpg"
 
-# Initialize Database tables / connection
-database.init_db()
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
 
 @app.route('/')
 def home():
-    return "mohammed poster bot is running 24/7!"
+    return "Mohammed Poster Bot is Running 24/7! Enjoy 🎊"
+
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
 
 @app.route('/poster/<item_id>')
 def serve_poster(item_id):
     """Flask route to reliably serve the cached poster image file (landscape or portrait)."""
     poster_type = request.args.get('type', 'landscape')
-    
+
     filename = f"{item_id}_portrait.jpg" if poster_type == 'portrait' else f"{item_id}.jpg"
     file_path = os.path.join(CACHE_DIR, filename)
-    
+
     if os.path.exists(file_path):
         return send_file(file_path, mimetype='image/jpeg')
-        
-    # Fallback to landscape if specific orientation file doesn't exist
+
     fallback_path = os.path.join(CACHE_DIR, f"{item_id}.jpg")
     if os.path.exists(fallback_path):
         return send_file(fallback_path, mimetype='image/jpeg')
-        
+
     return "poster not found or expired.", 404
+
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
 
 def is_user_member(user_id):
     channels = database.get_fsub_channels()
@@ -76,15 +121,22 @@ def is_user_member(user_id):
             pass
     return True
 
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
 def send_fsub_prompt(chat_id):
     channels = database.get_fsub_channels()
     markup = telebot.types.InlineKeyboardMarkup()
     for channel in channels:
         channel_name = channel.replace("@", "")
         markup.add(telebot.types.InlineKeyboardButton(text=f"• Jᴏɪɴ {channel} •", url=f"https://t.me/{channel_name}"))
-    
+
     markup.add(telebot.types.InlineKeyboardButton(text="• ᴄʜᴇᴄᴋ sᴜʙsᴄʀɪᴘᴛɪᴏɴ •", callback_data="check_fsub"))
-    
+
     fsub_text = (
         " <b>ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ</b>\n\n"
         "<b>›› ‼️ ʟᴏᴏᴋs ʟɪᴋᴇ ʏᴏᴜ ʜᴀᴠᴇɴ'ᴛ ᴊᴏɪɴᴇᴅ ᴛᴏ ᴏᴜʀ ᴄʜᴀɴɴᴇʟs ʏᴇᴛ, sᴜʙsᴄʀɪʙᴇ ɴᴏw...</b>\n"
@@ -95,7 +147,13 @@ def send_fsub_prompt(chat_id):
     except Exception:
         bot.send_message(chat_id, fsub_text, parse_mode="HTML", reply_markup=markup)
 
-# --- Help Command Handler with Instructions & Action Buttons ---
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
 @bot.message_handler(commands=['help'])
 def help_command(message):
     user_id = message.from_user.id
@@ -145,16 +203,23 @@ def help_command(message):
     except Exception as e:
         print(f"Error sending help message: {e}")
 
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     user_id = message.from_user.id
     first_name = message.from_user.first_name or "user"
     database.add_user(user_id, first_name)
-    
+
     if database.is_banned(user_id):
         bot.reply_to(message, " <b>you are banned from using this bot.</b>", parse_mode="HTML")
         return
-    
+
     if not is_user_member(user_id):
         send_fsub_prompt(message.chat.id)
         return
@@ -165,25 +230,31 @@ def send_welcome(message):
         "𝖺𝗇𝖽 𝗂 𝗐𝗂𝗅𝗅 𝗀𝖾𝗇𝖾𝗋𝖺𝗍𝖾 𝗍𝗁𝖾 𝗉𝗈𝗌𝗍𝖾𝗋 𝗅𝖺𝗒𝗈𝗎𝗍 𝖿𝗈𝗋 𝗒𝗈𝗎</b>\n\n"
         "<b>Pᴏᴡᴇʀᴇᴅ Bʏ : <a href=\"https://t.me/Aero_Unity\">Aᴇʀᴏ Uɴɪᴛʏ</a></b>"
     )
-    
+
     markup = telebot.types.InlineKeyboardMarkup(row_width=2)
     about_btn = telebot.types.InlineKeyboardButton(text="• Aʙᴏᴜᴛ •", callback_data="btn_about")
     updates_btn = telebot.types.InlineKeyboardButton(text="• Uᴘᴅᴀᴛᴇs •", url="https://t.me/Aero_Unity")
     owner_btn = telebot.types.InlineKeyboardButton(text="• Oᴡɴᴇʀ •", url="https://t.me/Mr_Mohammed_29")
-    
+
     markup.row(about_btn, updates_btn)
     markup.row(owner_btn)
-    
+
     try:
         bot.send_photo(message.chat.id, START_IMAGE_URL, caption=welcome_text, parse_mode="HTML", reply_markup=markup)
     except Exception:
         bot.send_message(message.chat.id, welcome_text, parse_mode="HTML", reply_markup=markup)
 
-# --- Command: Owner-Only PM Search Toggle ---
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
 @bot.message_handler(commands=['pmsearch'])
 def toggle_pm_search(message):
     user_id = message.from_user.id
-    
+
     if user_id != OWNER_ID:
         bot.reply_to(message, " <b>ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ: ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴍʏ sᴇɴᴘᴀɪ</b>", parse_mode="HTML")
         return
@@ -204,20 +275,26 @@ def toggle_pm_search(message):
         status_str = "🟢 <b>on</b>" if status else "🔴 <b>off</b>"
         bot.reply_to(message, f" <b>PM Sᴇᴀʀᴄʜ Sᴛᴀᴛᴜs:</b> {status_str}", parse_mode="HTML")
 
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
 @bot.callback_query_handler(func=lambda call: True)
 def handle_all_callbacks(call):
     user_id = call.from_user.id
-    
+
     if database.is_banned(user_id):
         bot.answer_callback_query(call.id, " you are banned from using this bot.", show_alert=True)
         return
-    
-    # 1. Handle Poster Pagination
+
     if call.data.startswith("p_") or call.data == "noop":
         if call.data == "noop":
             bot.answer_callback_query(call.id)
             return
-        
+
         parts = call.data.split("_")
         search_id = parts[1]
         index = int(parts[2])
@@ -233,11 +310,10 @@ def handle_all_callbacks(call):
                 )
             except Exception as e:
                 print(f"Pagination edit error: {e}")
-                
+
         bot.answer_callback_query(call.id)
         return
 
-    # 2. Handle IMDb Selection & Close Button
     if call.data.startswith("imdb_select_") or call.data == "imdb_close":
         try:
             bot.answer_callback_query(call.id)
@@ -254,7 +330,7 @@ def handle_all_callbacks(call):
         parts = call.data.split("_")
         if len(parts) < 4:
             return
-            
+
         search_id = parts[2]
         item_idx = int(parts[3])
 
@@ -272,12 +348,12 @@ def handle_all_callbacks(call):
 
         endpoint = "movie" if media_type == "movie" else "tv"
         details_url = f"https://api.themoviedb.org/3/{endpoint}/{item_id}?api_key={TMDB_API_KEY}&append_to_response=external_ids"
-        
+
         try:
             det_res = session.get(details_url, timeout=5)
             if det_res.status_code == 200:
                 details = det_res.json()
-                
+
                 title = details.get("title") or details.get("name") or "Unknown"
                 release_date = details.get("release_date") or details.get("first_air_date") or ""
                 year = release_date.split("-")[0] if release_date else "N/A"
@@ -305,13 +381,13 @@ def handle_all_callbacks(call):
                 poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else None
 
                 caption_lines = [
-                    f"🎬 <b>{html.escape(title)}</b> [{year}]",
-                    f"⭐ <b>IMDb Rating:</b> {rating}",
-                    f"📅 <b>Release Info:</b> {rel_info}",
-                    f"🎭 <b>Genre:</b> {genre_str}",
-                    f"🌐 <b>Language:</b> {lang_str}",
-                    f"🏳️ <b>Country of Origin:</b> {country_str}\n",
-                    f"📖 <b>Storyline:</b>\n<i>{html.escape(overview)}</i>"
+                    f"• 🎬 <b>{html.escape(title)}</b> [{year}]",
+                    f"• ⭐ <b>IMDb Rating:</b> {rating}",
+                    f"• 📅 <b>Release Info:</b> {rel_info}",
+                    f"• 🎭 <b>Genre:</b> {genre_str}",
+                    f"• 🌐 <b>Language:</b> {lang_str}",
+                    f"• 🏳️ <b>Country of Origin:</b> {country_str}\n",
+                    f"• 📖 <b>Storyline:</b>\n<i>{html.escape(overview)}</i>"
                 ]
                 caption_text = "\n".join(caption_lines)
 
@@ -342,14 +418,13 @@ def handle_all_callbacks(call):
             print(f"IMDb details error: {e}")
         return
 
-    # 3. Handle Static Menu Buttons (About, Home, Force Sub Check)
     if call.data == "check_fsub":
         if is_user_member(user_id):
             try:
                 bot.delete_message(call.message.chat.id, call.message.message_id)
             except Exception:
                 pass
-            
+
             welcome_text = (
                 "✅ <b>VᴇʀɪғɪᴄᴀᴛɪᴏN Sᴜᴄᴄᴇssғᴜʟ</b>\n\n"
                 "<b>Wᴇʟᴄᴏᴍᴇ Bᴀᴄᴋ 𝗌𝖾𝗇𝖽 𝗆𝖾 𝖺𝗇𝗒 𝗍𝗂𝗍𝗅𝖾 (𝗆𝗈𝗏𝗂𝖾𝗌, 𝗌𝖾𝗋𝗂𝖾𝗌, 𝖺𝗇𝗂𝗆𝖾, 𝗄-𝖽𝗋𝖺𝗆𝖺𝗌, 𝖾𝗍𝖼.), "
@@ -361,11 +436,11 @@ def handle_all_callbacks(call):
             owner_btn = telebot.types.InlineKeyboardButton(text="• Oᴡɴᴇʀ •", url="https://t.me/Mr_Mohammed_29")
             markup.row(about_btn, updates_btn)
             markup.row(owner_btn)
-            
+
             bot.send_photo(call.message.chat.id, START_IMAGE_URL, caption=welcome_text, parse_mode="HTML", reply_markup=markup)
         else:
             bot.answer_callback_query(call.id, "›› ‼️ ʟᴏᴏᴋs ʟɪᴋᴇ ʏᴏᴜ ʜᴀᴠᴇɴ'ᴛ ᴊᴏɪɴᴇᴅ ᴛᴏ ᴏᴜʀ ᴄʜᴀɴɴᴇʟs", show_alert=True)
-            
+
     elif call.data == "btn_about":
         about_text = (
             "⍟───[ <b>ᴍʏ ᴅᴇᴛᴀɪʟꜱ</b> ]───⍟\n\n"
@@ -410,7 +485,7 @@ def handle_all_callbacks(call):
         owner_btn = telebot.types.InlineKeyboardButton(text="• Oᴡɴᴇʀ •", url="https://t.me/Mr_Mohammed_29")
         markup.row(about_btn, updates_btn)
         markup.row(owner_btn)
-        
+
         try:
             bot.edit_message_media(
                 chat_id=call.message.chat.id,
@@ -429,24 +504,30 @@ def handle_all_callbacks(call):
                 )
             except Exception:
                 bot.send_photo(call.message.chat.id, START_IMAGE_URL, caption=welcome_text, parse_mode="HTML", reply_markup=markup)
-                
+
     bot.answer_callback_query(call.id)
 
-# --- Admin-Only Commands --- #
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
 @bot.message_handler(commands=['stats'])
 def bot_stats(message):
     if message.from_user.id != OWNER_ID:
         bot.reply_to(message, "<b>ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ: ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴍʏ sᴇɴᴘᴀɪ </b>", parse_mode="HTML")
         return
-    
+
     users = database.get_all_users()
     total_users = len(users)
-    
+
     user_list_str = ""
     for idx, (uid, fname) in enumerate(users[:25], 1):
         safe_fname = html.escape(fname or "user")
         user_list_str += f"{idx}. {safe_fname} (<code>{uid}</code>)\n"
-    
+
     if total_users > 25:
         user_list_str += f"\n<i>...and {total_users - 25} more users.</i>"
 
@@ -456,6 +537,13 @@ def bot_stats(message):
         f"<b>ᴜsᴇʀs ʟɪsᴛs:</b>\n{user_list_str if user_list_str else 'no users yet.'}"
     )
     bot.reply_to(message, stats_msg, parse_mode="HTML")
+
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
 
 @bot.message_handler(commands=['ban'])
 def ban_user(message):
@@ -473,6 +561,13 @@ def ban_user(message):
     else:
         bot.reply_to(message, " <code>/ban user_id</code>", parse_mode="HTML")
 
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
 @bot.message_handler(commands=['unban'])
 def unban_user(message):
     if message.from_user.id != OWNER_ID:
@@ -489,6 +584,13 @@ def unban_user(message):
     else:
         bot.reply_to(message, "<code>/unban user_id</code>", parse_mode="HTML")
 
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
 @bot.message_handler(commands=['banlist'])
 def list_banned_users(message):
     if message.from_user.id != OWNER_ID:
@@ -500,6 +602,13 @@ def list_banned_users(message):
         bot.reply_to(message, f"🚫 <b>ʙᴀɴɴᴇᴅ ᴜsᴇʀs ʟɪsᴛ:</b>\n\n{banned_str}", parse_mode="HTML")
     else:
         bot.reply_to(message, "‼️ ɴᴏ ʙᴀɴɴᴇᴅ ᴜsᴇʀs ꜰᴏᴜɴᴅ.", parse_mode="HTML")
+
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
 
 @bot.message_handler(commands=['addforcesub'])
 def add_force_sub(message):
@@ -517,6 +626,13 @@ def add_force_sub(message):
             bot.reply_to(message, f"‼️ ᴄʜᴀɴɴᴇʟ <code>{channel}</code> ɪs ᴀʟʀᴇᴀᴅʏ ɪɴ ᴛʜᴇ ʟɪsᴛ.", parse_mode="HTML")
     else:
         bot.reply_to(message, "<code>/addforcesub @channelusername</code>", parse_mode="HTML")
+
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
 
 @bot.message_handler(commands=['removeforce'])
 def remove_force_sub(message):
@@ -547,29 +663,34 @@ def list_force_sub(message):
     else:
         bot.reply_to(message, "‼️<b>ɴᴏ sᴜʙsᴄʀɪᴘᴛɪᴏɴ ᴄʜᴀɴɴᴇʟs ᴀʀᴇ ᴄᴜʀʀᴇɴᴛʟʏ sᴇᴛ.</b>", parse_mode="HTML")
 
-# --- Fixed Broadcast Commands for TeleBot ---
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
 
 @bot.message_handler(commands=['broadcast'])
 def broadcast_message_handler(message):
     if message.from_user.id != OWNER_ID:
         bot.reply_to(message, "<b> ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴍʏ sᴇɴᴘᴀɪ</b>", parse_mode="HTML")
         return
-        
+
     if not message.reply_to_message:
         bot.reply_to(message, "⚠️ Please <b>reply to a message</b> to broadcast it.", parse_mode="HTML")
         return
 
     reply_msg = message.reply_to_message
     users = database.get_all_users()
-    
+
     success = 0
     failed = 0
-    
+
     status_msg = bot.reply_to(message, "🚀 <b>Broadcast started...</b> Please wait.", parse_mode="HTML")
 
     for uid, _ in users:
         try:
-            # Correct TeleBot syntax for copying any message type (text, photo, media, etc.)
+
             bot.copy_message(chat_id=uid, from_chat_id=message.chat.id, message_id=reply_msg.message_id, reply_markup=reply_msg.reply_markup)
             success += 1
         except Exception as e:
@@ -585,23 +706,29 @@ def broadcast_message_handler(message):
         parse_mode="HTML"
     )
 
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
 
 @bot.message_handler(commands=['broadcastpin'])
 def broadcast_pin_handler(message):
     if message.from_user.id != OWNER_ID:
         bot.reply_to(message, "<b>ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴍʏ sᴇɴᴘᴀɪ</b>", parse_mode="HTML")
         return
-        
+
     if not message.reply_to_message:
         bot.reply_to(message, "⚠️ Please <b>reply to a message</b> to broadcast and pin it.", parse_mode="HTML")
         return
 
     reply_msg = message.reply_to_message
     users = database.get_all_users()
-    
+
     success = 0
     failed = 0
-    
+
     status_msg = bot.reply_to(message, " <b>Broadcast & Pin started...</b> Please wait.", parse_mode="HTML")
 
     for uid, _ in users:
@@ -622,23 +749,29 @@ def broadcast_pin_handler(message):
         parse_mode="HTML"
     )
 
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
 
 @bot.message_handler(commands=['broadcastunpin'])
 def broadcast_unpin_handler(message):
     if message.from_user.id != OWNER_ID:
         bot.reply_to(message, "<b>ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴍʏ sᴇɴᴘᴀɪ</b>", parse_mode="HTML")
         return
-        
+
     if not message.reply_to_message:
         bot.reply_to(message, "⚠️ Please <b>reply to a message</b> to broadcast, pin, and unpin it.", parse_mode="HTML")
         return
 
     reply_msg = message.reply_to_message
     users = database.get_all_users()
-    
+
     success = 0
     failed = 0
-    
+
     status_msg = bot.reply_to(message, "🚀 <b>Broadcast & Unpin started... Please wait.</b>", parse_mode="HTML")
 
     for uid, _ in users:
@@ -660,7 +793,13 @@ def broadcast_unpin_handler(message):
         parse_mode="HTML"
     )
 
-# --- Helper: Fetch Official Title Logo PNG from TMDb ---
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
 def get_tmdb_logo_url(item_id, media_type):
     endpoint = "movie" if media_type == "movie" else "tv"
     url = f"https://api.themoviedb.org/3/{endpoint}/{item_id}/images?api_key={TMDB_API_KEY}"
@@ -675,11 +814,17 @@ def get_tmdb_logo_url(item_id, media_type):
         pass
     return None
 
-# --- Clean Poster Generation Logic with Dynamic Positions & Full-Color Logos ---
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
 def add_title_overlay(image_bytes, title_text="", logo_url=None, position="center"):
     orig_img = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
     target_width, target_height = 1280, 720
-    
+
     if orig_img.width / orig_img.height < 1.33:
         bg = orig_img.resize((target_width, target_height), Image.Resampling.LANCZOS)
         bg = bg.filter(ImageFilter.GaussianBlur(15))
@@ -689,7 +834,7 @@ def add_title_overlay(image_bytes, title_text="", logo_url=None, position="cente
         image = bg
     else:
         image = orig_img.resize((target_width, target_height), Image.Resampling.LANCZOS)
-    
+
     if logo_url:
         try:
             headers = {"User-Agent": "Mozilla/5.0"}
@@ -698,21 +843,21 @@ def add_title_overlay(image_bytes, title_text="", logo_url=None, position="cente
                 logo_img = Image.open(io.BytesIO(logo_res.content)).convert("RGBA")
                 max_logo_w = int(target_width * 0.55)
                 max_logo_h = int(target_height * 0.35)
-                
+
                 w_percent = (max_logo_w / float(logo_img.size[0]))
                 h_size = int(float(logo_img.size[1]) * float(w_percent))
-                
+
                 if h_size > max_logo_h:
                     h_percent = (max_logo_h / float(logo_img.size[1]))
                     max_logo_w = int(float(logo_img.size[0]) * float(h_percent))
                     h_size = max_logo_h
-                    
+
                 logo_img = logo_img.resize((max_logo_w, h_size), Image.Resampling.LANCZOS)
                 logo_w, logo_h = logo_img.size
-                
+
                 margin_x = int(target_width * 0.08)
                 margin_y = int(target_height * 0.08)
-                
+
                 pos = position.lower()
                 if pos == "left":
                     x, y = margin_x, (target_height - logo_h) // 2
@@ -724,8 +869,7 @@ def add_title_overlay(image_bytes, title_text="", logo_url=None, position="cente
                     x, y = (target_width - logo_w) // 2, target_height - logo_h - margin_y
                 else:
                     x, y = (target_width - logo_w) // 2, (target_height - logo_h) // 2
-                
-                # FIX: Pass mask=logo_img to preserve full original color and transparency
+
                 image.paste(logo_img, (x, y), mask=logo_img)
         except Exception as e:
             print(f"Error applying logo overlay: {e}")
@@ -734,6 +878,82 @@ def add_title_overlay(image_bytes, title_text="", logo_url=None, position="cente
     image.convert("RGB").save(output, format="JPEG", quality=95)
     output.seek(0)
     return output
+
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
+# --- Custom PIL Card Renderer for /anime and /manga ---
+def generate_custom_media_card(poster_bytes, title, genres, synopsis, branding="Manga Aero"):
+    target_w, target_h = 1280, 720
+    
+    canvas = Image.new("RGBA", (target_w, target_h), (25, 23, 22, 255))
+    
+    try:
+        main_art = Image.open(io.BytesIO(poster_bytes)).convert("RGBA")
+        art_right = main_art.resize((680, target_h), Image.Resampling.LANCZOS)
+        canvas.paste(art_right, (600, 0))
+    except Exception as e:
+        print(f"Error loading base image: {e}")
+
+    left_panel = Image.new("RGBA", (620, target_h), (35, 30, 28, 240))
+    canvas.paste(left_panel, (0, 0), left_panel)
+
+    synopsis_box = Image.new("RGBA", (540, 260), (45, 38, 35, 220))
+    canvas.paste(synopsis_box, (40, 140), synopsis_box)
+
+    genre_box = Image.new("RGBA", (540, 240), (28, 33, 42, 240))
+    canvas.paste(genre_box, (40, 430), genre_box)
+
+    draw = ImageDraw.Draw(canvas)
+
+    draw.text((40, 40), branding, fill=(255, 255, 255))
+    draw.text((180, 45), "COUNTLESS STORIES, ONE PERFECT DESTINATION", fill=(180, 180, 180))
+
+    draw.text((220, 160), "SYNOPSIS  »»»", fill=(255, 255, 255))
+    
+    words = synopsis.split()
+    lines, curr_line = [], ""
+    for w in words:
+        if len(curr_line + " " + w) < 42:
+            curr_line += " " + w
+        else:
+            lines.append(curr_line)
+            curr_line = w
+    lines.append(curr_line)
+    
+    y_pos = 195
+    for line in lines[:5]:
+        draw.text((70, y_pos), line, fill=(210, 210, 210))
+        y_pos += 22
+
+    draw.text((60, 450), title.upper()[:30], fill=(255, 255, 255))
+    
+    gx, gy = 60, 500
+    for g in genres[:6]:
+        draw.rectangle([gx, gy, gx + 110, gy + 32], outline=(150, 150, 150), width=1)
+        draw.text((gx + 12, gy + 8), g.upper()[:10], fill=(220, 220, 220))
+        gx += 125
+        if gx > 480:
+            gx = 60
+            gy += 42
+
+    draw.text((240, 630), branding.upper(), fill=(140, 140, 140))
+
+    output = io.BytesIO()
+    canvas.convert("RGB").save(output, format="JPEG", quality=95)
+    output.seek(0)
+    return output
+
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
 
 def build_poster_page(search_id, index=0):
     cache = SEARCH_CACHE.get(search_id)
@@ -753,22 +973,21 @@ def build_poster_page(search_id, index=0):
     release_date = item.get("release_date") or item.get("first_air_date") or ""
     year = release_date.split("-")[0] if release_date else "n/a"
 
-    # Fetch detailed item info from TMDb to get all spoken languages
     endpoint = "movie" if media_type == "movie" else "tv"
     details_url = f"https://api.themoviedb.org/3/{endpoint}/{item_id}?api_key={TMDB_API_KEY}"
     languages_list = []
     genre_list = []
-    
+
     try:
         det_res = session.get(details_url, timeout=4)
         if det_res.status_code == 200:
             det_data = det_res.json()
-            
+
             for g in det_data.get("genres", []):
                 genre_name = g.get("name")
                 if genre_name:
                     genre_list.append(genre_name)
-                    
+
             spoken = det_data.get("spoken_languages", [])
             for lang in spoken:
                 name = lang.get("english_name") or lang.get("name")
@@ -779,7 +998,6 @@ def build_poster_page(search_id, index=0):
 
     genres = ", ".join(genre_list) if genre_list else "Action, Adventure"
 
-    # Fallback to original_language if no spoken languages found
     if not languages_list:
         languages_list = [item.get("original_language", "en").upper()]
 
@@ -793,9 +1011,9 @@ def build_poster_page(search_id, index=0):
 
     backdrop_url_original = f"https://image.tmdb.org/t/p/original{backdrop_path}" if backdrop_path else f"https://image.tmdb.org/t/p/original{poster_path}"
     poster_url_original = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else backdrop_url_original
-    
+
     logo_url = get_tmdb_logo_url(item_id, media_type)
-    
+
     img_response = session.get(backdrop_url_original, timeout=8)
     if img_response.status_code == 200:
         img_obj = Image.open(io.BytesIO(img_response.content))
@@ -804,17 +1022,14 @@ def build_poster_page(search_id, index=0):
 
         cache_key = f"{item_id}_s{season_number}_idx{index}" if season_number else f"{item_id}_idx{index}"
 
-        # Determine position dynamically based on pagination index (Center -> Left -> Right -> Up -> Down)
         positions_list = ["center", "left", "right", "up", "down"]
         assigned_position = positions_list[index % len(positions_list)]
 
-        # 1. Save Landscape image with Smart Title/Logo Overlay
         processed_image_io = add_title_overlay(img_response.content, title, logo_url, position=assigned_position)
         landscape_file_path = os.path.join(CACHE_DIR, f"{cache_key}.jpg")
         with open(landscape_file_path, "wb") as f:
             f.write(processed_image_io.getvalue())
-            
-        # 2. Save True Long/Tall Vertical Portrait Poster
+
         portrait_file_path = os.path.join(CACHE_DIR, f"{cache_key}_portrait.jpg")
         try:
             port_res = session.get(poster_url_original, timeout=8)
@@ -822,7 +1037,7 @@ def build_poster_page(search_id, index=0):
                 p_img = Image.open(io.BytesIO(port_res.content)).convert("RGB")
                 if p_img.width > p_img.height:
                     p_img = p_img.resize((800, 1200), Image.Resampling.LANCZOS)
-                
+
                 portrait_io = io.BytesIO()
                 p_img.save(portrait_io, format="JPEG", quality=95)
                 with open(portrait_file_path, "wb") as f:
@@ -833,13 +1048,13 @@ def build_poster_page(search_id, index=0):
         except Exception:
             with open(portrait_file_path, "wb") as f:
                 f.write(processed_image_io.getvalue())
-        
+
         app_url = os.environ.get("RENDER_EXTERNAL_URL") or request.host_url.rstrip('/')
         landscape_url = f"{app_url}/poster/{cache_key}"
         portrait_url = f"{app_url}/poster/{cache_key}?type=portrait"
-        
+
         safe_title = html.escape(title)
-        
+
         caption_lines = [
             f"• <b>Tɪᴛʟᴇ : {safe_title} ({year})</b>",
             f"• <b>Gᴇɴʀᴇ : {genres}</b>",
@@ -849,12 +1064,11 @@ def build_poster_page(search_id, index=0):
             f"• <b>Pᴏʀᴛʀᴀɪᴛ :</b> <a href=\"{portrait_url}\"><b>Cʟɪᴄᴋ Hᴇʀᴇ</b></a>\n",
             f"<b>›› Pᴏᴡᴇʀᴇᴅ Bʏ : <a href=\"https://t.me/Aero_Unity\">Aᴇʀᴏ Uɴɪᴛʏ</a></b>"
         ]
-        
+
         caption = "\n".join(caption_lines)
 
         markup = telebot.types.InlineKeyboardMarkup()
-        
-        # Row 1: Pagination Buttons << < 1/N > >>
+
         first_btn = telebot.types.InlineKeyboardButton(text="<<", callback_data=f"p_{search_id}_0")
         prev_idx = max(0, index - 1)
         prev_btn = telebot.types.InlineKeyboardButton(text="<", callback_data=f"p_{search_id}_{prev_idx}")
@@ -862,10 +1076,9 @@ def build_poster_page(search_id, index=0):
         next_idx = min(total - 1, index + 1)
         next_btn = telebot.types.InlineKeyboardButton(text=">", callback_data=f"p_{search_id}_{next_idx}")
         last_btn = telebot.types.InlineKeyboardButton(text=">>", callback_data=f"p_{search_id}_{total-1}")
-        
+
         markup.row(first_btn, prev_btn, count_btn, next_btn, last_btn)
-        
-        # Row 2: Aero Unity | Open Image
+
         aero_button = telebot.types.InlineKeyboardButton(text="• ᴀᴇʀᴏ ᴜɴɪᴛʏ •", url="https://t.me/Aero_Unity")
         open_image_button = telebot.types.InlineKeyboardButton(text="• ᴏᴘᴇɴ ɪᴍᴀɢᴇ •", url=landscape_url)
         markup.row(aero_button, open_image_button)
@@ -873,6 +1086,13 @@ def build_poster_page(search_id, index=0):
         return backdrop_url_original, caption, markup
 
     return None, None, None
+
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
 
 @bot.message_handler(func=lambda message: not message.text.strip().startswith("/"))
 def search_poster(message):
@@ -914,7 +1134,7 @@ def search_poster(message):
         r'(?i)\b(?:chi|cdrama|chinese|mandarin|zh)\b': 'zh',
         r'(?i)\b(?:jdrama|j-drama|japanese|jap|anime|ja)\b': 'ja',
         r'(?i)\b(?:thai|th)\b': 'th',
-        
+
         # Indian Languages
         r'(?i)\b(?:hindi|hin|hi)\b': 'hi',
         r'(?i)\b(?:tamil|tam|ta)\b': 'ta',
@@ -933,7 +1153,7 @@ def search_poster(message):
         r'(?i)\b(?:russian|rus|ru)\b': 'ru',
         r'(?i)\b(?:portuguese|por|pt)\b': 'pt',
         r'(?i)\b(?:turkish|tur|tr)\b': 'tr',
-        
+
         # Middle Eastern & English
         r'(?i)\b(?:arabic|ara|ar)\b': 'ar',
         r'(?i)\b(?:persian|farsi|fa)\b': 'fa',
@@ -944,21 +1164,18 @@ def search_poster(message):
     lang_filter = None
     clean_query = raw_query
 
-    # 1. Parse and extract language filter
     for pattern, code in LANG_MAP.items():
         if re.search(pattern, clean_query):
             lang_filter = code
             clean_query = re.sub(pattern, '', clean_query).strip()
             break
 
-    # 2. Parse and extract year
     search_year = None
     year_match = re.search(r'\b(19\d\d|20\d\d)\b', clean_query)
     if year_match:
         search_year = year_match.group(1)
         clean_query = re.sub(r'\b(19\d\d|20\d\d)\b', '', clean_query).strip()
 
-    # 3. Parse and extract TV season
     season_number = None
     season_match = re.search(r'(?i)\b(?:s|season)\s*0*(\d+)\b', clean_query)
     if season_match:
@@ -966,7 +1183,7 @@ def search_poster(message):
         clean_query = re.sub(r'(?i)\b(?:s|season)\s*0*\d+\b', '', clean_query).strip()
 
     status_msg = bot.reply_to(message, f"<b><i>searching <code>{html.escape(raw_query)}</code>...</i></b>", parse_mode="HTML")
-    
+
     if not TMDB_API_KEY:
         bot.edit_message_text("⚠️ <b>𝖾𝗋𝗋𝗈𝗋:</b> <code>tmdb_api_key</code> 𝗂𝗌 𝗆𝗂𝗌𝗌𝗂𝗇𝗀!.", message.chat.id, status_msg.message_id, parse_mode="HTML")
         return
@@ -977,7 +1194,7 @@ def search_poster(message):
     results = []
 
     try:
-        # 1. If TV season or Asian Drama tag is specified, search TV endpoint first
+
         if season_number or lang_filter in ["ko", "zh", "ja"]:
             tv_url = f"https://api.themoviedb.org/3/search/tv?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}{first_air_year_param}{lang_param}"
             tv_res = session.get(tv_url, timeout=5)
@@ -986,7 +1203,6 @@ def search_poster(message):
                 for r in results:
                     r["media_type"] = "tv"
 
-        # 2. Search Movie endpoint
         if not results:
             movie_url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}{year_param}{lang_param}"
             res = session.get(movie_url, timeout=5)
@@ -995,7 +1211,6 @@ def search_poster(message):
                 for r in results:
                     r["media_type"] = "movie"
 
-            # 3. Fallback: Try searching title cleanly without filters if initial query yielded no matches
             if not results and (year_param or lang_param):
                 fallback_url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}"
                 fallback_res = session.get(fallback_url, timeout=5)
@@ -1004,7 +1219,6 @@ def search_poster(message):
                     for r in results:
                         r["media_type"] = "movie"
 
-            # 4. Fallback to TV search
             if not results:
                 tv_url = f"https://api.themoviedb.org/3/search/tv?api_key={TMDB_API_KEY}&query={requests.utils.quote(clean_query)}{first_air_year_param}{lang_param}"
                 tv_res = session.get(tv_url, timeout=5)
@@ -1013,7 +1227,6 @@ def search_poster(message):
                     for r in results:
                         r["media_type"] = "tv"
 
-        # 5. Apply Python language filter if requested
         if lang_filter and results:
             strict_filtered = [i for i in results if i.get("original_language") == lang_filter]
             if strict_filtered:
@@ -1028,10 +1241,10 @@ def search_poster(message):
             target_item = valid_items[0]
             item_id = str(target_item.get("id"))
             media_type = target_item.get("media_type", "movie")
-            
+
             images_list = []
             img_endpoint = "tv" if (media_type == "tv" or season_number) else "movie"
-            
+
             if season_number and media_type == "tv":
                 images_url = f"https://api.themoviedb.org/3/tv/{item_id}/season/{season_number}/images?api_key={TMDB_API_KEY}"
             else:
@@ -1043,7 +1256,7 @@ def search_poster(message):
                     img_data = img_res.json()
                     backdrops = img_data.get("backdrops", [])
                     posters = img_data.get("posters", [])
-                    
+
                     for b in backdrops:
                         if b.get("file_path"):
                             images_list.append({
@@ -1070,7 +1283,7 @@ def search_poster(message):
             }
 
             photo_url, caption, markup = build_poster_page(search_id, index=0)
-            
+
             try:
                 bot.delete_message(message.chat.id, status_msg.message_id)
             except Exception:
@@ -1095,11 +1308,17 @@ def search_poster(message):
         except Exception:
             pass
 
-# --- 1. /imdb Command Handler ---
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
 @bot.message_handler(commands=['imdb'])
 def imdb_command(message):
     args = message.text.split(maxsplit=1)
-    
+
     if len(args) == 1:
         bot.reply_to(
             message,
@@ -1112,18 +1331,18 @@ def imdb_command(message):
     status_msg = bot.reply_to(message, "<b><i>Searching TMDb...</i></b>", parse_mode="HTML")
 
     search_url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={requests.utils.quote(query)}"
-    
+
     try:
         res = session.get(search_url, timeout=5)
         if res.status_code != 200:
             bot.edit_message_text("⚠️ <i>Failed to fetch results from TMDb.</i>", message.chat.id, status_msg.message_id, parse_mode="HTML")
             return
-            
+
         data = res.json()
         results = data.get("results", [])
-        
+
         valid_results = [item for item in results if item.get("title") or item.get("name")]
-        
+
         if not valid_results:
             bot.edit_message_text("‼️ <b>No titles found for your search!</b>", message.chat.id, status_msg.message_id, parse_mode="HTML")
             return
@@ -1136,7 +1355,7 @@ def imdb_command(message):
             title = item.get("title") or item.get("name")
             release_date = item.get("release_date") or item.get("first_air_date") or ""
             year = release_date.split("-")[0] if release_date else "N/A"
-            
+
             button_text = f"{title} ({year})"
             callback_data = f"imdb_select_{search_id}_{idx}"
             markup.add(InlineKeyboardButton(text=button_text, callback_data=callback_data))
@@ -1154,10 +1373,17 @@ def imdb_command(message):
     except Exception as e:
         bot.edit_message_text(f"⚠️ <b>An error occurred:</b> <code>{html.escape(str(e))}</code>", message.chat.id, status_msg.message_id, parse_mode="HTML")
 
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
 @bot.message_handler(commands=['jhs', 'posters'])
 def movie_poster_handler(message):
     query = message.text.replace("/jhs", "").replace("/posters", "").strip()
-    
+
     if not query:
         bot.reply_to(
             message, 
@@ -1166,7 +1392,6 @@ def movie_poster_handler(message):
         )
         return
 
-    # Search TMDb API for the movie/series
     search_url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={requests.utils.quote(query)}"
     response = requests.get(search_url).json()
     results = response.get("results", [])
@@ -1179,7 +1404,7 @@ def movie_poster_handler(message):
     media_type = item.get("media_type", "movie")
     item_id = str(item.get("id"))
     title = item.get("title") or item.get("name") or "Unknown Title"
-    
+
     backdrop_path = item.get("backdrop_path")
     poster_path = item.get("poster_path")
 
@@ -1187,7 +1412,6 @@ def movie_poster_handler(message):
         bot.reply_to(message, f"⚠️ Found <b>{title}</b>, but no image banners are available.", parse_mode="HTML")
         return
 
-    # Fetch official genres dynamically from TMDb
     genres_list = []
     endpoint = "movie" if media_type == "movie" else "tv"
     details_url = f"https://api.themoviedb.org/3/{endpoint}/{item_id}?api_key={TMDB_API_KEY}"
@@ -1201,19 +1425,15 @@ def movie_poster_handler(message):
     except Exception:
         pass
 
-    # Ensure 'genres' is properly defined here so the caption never fails
     genres = ", ".join(genres_list) if genres_list else "Action, Adventure"
 
-    # 1. Fetch raw TMDb image & Official Title Logo PNG
     raw_backdrop_url = f"https://image.tmdb.org/t/p/original{backdrop_path}" if backdrop_path else f"https://image.tmdb.org/t/p/original{poster_path}"
     poster_url_original = f"https://image.tmdb.org/t/p/original{poster_path}" if poster_path else raw_backdrop_url
     logo_url = get_tmdb_logo_url(item_id, media_type)
 
-    # Assign dynamic position for /jhs command as well
     positions_list = ["center", "left", "right", "up", "down"]
     assigned_position = positions_list[int(item_id) % len(positions_list)]
 
-    # 2. Process image with add_title_overlay and save to CACHE_DIR
     cache_key = f"{item_id}_jhs"
     landscape_file_path = os.path.join(CACHE_DIR, f"{cache_key}.jpg")
     portrait_file_path = os.path.join(CACHE_DIR, f"{cache_key}_portrait.jpg")
@@ -1225,8 +1445,7 @@ def movie_poster_handler(message):
             processed_io = add_title_overlay(img_response.content, title, logo_url, position=assigned_position)
             with open(landscape_file_path, "wb") as f:
                 f.write(processed_io.getvalue())
-        
-        # Save portrait image
+
         port_res = session.get(poster_url_original, timeout=8)
         if port_res.status_code == 200:
             with open(portrait_file_path, "wb") as f:
@@ -1234,15 +1453,12 @@ def movie_poster_handler(message):
     except Exception as e:
         print(f"Error caching images: {e}")
 
-
-    # 3. Build Flask domain URLs so links open the processed image with the logo
     app_url = os.environ.get("RENDER_EXTERNAL_URL") or request.host_url.rstrip('/')
     banner_url = f"{app_url}/poster/{cache_key}"
     portrait_url = f"{app_url}/poster/{cache_key}?type=portrait"
 
     languages = item.get("original_language", "en").upper()
 
-    # 4. Construct Caption and Inline Keyboard
     caption = (
         f"• 🎬 <b>Tɪᴛʟᴇ : {html.escape(title)}</b>\n"
         f"• 🏛️ <b>Tʏᴘᴇ : </b> {media_type.upper()}\n"
@@ -1258,9 +1474,8 @@ def movie_poster_handler(message):
         InlineKeyboardButton("• Pᴏsᴛᴇʀ •", url=portrait_url)
     )
 
-    # 5. Send Photo Preview
     try:
-        # Check if cached file exists to send, otherwise fallback to web URL
+
         if os.path.exists(landscape_file_path):
             with open(landscape_file_path, 'rb') as photo:
                 bot.send_photo(
@@ -1281,12 +1496,174 @@ def movie_poster_handler(message):
     except Exception as e:
         bot.reply_to(message, f"❌ Error sending poster: {e}", parse_mode="HTML")
 
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
+# --- /manga Command Handler (Direct Visual Card) ---
+@bot.message_handler(commands=['manga'])
+def manga_command_handler(message):
+    query = message.text.replace("/manga", "").strip()
+    if not query:
+        bot.reply_to(message, "<b>Usage:</b> <code>/manga [title]</code>", parse_mode="HTML")
+        return
+
+    search_url = f"https://api.themoviedb.org/3/search/tv?api_key={TMDB_API_KEY}&query={requests.utils.quote(query)}"
+    res = session.get(search_url, timeout=5).json()
+    results = res.get("results", [])
+    
+    if not results:
+        search_url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={requests.utils.quote(query)}"
+        res = session.get(search_url, timeout=5).json()
+        results = res.get("results", [])
+
+    if not results:
+        bot.reply_to(message, f"‼️ No results found for <b>{html.escape(query)}</b>", parse_mode="HTML")
+        return
+
+    item = results[0]
+    item_id = str(item.get("id"))
+    title = item.get("name") or item.get("title") or query
+    
+    # Fetch official TMDb details for genres and backdrops
+    details_url = f"https://api.themoviedb.org/3/tv/{item_id}?api_key={TMDB_API_KEY}&append_to_response=images"
+    det_res = session.get(details_url, timeout=5).json()
+    
+    genres = [g["name"] for g in det_res.get("genres", [])]
+    if not genres:
+        genres = ["Action", "Fantasy", "Adventure"]
+
+    images = det_res.get("images", {})
+    artworks = [f"https://image.tmdb.org/t/p/original{i['file_path']}" for i in images.get("backdrops", [])[:8]]
+    if not artworks:
+        path = item.get("backdrop_path") or item.get("poster_path")
+        artworks = [f"https://image.tmdb.org/t/p/original{path}"] if path else ["https://graph.org/file/faf795187aa693e1024a4-746b376c8dcc889d4f.jpg"]
+
+    search_id = str(message.message_id)
+    SEARCH_CACHE[search_id] = {
+        "title": title,
+        "genres": genres,
+        "synopsis": det_res.get("overview") or item.get("overview") or "No synopsis available.",
+        "artworks": artworks,
+        "type": "manga"
+    }
+
+    current_index = 0
+    total_pages = len(artworks)
+
+    try:
+        img_bytes = session.get(artworks[current_index], timeout=5).content
+        card_io = generate_custom_media_card(img_bytes, title, genres, det_res.get("overview", "No synopsis available."), branding="Manga Aero")
+
+        markup = InlineKeyboardMarkup()
+        markup.row(
+            InlineKeyboardButton(text="🔄 ◀ prev", callback_data=f"media_card_{search_id}_{current_index-1}"),
+            InlineKeyboardButton(text=f"{current_index+1:02d}/{total_pages:02d}", callback_data="noop"),
+            InlineKeyboardButton(text="next ▶", callback_data=f"media_card_{search_id}_{current_index+1}")
+        )
+        markup.row(InlineKeyboardButton(text="👤 cancel", callback_data="cancel_session"))
+
+        bot.send_photo(
+            chat_id=message.chat.id,
+            photo=card_io,
+            caption=f"<b>📚 Manga: {html.escape(title.upper())}</b>",
+            parse_mode="HTML",
+            reply_markup=markup
+        )
+    except Exception as e:
+        bot.reply_to(message, f"❌ Error generating manga card: {e}", parse_mode="HTML")
+
+
+# --- /anime Command Handler (Direct Visual Card) ---
+@bot.message_handler(commands=['anime'])
+def anime_command_handler(message):
+    query = message.text.replace("/anime", "").strip()
+    if not query:
+        bot.reply_to(message, "<b>Usage:</b> <code>/anime [title]</code>", parse_mode="HTML")
+        return
+
+    search_url = f"https://api.themoviedb.org/3/search/tv?api_key={TMDB_API_KEY}&query={requests.utils.quote(query)}"
+    res = session.get(search_url, timeout=5).json()
+    results = res.get("results", [])
+
+    if not results:
+        bot.reply_to(message, f"‼️ No results found for <b>{html.escape(query)}</b>", parse_mode="HTML")
+        return
+
+    item = results[0]
+    item_id = str(item.get("id"))
+    title = item.get("name") or item.get("title") or query
+    
+    details_url = f"https://api.themoviedb.org/3/tv/{item_id}?api_key={TMDB_API_KEY}&append_to_response=images"
+    det_res = session.get(details_url, timeout=5).json()
+    
+    genres = [g["name"] for g in det_res.get("genres", [])]
+    if not genres:
+        genres = ["Animation", "Action", "Sci-Fi"]
+
+    images = det_res.get("images", {})
+    artworks = [f"https://image.tmdb.org/t/p/original{i['file_path']}" for i in images.get("backdrops", [])[:8]]
+    if not artworks:
+        path = item.get("backdrop_path") or item.get("poster_path")
+        artworks = [f"https://image.tmdb.org/t/p/original{path}"] if path else ["https://graph.org/file/faf795187aa693e1024a4-746b376c8dcc889d4f.jpg"]
+
+    search_id = str(message.message_id)
+    SEARCH_CACHE[search_id] = {
+        "title": title,
+        "genres": genres,
+        "synopsis": det_res.get("overview") or item.get("overview") or "No synopsis available.",
+        "artworks": artworks,
+        "type": "anime"
+    }
+
+    current_index = 0
+    total_pages = len(artworks)
+
+    try:
+        img_bytes = session.get(artworks[current_index], timeout=5).content
+        card_io = generate_custom_media_card(img_bytes, title, genres, det_res.get("overview", "No synopsis available."), branding="Anime Aero")
+
+        markup = InlineKeyboardMarkup()
+        markup.row(
+            InlineKeyboardButton(text="🔄 ◀ prev", callback_data=f"media_card_{search_id}_{current_index-1}"),
+            InlineKeyboardButton(text=f"01/{total_pages:02d}", callback_data="noop"),
+            InlineKeyboardButton(text="next ▶", callback_data=f"media_card_{search_id}_{current_index+1}")
+        )
+        markup.row(InlineKeyboardButton(text="👤 cancel", callback_data="cancel_session"))
+
+        bot.send_photo(
+            chat_id=message.chat.id,
+            photo=card_io,
+            caption=f"<b>🎬 Anime: {html.escape(title.upper())}</b>",
+            parse_mode="HTML",
+            reply_markup=markup
+        )
+    except Exception as e:
+        bot.reply_to(message, f"❌ Error generating anime card: {e}", parse_mode="HTML")
+
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     try:
         bot.remove_webhook()
     except Exception:
         pass
-        
+
     threading.Thread(target=lambda: bot.infinity_polling(), daemon=True).start()
     app.run(host="0.0.0.0", port=port)
+
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
