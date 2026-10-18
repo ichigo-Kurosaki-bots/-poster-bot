@@ -23,7 +23,7 @@ import threading
 
 from flask import Flask, send_file, request
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
-from PIL import Image, ImageDraw, ImageFont,ImageFilter, ImageOps
+from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageOps
 
 # ------------------------ #
 # Don't Remove My Credits
@@ -993,7 +993,7 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
 
     draw = ImageDraw.Draw(canvas)
 
-    # 4. Top Header Branding
+    # 4. Top Header Branding (Manga Aero)
     draw.text((40, 25), branding, fill=(255, 255, 255))
     draw.text((170, 30), "CRUISE THROUGH INFINITE CHAPTERS", fill=(180, 180, 180))
 
@@ -1069,7 +1069,7 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
     canvas.convert("RGB").save(output, format="JPEG", quality=95, subsampling=0)
     output.seek(0)
     return output
-    
+
 # ------------------------ #
 # Don't Remove My Credits
 # Owner: @Mr_Mohammed_29
