@@ -103,6 +103,7 @@ HELP_PAGES = {
             "• <b>Indian:</b> <code>hindi</code>, <code>tamil</code>, <code>telugu</code>, <code>malayalam</code>, <code>kannada</code>, <code>bengali</code>, <code>marathi</code>, <code>punjabi</code>\n"
             "• <b>Global:</b> <code>english</code>, <code>spanish</code>, <code>french</code>, <code>german</code>, <code>italian</code>, <code>russian</code>, <code>portuguese</code>, <code>turkish</code>, <code>arabic</code>, <code>thai</code>\n\n"
             "<b>🎬 <u>IMDb Info Lookup:</u></b>\n"
+            "Use <code>/jhs [Title]</code> to get detailed poster info"
             "Use <code>/imdb [Title]</code> to get detailed metadata cards and ratings."
         )
     }
@@ -111,18 +112,18 @@ HELP_PAGES = {
 def get_help_markup(current_page=1):
     markup = InlineKeyboardMarkup(row_width=4)
     row_buttons = []
-    for p in range(1, 8):
+    for p in range(1, 9):  # Loop through all 8 pages
         btn_text = f"• {p} •" if p == current_page else str(p)
         row_buttons.append(InlineKeyboardButton(text=btn_text, callback_data=f"help_page_{p}"))
     
-    markup.add(*row_buttons[:4])
-    markup.add(*row_buttons[4:])
+    markup.add(*row_buttons[:4])  # Buttons 1, 2, 3, 4
+    markup.add(*row_buttons[4:])  # Buttons 5, 6, 7, 8
+    
     markup.row(
-        InlineKeyboardButton(text="• Home •", callback_data="help_home"),
-        InlineKeyboardButton(text="• Close •", callback_data="help_close")
+        InlineKeyboardButton(text="• Hᴏᴍᴇ •", callback_data="help_home"),
+        InlineKeyboardButton(text="• Cʟᴏsᴇ •", callback_data="help_close")
     )
     return markup
-
 
 # ------------------------ #
 # Don't Remove My Credits
