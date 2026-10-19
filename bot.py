@@ -145,6 +145,7 @@ def get_help_markup(current_page=1):
 import os
 import io
 import re
+import time
 import html
 import telebot
 import requests
