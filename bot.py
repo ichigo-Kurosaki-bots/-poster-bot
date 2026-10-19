@@ -1776,7 +1776,7 @@ def manga_command_handler(message):
     chapters_str = f"{episodes}+" if episodes else "120+"
     images = det_res.get("images", {})
     artworks = [f"https://image.tmdb.org/t/p/original{i['file_path']}" for i in images.get("backdrops", [])[:8]]
-    posters = [f"https://image.tmdb.org/t/p/w500{i['file_path']}" for i in images.get("posters", [])[:2]]
+    posters = [f"https://image.tmdb.org/t/p/w500{i['file_path']}" for i in images.get("posters", [])[:3]]
 
     if not artworks:
         path = item.get("backdrop_path") or item.get("poster_path")
@@ -1808,19 +1808,19 @@ def manga_command_handler(message):
 
     caption_text = (
         f"<b>{html.escape(title)}</b> ❞\n\n"
-        f"» <b>Type:</b> {detected_type}\n"
-        f"» <b>Average Rating:</b> {rating_pct}\n"
-        f"» <b>Status:</b> {status_str}\n"
-        f"» <b>Chapters:</b> {chapters_str}\n"
-        f"» <b>Genres:</b> {html.escape(genres_str)}\n\n"
-        f"▶ <u><b>SYNOPSIS</b></u>\n"
+        f"» <b>Tʏᴘᴇ :</b> {detected_type}\n"
+        f"» <b>Aᴠᴇʀᴀɢᴇ Rᴀᴛɪɴɢ :</b> {rating_pct}\n"
+        f"» <b>Sᴛᴀᴛᴜs :</b> {status_str}\n"
+        f"» <b>Cʜᴀᴘᴛᴇʀs :</b> {chapters_str}\n"
+        f"» <b>Gᴇɴʀᴇs :</b> {html.escape(genres_str)}\n\n"
+        f"▶ <u><b>Sʏɴᴏᴘsɪs</b></u>\n"
         f"<b>➔</b> <i>{html.escape(synopsis[:400])}...</i> ❞"
     )
 
     try:
         img_bytes = session.get(artworks[current_index], timeout=5).content
         p_bytes_list = []
-        for p_url in posters[:2]:
+        for p_url in posters[:3]:
             try:
                 p_bytes_list.append(session.get(p_url, timeout=4).content)
             except Exception:
@@ -1839,9 +1839,9 @@ def manga_command_handler(message):
 
         markup = InlineKeyboardMarkup()
         markup.row(
-            InlineKeyboardButton(text="◀ ᴘʀᴇᴠ •", callback_data=f"media_card_{search_id}_{current_index-1}"),
+            InlineKeyboardButton(text="• ᴘʀᴇᴠ •", callback_data=f"media_card_{search_id}_{current_index-1}"),
             InlineKeyboardButton(text=f"01/{total_pages:02d}", callback_data="noop"),
-            InlineKeyboardButton(text="• ɴᴇxᴛ ▶", callback_data=f"media_card_{search_id}_{current_index+1}")
+            InlineKeyboardButton(text="• ɴᴇxᴛ •", callback_data=f"media_card_{search_id}_{current_index+1}")
         )
         markup.row(InlineKeyboardButton(text="• ᴄᴀɴᴄᴇʟ•", callback_data="cancel_session"))
 
@@ -2102,7 +2102,7 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
         sub_type = f"STUDIO: {studio_name}"
         
         draw.text((680, 30), main_type, fill=(0, 0, 0), font=get_font(22, bold=True))
-        draw.text((775, 30), "UNITY", fill=(80, 80, 80), font=get_font(22, bold=False))
+        draw.text((760, 30), "UNITY", fill=(80, 80, 80), font=get_font(22, bold=False))
         draw.text((910, 38), sub_type, fill=(140, 140, 140), font=get_font(11, bold=True))
         draw.text((680, 110), title.upper()[:22], fill=(10, 10, 10), font=get_font(48, bold=True))
         draw.line([(680, 180), (1220, 180)], fill=(180, 180, 180), width=2)
