@@ -2102,7 +2102,7 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
         sub_type = f"STUDIO: {studio_name}"
         
         draw.text((680, 30), main_type, fill=(0, 0, 0), font=get_font(22, bold=True))
-        draw.text((810, 30), "UNITY", fill=(80, 80, 80), font=get_font(22, bold=False))
+        draw.text((790, 30), "UNITY", fill=(80, 80, 80), font=get_font(22, bold=False))
         draw.text((910, 38), sub_type, fill=(140, 140, 140), font=get_font(11, bold=True))
         draw.text((680, 110), title.upper()[:22], fill=(10, 10, 10), font=get_font(48, bold=True))
         draw.line([(680, 180), (1220, 180)], fill=(180, 180, 180), width=2)
