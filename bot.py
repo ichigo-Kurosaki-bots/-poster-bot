@@ -2066,11 +2066,11 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
         draw = ImageDraw.Draw(canvas)
 
         is_manga = "MANGA" in b_upper or "LIGHTM" in b_upper or "MANHWA" in media_format
-        main_type = media_format
+        main_type = "AERO"
         sub_type = f"STUDIO: {studio_name}"
         
         draw.text((680, 30), main_type, fill=(0, 0, 0), font=get_font(22, bold=True))
-        draw.text((770, 30), "UNITY", fill=(80, 80, 80), font=get_font(22, bold=False))
+        draw.text((840, 30), "AERO UNITY", fill=(80, 80, 80), font=get_font(22, bold=False))
         draw.text((910, 38), sub_type, fill=(140, 140, 140), font=get_font(11, bold=True))
 
         draw.text((680, 110), title.upper()[:22], fill=(10, 10, 10), font=get_font(48, bold=True))
@@ -2127,7 +2127,7 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
         draw = ImageDraw.Draw(canvas)
 
         header_tag = f"STATUS: {status_str}"
-        draw.text((60, 45), "Webtoon Flix", fill=(255, 255, 255), font=get_font(24, bold=True))
+        draw.text((60, 45), "AERO UNITY", fill=(255, 255, 255), font=get_font(24, bold=True))
         draw.text((320, 50), header_tag, fill=(255, 255, 255), font=get_font(12, bold=True))
 
         draw.rounded_rectangle([60, 100, 600, 250], radius=20, fill=(75, 15, 48, 255))
@@ -2316,7 +2316,8 @@ def send_style_poster_response(message, cmd, query, branding_name):
             backdrops = [f"https://image.tmdb.org/t/p/original{path}"] if path else ["https://graph.org/file/faf795187aa693e1024a4-746b376c8dcc889d4f.jpg"]
 
         img_bytes = session.get(backdrops[0], timeout=5).content
-        p_bytes_list = []
+        
+        p_bytes_list = []      
         for p_url in posters[:2]:
             try:
                 p_bytes_list.append(session.get(p_url, timeout=3).content)
