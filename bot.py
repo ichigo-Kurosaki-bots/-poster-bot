@@ -4,9 +4,9 @@
 
 HELP_PAGES = {
     1: {
-        "photo": "https://telegra.ph/file/2ab528ba65c23832cdcf6-4ff26f1b433ef961eb.jpg",
+        "photo": "https://graph.org/file/cb707ebcf6e087d4a49c6-ce0dbf8bc97b6dd50b.jpg",
         "caption": (
-            "<b>AniList Style — 1/7</b>\n"
+            "<b>AniList Style — 1/8</b>\n"
             "──────────────────────────────\n"
             "A clean information-rich style mimicking the <code>AniList.co</code> interface.\n\n"
             "<b>Usage:</b>\n"
@@ -15,9 +15,9 @@ HELP_PAGES = {
         )
     },
     2: {
-        "photo": "https://graph.org/file/283e03b08d8306b8d85af-8436c3be9697b2374c.jpg",
+        "photo": "https://graph.org/file/14c3a336058422b14549d-85d887f6fd8a9cead5.jpg",
         "caption": (
-            "<b>Netflix Style — 2/7</b>\n"
+            "<b>Netflix Style — 2/8</b>\n"
             "──────────────────────────────\n"
             "A cinematic style mimicking the Netflix UI. Features a vignette effect, N-logo, and 'Watch Now' buttons.\n\n"
             "<b>Usage:</b>\n"
@@ -26,9 +26,9 @@ HELP_PAGES = {
         )
     },
     3: {
-        "photo": "https://graph.org/file/faf795187aa693e1024a4-746b376c8dcc889d4f.jpg",
+        "photo": "https://telegra.ph/file/1d504928e362876977269-fdfcffde7ab2ca4ed0.jpg",
         "caption": (
-            "<b>Crunchyroll Style — 3/7</b>\n"
+            "<b>Crunchyroll Style — 3/8</b>\n"
             "──────────────────────────────\n"
             "Vibrant orange and white design based on the Crunchyroll TV app. Features a large backdrop and season/episode info.\n\n"
             "<b>Usage:</b>\n"
@@ -37,9 +37,9 @@ HELP_PAGES = {
         )
     },
     4: {
-        "photo": "https://telegra.ph/file/2ab528ba65c23832cdcf6-4ff26f1b433ef961eb.jpg",
+        "photo": "https://telegra.ph/file/96ab52559eb70d01cd336-f07404e18b407abaf3.jpg",
         "caption": (
-            "<b>Light Simple Style — 4/7</b>\n"
+            "<b>Light Simple Style — 4/8</b>\n"
             "──────────────────────────────\n"
             "A clean, bright aesthetic. Great for manga with a white/paper-like feel.\n\n"
             "<b>Usage:</b>\n"
@@ -48,9 +48,9 @@ HELP_PAGES = {
         )
     },
     5: {
-        "photo": "https://graph.org/file/283e03b08d8306b8d85af-8436c3be9697b2374c.jpg",
+        "photo": "https://graph.org/file/2590b3f90fa2b91f80f2b-98594c5f50d2916a5d.jpg",
         "caption": (
-            "<b>Dark Simple Style — 5/7</b>\n"
+            "<b>Dark Simple Style — 5/8</b>\n"
             "──────────────────────────────\n"
             "A sleek, dark mode design. High contrast and easy on the eyes.\n\n"
             "<b>Usage:</b>\n"
@@ -59,25 +59,51 @@ HELP_PAGES = {
         )
     },
     6: {
-        "photo": "https://graph.org/file/faf795187aa693e1024a4-746b376c8dcc889d4f.jpg",
+        "photo": "https://telegra.ph/file/17483bc02f7d698ae2c51-45651ecac28b1c8ee5.jpg",
         "caption": (
-            "<b>Modern Style — 6/7</b>\n"
+            "<b>Modern Style — 6/8</b>\n"
             "──────────────────────────────\n"
             "A customized modern layout with glassmorphism effects and clean typography.\n\n"
             "<b>Usage:</b>\n"
             "• Anime: <code>/mod Jujutsu Kaisen</code>\n"
-            "• Manga: <code>/modm Naruto</code>"
+            "• Manga: <code>/modm Vagabond</code>"
         )
     },
     7: {
         "photo": "https://telegra.ph/file/2ab528ba65c23832cdcf6-4ff26f1b433ef961eb.jpg",
         "caption": (
-            "<b>Netflix x Crunchyroll — 7/7</b>\n"
+            "<b>Netflix x Crunchyroll — 7/8</b>\n"
             "──────────────────────────────\n"
             "A hybrid style combining Netflix layout with Crunchyroll colors and branding.\n\n"
             "<b>Usage:</b>\n"
             "• Anime: <code>/netcr Demon Slayer</code>\n"
             "• Manga: <code>N/A</code>"
+        )
+    },
+    8: {
+        "photo": "https://telegra.ph/file/a50b2c3f6169a016edc64-bffd7c65c4809c9998.jpg",
+        "caption": (
+            "<b>📖 <u>How To Search & Use Aero Poster Bot</u> — 8/8</b>\n\n"
+            "<b>1️⃣ Direct Title Search:</b>\n"
+            "Just send any title to get poster images.\n"
+            "<i>Example:</i> <code>Doomsday</code>\n\n"
+            "<b>2️⃣ Title + Year Search:</b>\n"
+            "Narrow down to a specific release year.\n"
+            "<i>Example:</i> <code>Doomsday 2026</code>\n\n"
+            "<b>3️⃣ TV Series / Season Search:</b>\n"
+            "Specify the season number for TV shows.\n"
+            "<i>Example:</i> <code>The Mentalist S01</code> or <code>Stranger Things Season 2</code>\n\n"
+            "<b>4️⃣ Language & Regional Search:</b>\n"
+            "Add a language tag anywhere in your query to filter regional movies/dramas.\n"
+            "<i>Example:</i> <code>Crush Kdrama</code>, <code>Crush 2024 Chi</code>, or <code>Doomsday English</code>\n\n"
+            "<b>🌐 <u>Supported Language Keywords:</u></b>\n"
+            "• <b>Korean:</b> <code>kdrama</code>, <code>k-drama</code>, <code>korean</code>, <code>kr</code>\n"
+            "• <b>Chinese:</b> <code>chi</code>, <code>cdrama</code>, <code>chinese</code>, <code>mandarin</code>, <code>zh</code>\n"
+            "• <b>Japanese:</b> <code>jdrama</code>, <code>j-drama</code>, <code>japanese</code>, <code>jap</code>, <code>anime</code>, <code>ja</code>\n"
+            "• <b>Indian:</b> <code>hindi</code>, <code>tamil</code>, <code>telugu</code>, <code>malayalam</code>, <code>kannada</code>, <code>bengali</code>, <code>marathi</code>, <code>punjabi</code>\n"
+            "• <b>Global:</b> <code>english</code>, <code>spanish</code>, <code>french</code>, <code>german</code>, <code>italian</code>, <code>russian</code>, <code>portuguese</code>, <code>turkish</code>, <code>arabic</code>, <code>thai</code>\n\n"
+            "<b>🎬 <u>IMDb Info Lookup:</u></b>\n"
+            "Use <code>/imdb [Title]</code> to get detailed metadata cards and ratings."
         )
     }
 }
@@ -92,8 +118,8 @@ def get_help_markup(current_page=1):
     markup.add(*row_buttons[:4])
     markup.add(*row_buttons[4:])
     markup.row(
-        InlineKeyboardButton(text="🏠 Home", callback_data="help_home"),
-        InlineKeyboardButton(text="🗑 Close", callback_data="help_close")
+        InlineKeyboardButton(text="• Home •", callback_data="help_home"),
+        InlineKeyboardButton(text="• Close •", callback_data="help_close")
     )
     return markup
 
@@ -164,7 +190,7 @@ OWNER_ID = 7284759394 #replace your Telegram ID
 # Custom Image URLs
 START_IMAGE_URL = "https://telegra.ph/file/2ab528ba65c23832cdcf6-4ff26f1b433ef961eb.jpg"
 ABOUT_IMAGE_URL = "https://graph.org/file/283e03b08d8306b8d85af-8436c3be9697b2374c.jpg"
-FSUB_IMAGE_URL  = "https://graph.org/file/faf795187aa693e1024a4-746b376c8dcc889d4f.jpg"
+FSUB_IMAGE_URL  = "https://telegra.ph/file/1d504928e362876977269-fdfcffde7ab2ca4ed0.jpg"
 
 # ------------------------ #
 # Don't Remove My Credits
