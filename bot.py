@@ -2307,7 +2307,7 @@ def send_style_poster_response(message, cmd, query, branding_name):
             "vote_average": vote_avg
         }
 
-        images = det_res.get("images", {})
+                images = det_res.get("images", {})
         backdrops = [f"https://image.tmdb.org/t/p/original{i['file_path']}" for i in images.get("backdrops", [])[:8]]
         posters = [f"https://image.tmdb.org/t/p/w500{i['file_path']}" for i in images.get("posters", [])[:2]]
 
@@ -2317,12 +2317,18 @@ def send_style_poster_response(message, cmd, query, branding_name):
 
         img_bytes = session.get(backdrops[0], timeout=5).content
         
-        p_bytes_list = []      
+        if not posters and backdrops:
+            posters = backdrops[:2]
+
+        p_bytes_list = []
         for p_url in posters[:2]:
             try:
                 p_bytes_list.append(session.get(p_url, timeout=3).content)
             except Exception:
-                p_bytes_list.append(img_bytes)
+                pass
+                
+        if not p_bytes_list:
+            p_bytes_list = [img_bytes, img_bytes]
 
         logo_url = get_tmdb_logo_url(item_id, endpoint)
 
