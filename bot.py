@@ -2213,6 +2213,30 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
     return output
 
 def send_style_poster_response(message, cmd, query, branding_name):
+    style_names = {
+        "ani": "AniList Anime",
+        "anim": "AniList Manga",
+        "crun": "Crunchyroll",
+        "net": "Netflix Anime",
+        "netm": "Netflix Manga",
+        "light": "Light Cruise Anime",
+        "lightm": "Light Cruise Manga",
+        "dark": "Webtoon Flix Anime",
+        "darkm": "Webtoon Flix Manga",
+        "netcr": "Netflix x Crunchyroll",
+        "mod": "Modern Aero Anime",
+        "modm": "Modern Manga Aero"
+    }
+    style_label = style_names.get(cmd, branding_name)
+    
+    status_msg = bot.reply_to(
+        message, 
+        f"⚙️ <b>Generating {style_label} poster for <code>{html.escape(query)}</code>, please wait...</b>", 
+        parse_mode="HTML"
+    )
+    
+    time.sleep(2)
+    
     encoded_query = requests.utils.quote(query)
     search_url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={encoded_query}&include_adult=true"
     
@@ -2221,6 +2245,10 @@ def send_style_poster_response(message, cmd, query, branding_name):
         results = [r for r in res.get("results", []) if r.get("media_type") in ["tv", "movie"]]
 
         if not results:
+            try:
+                bot.delete_message(message.chat.id, status_msg.message_id)
+            except Exception:
+                pass
             bot.reply_to(message, f"<b>❌ Not Found.</b>\nCould not find content for <b>{html.escape(query)}</b>.", parse_mode="HTML")
             return
 
@@ -2307,7 +2335,7 @@ def send_style_poster_response(message, cmd, query, branding_name):
             "vote_average": vote_avg
         }
 
-                images = det_res.get("images", {})
+        images = det_res.get("images", {})
         backdrops = [f"https://image.tmdb.org/t/p/original{i['file_path']}" for i in images.get("backdrops", [])[:8]]
         posters = [f"https://image.tmdb.org/t/p/w500{i['file_path']}" for i in images.get("posters", [])[:2]]
 
@@ -2352,9 +2380,14 @@ def send_style_poster_response(message, cmd, query, branding_name):
         app_url = os.environ.get("RENDER_EXTERNAL_URL") or request.host_url.rstrip('/')
         direct_link = f"{app_url}/poster/{cache_key}"
 
-        caption_text = f"<b>Powered By : @Aero_Unity</b>\n\n<b>Open Image:</b> <b><a href=\"{direct_link}\">Click here</a></b>"
+        caption_text = f"<b>Genarated By @Aero_Poster_Bot</b>\n\n•<b>Powered By : @Aero_Unity</b>\n\n<b>Open Image:</b> <b><a href=\"{direct_link}\">Click here</a></b>"
         markup = InlineKeyboardMarkup()
-        markup.add(InlineKeyboardButton(text=" ↗", url="https://t.me/Aero_Unity"))
+        markup.add(InlineKeyboardButton(text="• Uᴘᴅᴀᴛᴇs •", url="https://t.me/Aero_Unity"))
+
+        try:
+            bot.delete_message(message.chat.id, status_msg.message_id)
+        except Exception:
+            pass
 
         card_io.seek(0)
         bot.send_photo(message.chat.id, photo=card_io, caption=caption_text, parse_mode="HTML", reply_markup=markup)
