@@ -1918,12 +1918,24 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
     if "ANILIST" in b_upper:
         bg_color = (21, 31, 46, 255) if "ANIME" in b_upper else (15, 23, 36, 255)
         canvas = Image.new("RGBA", (target_w, target_h), bg_color)
-        
-        top_banner = ImageOps.fit(raw_art, (target_w, 380), method=Image.Resampling.LANCZOS)
+        banner_aspect = raw_art.width / raw_art.height
+        new_h = 380
+        new_w = int(new_h * banner_aspect)
+    
+        if new_w < target_w:
+            new_w = target_w
+            new_h = int(new_w / banner_aspect)
+         
+        resized_art = raw_art.resize((new_w, new_h), Image.Resampling.LANCZOS)
+    
+        top_banner = Image.new("RGBA", (target_w, 380), (21, 31, 46, 255))
+        paste_x = (target_w - new_w) // 2
+        paste_y = (380 - new_h) // 2
+        top_banner.paste(resized_art, (paste_x, paste_y), resized_art if resized_art.mode == 'RGBA' else None)
         canvas.paste(top_banner, (0, 0))
-        
         grad = Image.new("RGBA", (target_w, 380), (0, 0, 0, 0))
         g_draw = ImageDraw.Draw(grad)
+        
         for y in range(380):
             g_draw.line([(0, y), (target_w, y)], fill=(bg_color[0], bg_color[1], bg_color[2], int(255 * (y / 380))))
         canvas.alpha_composite(grad, (0, 0))
@@ -1982,9 +1994,11 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
         canvas = base_backdrop.copy()
         vignette = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 0))
         v_draw = ImageDraw.Draw(vignette)
+        
         for x in range(750):
             alpha = int(240 * (1 - (x / 750)))
             v_draw.line([(x, 0), (x, target_h)], fill=(0, 0, 0, alpha))
+            
         for y in range(400, target_h):
             alpha = int(220 * ((y - 400) / 320))
             v_draw.line([(0, y), (target_w, y)], fill=(0, 0, 0, alpha))
@@ -1999,6 +2013,7 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
 
         words = synopsis.split()
         lines, curr = [], ""
+        
         for w in words:
             if len(curr + " " + w) < 60: curr += " " + w
             else: lines.append(curr.strip()); curr = w
@@ -2087,7 +2102,7 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
         sub_type = f"STUDIO: {studio_name}"
         
         draw.text((680, 30), main_type, fill=(0, 0, 0), font=get_font(22, bold=True))
-        draw.text((840, 30), "AERO UNITY", fill=(80, 80, 80), font=get_font(22, bold=False))
+        draw.text((810, 30), "UNITY", fill=(80, 80, 80), font=get_font(22, bold=False))
         draw.text((910, 38), sub_type, fill=(140, 140, 140), font=get_font(11, bold=True))
         draw.text((680, 110), title.upper()[:22], fill=(10, 10, 10), font=get_font(48, bold=True))
         draw.line([(680, 180), (1220, 180)], fill=(180, 180, 180), width=2)
