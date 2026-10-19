@@ -1709,53 +1709,13 @@ def manga_command_handler(message):
 # Support : @Coders_Grp 
 # ------------------------ #
 
-def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres, synopsis, rating_val="8.4", logo_url=None, branding="Manga Aero"):
+# ===================================================================== #
+# FULL 11-STYLE MEDIA CARD GENERATOR
+# ===================================================================== #
+
+def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres, synopsis, rating_val="8.4", logo_url=None, branding="ANILIST ANIME"):
     target_w, target_h = 1280, 720
     b_upper = branding.upper()
-
-    # Default Theme Configs
-    bg_color = (15, 15, 20, 255)
-    panel_color = (25, 25, 35, 255)
-    accent_color = (0, 136, 204, 255)
-    text_color = (255, 255, 255, 255)
-    sub_text_color = (180, 180, 180, 255)
-
-    # Theme Palettes mapping to your 11 screenshot layouts
-    if "ANILIST ANIME" in b_upper:
-        bg_color, panel_color, accent_color = (21, 31, 46, 255), (11, 22, 34, 255), (61, 180, 242, 255)
-    elif "ANILIST MANGA" in b_upper:
-        bg_color, panel_color, accent_color = (15, 23, 36, 255), (8, 14, 24, 255), (0, 200, 255, 255)
-    elif "NETFLIX ANIME" in b_upper:
-        bg_color, panel_color, accent_color = (10, 10, 10, 255), (20, 20, 20, 255), (229, 9, 20, 255)
-    elif "NETFLIX MANGA" in b_upper:
-        bg_color, panel_color, accent_color = (18, 18, 18, 255), (28, 28, 28, 255), (229, 9, 20, 255)
-    elif "CRUNCHYROLL" in b_upper:
-        bg_color, panel_color, accent_color = (20, 20, 20, 255), (33, 33, 33, 255), (244, 117, 33, 255)
-    elif "ANIME CRUISE" in b_upper or "LIGHT" in b_upper:
-        bg_color, panel_color, accent_color = (250, 250, 250, 255), (235, 240, 245, 255), (0, 120, 215, 255)
-        text_color, sub_text_color = (20, 20, 20, 255), (90, 90, 90, 255)
-    elif "MANGA CRUISE" in b_upper:
-        bg_color, panel_color, accent_color = (245, 242, 235, 255), (230, 225, 215, 255), (215, 40, 40, 255)
-        text_color, sub_text_color = (15, 15, 15, 255), (80, 80, 80, 255)
-    elif "WEBTOON FLIX" in b_upper or "DARK" in b_upper:
-        bg_color, panel_color, accent_color = (55, 10, 35, 255), (75, 15, 48, 255), (255, 70, 120, 255)
-    elif "MODERN AERO" in b_upper:
-        bg_color, panel_color, accent_color = (16, 18, 27, 255), (28, 30, 45, 255), (255, 105, 0, 255)
-    elif "MODERN MANGA" in b_upper:
-        bg_color, panel_color, accent_color = (22, 20, 30, 255), (35, 30, 50, 255), (255, 180, 0, 255)
-    elif "NETFLIX X CRUNCHYROLL" in b_upper:
-        bg_color, panel_color, accent_color = (12, 12, 14, 255), (22, 22, 26, 255), (244, 117, 33, 255)
-
-    canvas = Image.new("RGBA", (target_w, target_h), bg_color)
-
-    try:
-        raw_art = Image.open(io.BytesIO(poster_bytes)).convert("RGBA")
-        art_left = ImageOps.fit(raw_art, (500, target_h), method=Image.Resampling.LANCZOS)
-        canvas.paste(art_left, (0, 0))
-    except Exception as e:
-        print(f"Error drawing poster image: {e}")
-
-    draw = ImageDraw.Draw(canvas)
 
     def get_font(size, bold=False):
         font_paths = [
@@ -1770,150 +1730,337 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
                 continue
         return ImageFont.load_default()
 
-    font_title = get_font(34, bold=True)
-    font_bold = get_font(16, bold=True)
-    font_reg = get_font(14, bold=False)
-    font_small = get_font(11, bold=False)
-    font_badge = get_font(18, bold=True)
+    # Load Backdrop Base
+    try:
+        raw_art = Image.open(io.BytesIO(poster_bytes)).convert("RGBA")
+        base_backdrop = ImageOps.fit(raw_art, (target_w, target_h), method=Image.Resampling.LANCZOS)
+    except Exception:
+        base_backdrop = Image.new("RGBA", (target_w, target_h), (15, 15, 20, 255))
 
-    wm_x, wm_y = 25, target_h - 38
-    wm_text = "@Aero_Unity"
-    for offset_x, offset_y in [(-1, -1), (1, -1), (-1, 1), (1, 1), (0, 2), (2, 0)]:
-        draw.text((wm_x + offset_x, wm_y + offset_y), wm_text, fill=(0, 0, 0, 255), font=font_bold)
-    draw.text((wm_x, wm_y), wm_text, fill=(255, 255, 255, 255), font=font_bold)
+    # -------------------------------------------------------------
+    # 1 & 2. ANILIST ANIME / MANGA STYLE
+    # -------------------------------------------------------------
+    if "ANILIST" in b_upper:
+        bg_color = (21, 31, 46, 255) if "ANIME" in b_upper else (15, 23, 36, 255)
+        canvas = Image.new("RGBA", (target_w, target_h), bg_color)
+        
+        # Banner backdrop top half
+        top_banner = base_backdrop.resize((target_w, 380), Image.Resampling.LANCZOS)
+        canvas.paste(top_banner, (0, 0))
+        
+        # Dark overlay gradient
+        grad = Image.new("RGBA", (target_w, 380), (0, 0, 0, 0))
+        g_draw = ImageDraw.Draw(grad)
+        for y in range(380):
+            g_draw.line([(0, y), (target_w, y)], fill=(bg_color[0], bg_color[1], bg_color[2], int(255 * (y / 380))))
+        canvas.alpha_composite(grad, (0, 0))
 
-    draw.text((950, 28), branding.upper(), fill=text_color, font=font_badge)
-    draw.text((950, 50), "INSTANT ART, ENDLESS STORIES", fill=accent_color, font=font_small)
+        draw = ImageDraw.Draw(canvas)
 
-    clean_title = title.upper()[:24]
-    draw.text((560, 105), clean_title, fill=text_color, font=font_title)
+        # Left Floating Poster Artwork
+        try:
+            raw_p = Image.open(io.BytesIO(portrait_bytes_list[0])).convert("RGBA") if portrait_bytes_list else raw_art
+            p_img = ImageOps.fit(raw_p, (210, 310), method=Image.Resampling.LANCZOS)
+            canvas.paste(p_img, (120, 220))
+        except Exception:
+            pass
 
-    gx, gy = 560, 165
-    for g in genres[:3]:
-        tag_text = str(g).upper()[:12]
-        pill_w = max(85, len(tag_text) * 7 + 24)
-        draw.rounded_rectangle([gx, gy, gx + pill_w, gy + 30], radius=15, outline=accent_color, width=1, fill=panel_color)
-        draw.text((gx + 12, gy + 6), tag_text, fill=text_color, font=font_reg)
-        gx += pill_w + 10
+        # Text Details
+        font_title = get_font(36, bold=True)
+        font_sub = get_font(14, bold=False)
+        font_pill = get_font(12, bold=True)
 
-    rating_y = gy + 42
-    draw.text((560, rating_y), "Avg Rating : ", fill=sub_text_color, font=font_bold)
-    score_display = f"{rating_val} / 10" if "/" not in str(rating_val) else rating_val
-    draw.text((670, rating_y), score_display, fill=accent_color, font=font_bold)
+        draw.text((360, 290), title, fill=(255, 255, 255), font=font_title)
 
-    draw.line([(560, 255), (1220, 255)], fill=accent_color, width=1)
+        # Genre Pills
+        gx, gy = 360, 345
+        for g in genres[:4]:
+            pill_txt = str(g).upper()
+            pw = max(70, len(pill_txt) * 8 + 16)
+            draw.rounded_rectangle([gx, gy, gx + pw, gy + 24], radius=4, fill=(61, 180, 242) if "ANIME" in b_upper else (0, 200, 255))
+            draw.text((gx + 8, gy + 4), pill_txt, fill=(255, 255, 255), font=font_pill)
+            gx += pw + 10
 
-    clean_synopsis = synopsis if synopsis else "No synopsis available from TMDb."
-    words = clean_synopsis.split()
-    lines, curr_line = [], ""
-    for w in words:
-        if len(curr_line + " " + w) < 70:
-            curr_line += " " + w
-        else:
-            lines.append(curr_line.strip())
-            curr_line = w
-    if curr_line:
-        lines.append(curr_line.strip())
+        # Specs line
+        specs = f"TV • 220 Eps  •  ★ {rating_val}  •  Finished" if "ANIME" in b_upper else f"MANGA • 700 Chs  •  ★ {rating_val}  •  Finished"
+        draw.text((360, 385), specs, fill=(143, 160, 179), font=font_sub)
 
-    y_pos = 280
-    for line in lines[:8]:
-        draw.text((560, y_pos), line.upper(), fill=sub_text_color, font=font_reg)
-        y_pos += 22
+        # Synopsis
+        words = synopsis.split()
+        lines, curr = [], ""
+        for w in words:
+            if len(curr + " " + w) < 70: curr += " " + w
+            else: lines.append(curr.strip()); curr = w
+        if curr: lines.append(curr.strip())
+        
+        sy = 425
+        for line in lines[:5]:
+            draw.text((360, sy), line, fill=(160, 175, 195), font=font_sub)
+            sy += 20
 
-    draw.line([(560, 500), (1220, 500)], fill=accent_color, width=1)
+        # Add To List Button
+        draw.rounded_rectangle([120, 550, 290, 590], radius=4, fill=(61, 180, 242))
+        draw.text((145, 560), "Add to List", fill=(255, 255, 255), font=get_font(14, bold=True))
 
-    btn_x, btn_y = 560, 535
-    draw.rounded_rectangle([btn_x, btn_y, btn_x + 160, btn_y + 48], radius=24, fill=accent_color)
-    draw.text((btn_x + 22, btn_y + 14), "WATCH ", fill=(255, 255, 255), font=font_bold)
-    draw.text((btn_x + 85, btn_y + 14), "NOW!!", fill=(255, 220, 0), font=font_bold)
+        # Bottom AL Logo Bar
+        draw.rectangle([0, 680, target_w, 720], fill=(11, 22, 34))
+        draw.text((30, 688), "AL", fill=(255, 255, 255), font=get_font(22, bold=True))
 
-    bm_x = btn_x + 185
-    draw.ellipse([bm_x, btn_y, bm_x + 48, btn_y + 48], fill=panel_color)
-    draw.polygon([
-        (bm_x + 18, btn_y + 14), 
-        (bm_x + 30, btn_y + 14), 
-        (bm_x + 30, btn_y + 34), 
-        (bm_x + 24, btn_y + 28), 
-        (bm_x + 18, btn_y + 34)
-    ], fill=text_color)
+    # -------------------------------------------------------------
+    # 3, 4 & 11. NETFLIX & NETFLIX X CRUNCHYROLL STYLE
+    # -------------------------------------------------------------
+    elif "NETFLIX" in b_upper:
+        canvas = base_backdrop.copy()
+        
+        # Dark Left Vignette Overlay
+        vignette = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 0))
+        v_draw = ImageDraw.Draw(vignette)
+        for x in range(750):
+            alpha = int(240 * (1 - (x / 750)))
+            v_draw.line([(x, 0), (x, target_h)], fill=(0, 0, 0, alpha))
+        for y in range(400, target_h):
+            alpha = int(220 * ((y - 400) / 320))
+            v_draw.line([(0, y), (target_w, y)], fill=(0, 0, 0, alpha))
+            
+        canvas.alpha_composite(vignette)
+        draw = ImageDraw.Draw(canvas)
+
+        # Red N Logo
+        draw.text((60, 40), "N", fill=(229, 9, 20), font=get_font(48, bold=True))
+
+        # Title
+        draw.text((60, 360), title, fill=(255, 255, 255), font=get_font(52, bold=True))
+
+        # Green Match percentage line
+        match_str = f"96% Match   2024   TV-14   24 Episodes HD"
+        draw.text((60, 435), match_str, fill=(70, 211, 105), font=get_font(15, bold=True))
+
+        # Genres line
+        draw.text((60, 465), " • ".join(genres[:4]), fill=(180, 180, 180), font=get_font(13, bold=False))
+
+        # Synopsis
+        words = synopsis.split()
+        lines, curr = [], ""
+        for w in words:
+            if len(curr + " " + w) < 60: curr += " " + w
+            else: lines.append(curr.strip()); curr = w
+        if curr: lines.append(curr.strip())
+        
+        sy = 495
+        for line in lines[:3]:
+            draw.text((60, sy), line, fill=(200, 200, 200), font=get_font(13, bold=False))
+            sy += 18
+
+        # Play / My List Buttons
+        draw.rectangle([60, 570, 170, 610], fill=(255, 255, 255))
+        draw.text((85, 582), "▶ Play", fill=(0, 0, 0), font=get_font(14, bold=True))
+
+        draw.rectangle([180, 570, 300, 610], outline=(150, 150, 150), width=1)
+        draw.text((198, 582), "+ My List", fill=(255, 255, 255), font=get_font(14, bold=True))
+
+        # Bottom Rating Badge
+        draw.text((1180, 650), f"★ {rating_val}", fill=(255, 215, 0), font=get_font(18, bold=True))
+
+    # -------------------------------------------------------------
+    # 5. CRUNCHYROLL STYLE
+    # -------------------------------------------------------------
+    elif "CRUNCHYROLL" in b_upper:
+        canvas = base_backdrop.copy()
+        
+        # Header
+        top_bar = Image.new("RGBA", (target_w, 60), (18, 18, 18, 230))
+        canvas.paste(top_bar, (0, 0), top_bar)
+        draw = ImageDraw.Draw(canvas)
+        
+        draw.ellipse([25, 18, 45, 38], fill=(244, 117, 33))
+        draw.ellipse([28, 21, 42, 35], fill=(18, 18, 18))
+        draw.ellipse([34, 24, 42, 32], fill=(244, 117, 33))
+
+        # Dark gradient bottom
+        gradient = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 0))
+        g_draw = ImageDraw.Draw(gradient)
+        for y in range(250, target_h):
+            g_draw.line([(0, y), (target_w, y)], fill=(0, 0, 0, int(230 * ((y - 250) / 470))))
+        canvas.alpha_composite(gradient)
+
+        # Content
+        draw.text((60, 160), title, fill=(255, 255, 255), font=get_font(42, bold=True))
+        
+        draw.rounded_rectangle([60, 230, 130, 258], radius=4, fill=(50, 50, 50, 200))
+        draw.text((70, 235), "U/A 16+", fill=(200, 200, 200), font=get_font(13, bold=False))
+        draw.text((140, 235), " • " + ", ".join(genres[:3]), fill=(200, 200, 200), font=get_font(13, bold=False))
+
+        # Stars
+        for i in range(5):
+            fill_c = (244, 117, 33) if i < 4 else (120, 120, 120)
+            draw.text((60 + (i * 26), 275), "★", fill=fill_c, font=get_font(18, bold=True))
+        draw.text((200, 277), f"4.8 ({rating_val}K)", fill=(200, 200, 200), font=get_font(13, bold=False))
+
+        # Button
+        draw.rectangle([60, 330, 280, 380], fill=(244, 117, 33))
+        draw.text((85, 345), "▶  START WATCHING", fill=(255, 255, 255), font=get_font(14, bold=True))
+
+        # Synopsis
+        words = synopsis.split()
+        lines, curr = [], ""
+        for w in words:
+            if len(curr + " " + w) < 65: curr += " " + w
+            else: lines.append(curr.strip()); curr = w
+        if curr: lines.append(curr.strip())
+        
+        sy = 430
+        for line in lines[:4]:
+            draw.text((60, sy), line, fill=(220, 220, 220), font=get_font(14, bold=False))
+            sy += 22
+
+    # -------------------------------------------------------------
+    # 6 & 7. LIGHT CRUISE STYLE (ANIME / MANGA CRUISE)
+    # -------------------------------------------------------------
+    elif "CRUISE" in b_upper or "LIGHT" in b_upper:
+        canvas = Image.new("RGBA", (target_w, target_h), (255, 255, 255, 255))
+        
+        # Left Half Artwork
+        art_left = ImageOps.fit(raw_art, (600, target_h), method=Image.Resampling.LANCZOS)
+        canvas.paste(art_left, (0, 0))
+
+        draw = ImageDraw.Draw(canvas)
+
+        # Right Header
+        draw.text((660, 30), "ANIME", fill=(0, 0, 0), font=get_font(20, bold=True))
+        draw.text((740, 30), "CRUISE", fill=(80, 80, 80), font=get_font(20, bold=False))
+
+        # Title
+        draw.text((660, 120), title.upper(), fill=(10, 10, 10), font=get_font(44, bold=True))
+        draw.line([(660, 185), (1220, 185)], fill=(180, 180, 180), width=2)
+
+        # Synopsis
+        words = synopsis.split()
+        lines, curr = [], ""
+        for w in words:
+            if len(curr + " " + w) < 55: curr += " " + w
+            else: lines.append(curr.strip()); curr = w
+        if curr: lines.append(curr.strip())
+
+        sy = 210
+        for line in lines[:7]:
+            draw.text((660, sy), line, fill=(60, 60, 60), font=get_font(14, bold=False))
+            sy += 22
+
+        # Watch Button
+        draw.rounded_rectangle([660, 410, 810, 455], radius=22, fill=(20, 20, 20))
+        draw.text((690, 423), "WATCH NOW", fill=(255, 255, 255), font=get_font(13, bold=True))
+
+    # -------------------------------------------------------------
+    # 8. WEBTOON FLIX (DARK PLUM STYLE)
+    # -------------------------------------------------------------
+    elif "WEBTOON" in b_upper or "DARK" in b_upper:
+        canvas = Image.new("RGBA", (target_w, target_h), (55, 10, 35, 255))
+        
+        # Right Half Artwork
+        art_right = ImageOps.fit(raw_art, (620, target_h), method=Image.Resampling.LANCZOS)
+        canvas.paste(art_right, (660, 0))
+
+        draw = ImageDraw.Draw(canvas)
+
+        # Title Card Box
+        draw.rounded_rectangle([60, 100, 600, 250], radius=20, fill=(75, 15, 48, 255))
+        draw.text((90, 130), title.upper(), fill=(255, 255, 255), font=get_font(38, bold=True))
+
+        # Genre Pills
+        gx = 90
+        for g in genres[:3]:
+            pw = max(75, len(g) * 8 + 16)
+            draw.rounded_rectangle([gx, 190, gx + pw, 220], radius=15, fill=(255, 255, 255))
+            draw.text((gx + 10, 197), g.upper(), fill=(55, 10, 35), font=get_font(11, bold=True))
+            gx += pw + 10
+
+        # Synopsis Header
+        draw.text((230, 290), "SYNOPSIS", fill=(255, 255, 255), font=get_font(24, bold=True))
+
+        # Synopsis
+        words = synopsis.split()
+        lines, curr = [], ""
+        for w in words:
+            if len(curr + " " + w) < 55: curr += " " + w
+            else: lines.append(curr.strip()); curr = w
+        if curr: lines.append(curr.strip())
+
+        sy = 330
+        for line in lines[:6]:
+            draw.text((60, sy), line, fill=(220, 190, 200), font=get_font(13, bold=False))
+            sy += 20
+
+        # Button
+        draw.rounded_rectangle([210, 530, 450, 580], radius=25, fill=(255, 255, 255))
+        draw.text((275, 548), "WATCH NOW", fill=(55, 10, 35), font=get_font(14, bold=True))
+
+    # -------------------------------------------------------------
+    # 9 & 10. MODERN AERO STYLE
+    # -------------------------------------------------------------
+    else:
+        canvas = base_backdrop.copy()
+        
+        # Dark Overlay
+        overlay = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 160))
+        canvas.alpha_composite(overlay)
+        draw = ImageDraw.Draw(canvas)
+
+        # Header watermark
+        draw.text((60, 40), "BLAZE_UPDATEZ", fill=(255, 255, 255), font=get_font(18, bold=True))
+
+        # Genre Tags
+        gx = 60
+        for g in genres[:3]:
+            pw = max(80, len(g) * 8 + 20)
+            draw.rounded_rectangle([gx, 75, gx + pw, 105], radius=15, fill=(255, 75, 75))
+            draw.text((gx + 12, 83), g.upper(), fill=(255, 255, 255), font=get_font(12, bold=True))
+            gx += pw + 10
+
+        # Title
+        draw.text((60, 125), title.upper(), fill=(255, 255, 255), font=get_font(48, bold=True))
+        draw.text((60, 185), "FALL 2024", fill=(255, 180, 0), font=get_font(20, bold=True))
+
+        # Information Box
+        draw.text((60, 240), "INFORMATION", fill=(255, 80, 80), font=get_font(16, bold=True))
+        draw.text((60, 270), f"> STUDIO : MAPPA\n> STATUS : FINISHED\n> RATING : {rating_val}/10", fill=(220, 220, 220), font=get_font(14, bold=False))
+
+        # Right Glass Character Preview Card
+        draw.rounded_rectangle([850, 60, 1180, 220], radius=15, fill=(20, 20, 30, 200))
+        try:
+            raw_p = Image.open(io.BytesIO(portrait_bytes_list[0])).convert("RGBA") if portrait_bytes_list else raw_art
+            p_crop = ImageOps.fit(raw_p, (310, 140), method=Image.Resampling.LANCZOS)
+            canvas.paste(p_crop, (860, 70))
+        except Exception:
+            pass
+
+        # Right Overview
+        draw.text((850, 240), "CHARACTER PREVIEW", fill=(255, 255, 255), font=get_font(18, bold=True))
+        draw.text((850, 300), "OVERVIEW", fill=(255, 140, 0), font=get_font(16, bold=True))
+
+        words = synopsis.split()
+        lines, curr = [], ""
+        for w in words:
+            if len(curr + " " + w) < 35: curr += " " + w
+            else: lines.append(curr.strip()); curr = w
+        if curr: lines.append(curr.strip())
+
+        sy = 330
+        for line in lines[:8]:
+            draw.text((850, sy), line, fill=(200, 200, 200), font=get_font(12, bold=False))
+            sy += 18
+
+    # Watermark
+    draw.text((target_w - 140, target_h - 30), "@Aero_Unity", fill=(200, 200, 200), font=get_font(12, bold=True))
 
     output = io.BytesIO()
-    canvas.convert("RGB").save(output, format="JPEG", quality=95, subsampling=0)
+    canvas.convert("RGB").save(output, format="JPEG", quality=95)
     output.seek(0)
     return output
 
 
-def send_style_poster_response(message, cmd, query, branding_name):
-    encoded_query = requests.utils.quote(query)
-    search_url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={encoded_query}&include_adult=true"
-    
-    try:
-        res = session.get(search_url, timeout=5).json()
-        results = [r for r in res.get("results", []) if r.get("media_type") in ["tv", "movie"]]
-
-        if not results:
-            bot.reply_to(message, f"<b>❌ Not Found.</b>\nCould not find content for <b>{html.escape(query)}</b>.", parse_mode="HTML")
-            return
-
-        item = results[0]
-        item_id = str(item.get("id"))
-        media_type = item.get("media_type", "tv")
-        title = item.get("name") or item.get("title") or query
-
-        endpoint = "movie" if media_type == "movie" else "tv"
-        details_url = f"https://api.themoviedb.org/3/{endpoint}/{item_id}?api_key={TMDB_API_KEY}&append_to_response=images"
-        det_res = session.get(details_url, timeout=5).json()
-
-        genres_list = [g["name"] for g in det_res.get("genres", [])]
-        synopsis = det_res.get("overview") or item.get("overview") or "No synopsis available."
-        vote_avg = det_res.get("vote_average", 8.4)
-
-        images = det_res.get("images", {})
-        backdrops = [f"https://image.tmdb.org/t/p/original{i['file_path']}" for i in images.get("backdrops", [])[:8]]
-        posters = [f"https://image.tmdb.org/t/p/w500{i['file_path']}" for i in images.get("posters", [])[:2]]
-
-        if not backdrops:
-            path = item.get("backdrop_path") or item.get("poster_path")
-            backdrops = [f"https://image.tmdb.org/t/p/original{path}"] if path else ["https://graph.org/file/faf795187aa693e1024a4-746b376c8dcc889d4f.jpg"]
-
-        img_bytes = session.get(backdrops[0], timeout=5).content
-        p_bytes_list = []
-        for p_url in posters[:2]:
-            try:
-                p_bytes_list.append(session.get(p_url, timeout=3).content)
-            except Exception:
-                p_bytes_list.append(img_bytes)
-
-        logo_url = get_tmdb_logo_url(item_id, endpoint)
-
-        card_io = generate_custom_media_card(
-            poster_bytes=img_bytes,
-            portrait_bytes_list=p_bytes_list,
-            title=title,
-            genres=genres_list,
-            synopsis=synopsis,
-            rating_val=round(vote_avg, 1) if vote_avg else "8.4",
-            logo_url=logo_url,
-            branding=branding_name
-        )
-
-        cache_key = f"{item_id}_{cmd}"
-        file_path = os.path.join(CACHE_DIR, f"{cache_key}.jpg")
-        with open(file_path, "wb") as f:
-            f.write(card_io.getvalue())
-
-        app_url = os.environ.get("RENDER_EXTERNAL_URL") or request.host_url.rstrip('/')
-        direct_link = f"{app_url}/poster/{cache_key}"
-
-        caption_text = f"Generated by <b>Poster Bot</b> 🎨\n\n🔗 <b>Link:</b> <a href=\"{direct_link}\">{direct_link}</a>"
-        markup = InlineKeyboardMarkup()
-        markup.add(InlineKeyboardButton(text="• Update •", url="https://t.me/Aero_Unity"))
-
-        card_io.seek(0)
-        bot.send_photo(message.chat.id, photo=card_io, caption=caption_text, parse_mode="HTML", reply_markup=markup)
-    except Exception as e:
-        bot.reply_to(message, f"⚠️ An error occurred: <code>{html.escape(str(e))}</code>", parse_mode="HTML")
-
+# ===================================================================== #
+# 11 COMMAND HANDLERS
+# ===================================================================== #
 
 @bot.message_handler(commands=['ani'])
 def handle_ani(message):
@@ -1961,7 +2108,7 @@ def handle_light(message):
     if not query:
         bot.reply_to(message, "⚠️ <b>Usage:</b> /light\n<b>Example:</b> <code>/light Naruto</code>", parse_mode="HTML")
         return
-    send_style_poster_response(message, "light", query, "AERO UNITY")
+    send_style_poster_response(message, "light", query, "ANIME CRUISE")
 
 @bot.message_handler(commands=['lightm'])
 def handle_lightm(message):
@@ -1969,7 +2116,7 @@ def handle_lightm(message):
     if not query:
         bot.reply_to(message, "⚠️ <b>Usage:</b> /lightm\n<b>Example:</b> <code>/lightm Naruto</code>", parse_mode="HTML")
         return
-    send_style_poster_response(message, "lightm", query, "MANGA AERO")
+    send_style_poster_response(message, "lightm", query, "MANGA CRUISE")
 
 @bot.message_handler(commands=['dark'])
 def handle_dark(message):
@@ -1977,7 +2124,7 @@ def handle_dark(message):
     if not query:
         bot.reply_to(message, "⚠️ <b>Usage:</b> /dark\n<b>Example:</b> <code>/dark Naruto</code>", parse_mode="HTML")
         return
-    send_style_poster_response(message, "dark", query, "WEBTOON AERO")
+    send_style_poster_response(message, "dark", query, "WEBTOON FLIX")
 
 @bot.message_handler(commands=['darkm'])
 def handle_darkm(message):
@@ -1985,7 +2132,7 @@ def handle_darkm(message):
     if not query:
         bot.reply_to(message, "⚠️ <b>Usage:</b> /darkm\n<b>Example:</b> <code>/darkm Naruto</code>", parse_mode="HTML")
         return
-    send_style_poster_response(message, "darkm", query, "WEBTOON AERO MANGA")
+    send_style_poster_response(message, "darkm", query, "WEBTOON FLIX MANGA")
 
 @bot.message_handler(commands=['netcr'])
 def handle_netcr(message):
