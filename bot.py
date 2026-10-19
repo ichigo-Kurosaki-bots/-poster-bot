@@ -103,8 +103,8 @@ HELP_PAGES = {
             "• <b>Indian:</b> <code>hindi</code>, <code>tamil</code>, <code>telugu</code>, <code>malayalam</code>, <code>kannada</code>, <code>bengali</code>, <code>marathi</code>, <code>punjabi</code>\n"
             "• <b>Global:</b> <code>english</code>, <code>spanish</code>, <code>french</code>, <code>german</code>, <code>italian</code>, <code>russian</code>, <code>portuguese</code>, <code>turkish</code>, <code>arabic</code>, <code>thai</code>\n\n"
             "<b>🎬 <u>IMDb Info Lookup:</u></b>\n"
-            "Use <code>/jhs [Title]</code> to get detailed poster info"
-            "Use <code>/imdb [Title]</code> to get detailed metadata cards and ratings."
+            "• Use <code>/jhs [Title]</code> to get detailed poster info\n"
+            "• Use <code>/imdb [Title]</code> to get detailed metadata cards and ratings."
         )
     }
 }
