@@ -1805,7 +1805,7 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
         draw.text((145, 560), "Add to List", fill=(255, 255, 255), font=get_font(14, bold=True))
 
         draw.rectangle([0, 680, target_w, 720], fill=(11, 22, 34))
-        draw.text((30, 688), "AL", fill=(255, 255, 255), font=get_font(22, bold=True))
+        draw.text((30, 688), "ANILIST", fill=(255, 255, 255), font=get_font(22, bold=True))
 
     # -------------------------------------------------------------
     # 3, 4 & 11. NETFLIX & NETFLIX X CRUNCHYROLL STYLE
@@ -1898,7 +1898,7 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
     # -------------------------------------------------------------
     # 6 & 7. LIGHT CRUISE STYLE (ANIME / MANGA CRUISE)
     # -------------------------------------------------------------
-    elif "CRUISE" in b_upper or "LIGHT" in b_upper:
+    elif "AERO" in b_upper or "LIGHT" in b_upper:
         canvas = Image.new("RGBA", (target_w, target_h), (255, 255, 255, 255))
         art_left = ImageOps.fit(raw_art, (640, target_h), method=Image.Resampling.LANCZOS)
         canvas.paste(art_left, (0, 0))
@@ -1916,7 +1916,7 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
         sub_type = f"STUDIO: {studio_name}"
         
         draw.text((680, 30), main_type, fill=(0, 0, 0), font=get_font(22, bold=True))
-        draw.text((770, 30), "CRUISE", fill=(80, 80, 80), font=get_font(22, bold=False))
+        draw.text((770, 30), "UNITY", fill=(80, 80, 80), font=get_font(22, bold=False))
         draw.text((910, 38), sub_type, fill=(140, 140, 140), font=get_font(11, bold=True))
 
         draw.text((680, 110), title.upper()[:22], fill=(10, 10, 10), font=get_font(48, bold=True))
@@ -2191,7 +2191,7 @@ def send_style_poster_response(message, cmd, query, branding_name):
         app_url = os.environ.get("RENDER_EXTERNAL_URL") or request.host_url.rstrip('/')
         direct_link = f"{app_url}/poster/{cache_key}"
 
-        caption_text = f"Powered By <b>@Aero_Unity</b>\n\n<b>Open Image:</b> <a href=\"{direct_link}\">click here</a>"
+        caption_text = f"<b>Powered By : @Aero_Unity</b>\n\n<b>Open Image:</b> <b><a href=\"{direct_link}\">Click here</a></b>"
         markup = InlineKeyboardMarkup()
         markup.add(InlineKeyboardButton(text=" ↗", url="https://t.me/Aero_Unity"))
 
