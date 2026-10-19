@@ -2102,7 +2102,7 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
         sub_type = f"STUDIO: {studio_name}"
         
         draw.text((680, 30), main_type, fill=(0, 0, 0), font=get_font(22, bold=True))
-        draw.text((790, 30), "UNITY", fill=(80, 80, 80), font=get_font(22, bold=False))
+        draw.text((775, 30), "UNITY", fill=(80, 80, 80), font=get_font(22, bold=False))
         draw.text((910, 38), sub_type, fill=(140, 140, 140), font=get_font(11, bold=True))
         draw.text((680, 110), title.upper()[:22], fill=(10, 10, 10), font=get_font(48, bold=True))
         draw.line([(680, 180), (1220, 180)], fill=(180, 180, 180), width=2)
@@ -2332,7 +2332,6 @@ def send_style_poster_response(message, cmd, query, branding_name):
         for comp in det_res.get("production_companies", []):
             collected_companies.append(comp.get("name", ""))
 
-        # Check if any known studio matches TMDb company names
         for comp_name in collected_companies:
             comp_lower = comp_name.lower()
             for key, mapped_name in KNOWN_STUDIOS.items():
@@ -2378,7 +2377,7 @@ def send_style_poster_response(message, cmd, query, branding_name):
 
         images = det_res.get("images", {})
         backdrops = [f"https://image.tmdb.org/t/p/original{i['file_path']}" for i in images.get("backdrops", [])[:8]]
-        posters = [f"https://image.tmdb.org/t/p/w500{i['file_path']}" for i in images.get("posters", [])[:2]]
+        posters = [f"https://image.tmdb.org/t/p/w500{i['file_path']}" for i in images.get("posters", [])[:3]]
 
         if not backdrops:
             path = item.get("backdrop_path") or item.get("poster_path")
@@ -2387,10 +2386,10 @@ def send_style_poster_response(message, cmd, query, branding_name):
         img_bytes = session.get(backdrops[0], timeout=5).content
         
         if not posters and backdrops:
-            posters = backdrops[:2]
+            posters = backdrops[:3]
 
         p_bytes_list = []
-        for p_url in posters[:2]:
+        for p_url in posters[:3]:
             try:
                 p_bytes_list.append(session.get(p_url, timeout=3).content)
             except Exception:
