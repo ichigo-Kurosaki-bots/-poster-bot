@@ -1,6 +1,9 @@
-# ===================================================================== #
-# HELP MENU DATA & PAGINATION SYSTEM
-# ===================================================================== #
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
 
 HELP_PAGES = {
     1: {
@@ -108,6 +111,13 @@ HELP_PAGES = {
         )
     }
 }
+
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
 
 def get_help_markup(current_page=1):
     markup = InlineKeyboardMarkup(row_width=4)
@@ -637,8 +647,7 @@ def handle_all_callbacks(call):
                 return
             except Exception as e:
                 print(f"Fast edit cache error: {e}")
-
-        # 2. RENDER: If not cached yet, generate PIL card with fast connection pool & rating parsing
+                
         try:
             img_bytes = session.get(artworks[current_index], timeout=4).content
             p_bytes_list = []
@@ -650,7 +659,6 @@ def handle_all_callbacks(call):
 
             genres_list = [g.strip() for g in data["genres"].split(",")]
             
-            # Convert percentage/rating to numerical score format (e.g., 8.4 / 10)
             raw_rating = data.get("rating", "8.4")
             if "%" in str(raw_rating):
                 try:
@@ -676,7 +684,6 @@ def handle_all_callbacks(call):
                 reply_markup=markup
             )
 
-            # Store Telegram's uploaded photo file_id for lightning-fast subsequent switches
             if edited_msg and edited_msg.photo:
                 if "file_ids" not in data:
                     data["file_ids"] = {}
@@ -1270,9 +1277,7 @@ def build_poster_page(search_id, index=0):
         ]
 
         caption = "\n".join(caption_lines)
-
         markup = telebot.types.InlineKeyboardMarkup()
-
         first_btn = telebot.types.InlineKeyboardButton(text="<<", callback_data=f"p_{search_id}_0")
         prev_idx = max(0, index - 1)
         prev_btn = telebot.types.InlineKeyboardButton(text="<", callback_data=f"p_{search_id}_{prev_idx}")
@@ -1280,9 +1285,7 @@ def build_poster_page(search_id, index=0):
         next_idx = min(total - 1, index + 1)
         next_btn = telebot.types.InlineKeyboardButton(text=">", callback_data=f"p_{search_id}_{next_idx}")
         last_btn = telebot.types.InlineKeyboardButton(text=">>", callback_data=f"p_{search_id}_{total-1}")
-
         markup.row(first_btn, prev_btn, count_btn, next_btn, last_btn)
-
         aero_button = telebot.types.InlineKeyboardButton(text="• ᴀᴇʀᴏ ᴜɴɪᴛʏ •", url="https://t.me/Aero_Unity")
         open_image_button = telebot.types.InlineKeyboardButton(text="• ᴏᴘᴇɴ ɪᴍᴀɢᴇ •", url=landscape_url)
         markup.row(aero_button, open_image_button)
@@ -1863,10 +1866,6 @@ def manga_command_handler(message):
 # Support : @Coders_Grp 
 # ------------------------ #
 
-# ===================================================================== #
-# MEDIA CARD GENERATOR WITH ADVANCED MEDIA TYPE & STUDIO DETECTION
-# ===================================================================== #
-
 def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres, synopsis, rating_val="8.4", logo_url=None, branding="ANILIST ANIME", extra_meta=None):
     target_w, target_h = 1280, 720
     b_upper = branding.upper()
@@ -1881,6 +1880,13 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
         match_pct = int(float(vote_average) * 10)
     except Exception:
         match_pct = 84
+        
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
 
     def get_font(size, bold=False):
         font_paths = [
@@ -1900,15 +1906,19 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
         base_backdrop = ImageOps.fit(raw_art, (target_w, target_h), method=Image.Resampling.LANCZOS)
     except Exception:
         base_backdrop = Image.new("RGBA", (target_w, target_h), (15, 15, 20, 255))
-
-    # -------------------------------------------------------------
-    # 1 & 2. ANILIST ANIME / MANGA STYLE
-    # -------------------------------------------------------------
+    
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+    
     if "ANILIST" in b_upper:
         bg_color = (21, 31, 46, 255) if "ANIME" in b_upper else (15, 23, 36, 255)
         canvas = Image.new("RGBA", (target_w, target_h), bg_color)
         
-        top_banner = base_backdrop.resize((target_w, 380), Image.Resampling.LANCZOS)
+        top_banner = ImageOps.fit(raw_art, (target_w, 380), method=Image.Resampling.LANCZOS)
         canvas.paste(top_banner, (0, 0))
         
         grad = Image.new("RGBA", (target_w, 380), (0, 0, 0, 0))
@@ -1957,13 +1967,16 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
 
         draw.rounded_rectangle([120, 550, 290, 590], radius=4, fill=(61, 180, 242))
         draw.text((145, 560), "Add to List", fill=(255, 255, 255), font=get_font(14, bold=True))
-
         draw.rectangle([0, 680, target_w, 720], fill=(11, 22, 34))
         draw.text((30, 688), "ANILIST", fill=(255, 255, 255), font=get_font(22, bold=True))
-
-    # -------------------------------------------------------------
-    # 3, 4 & 11. NETFLIX & NETFLIX X CRUNCHYROLL STYLE
-    # -------------------------------------------------------------
+  
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+    
     elif "NETFLIX" in b_upper:
         canvas = base_backdrop.copy()
         vignette = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 0))
@@ -1977,10 +1990,8 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
             
         canvas.alpha_composite(vignette)
         draw = ImageDraw.Draw(canvas)
-
         draw.text((60, 40), "N", fill=(229, 9, 20), font=get_font(48, bold=True))
         draw.text((60, 360), title, fill=(255, 255, 255), font=get_font(52, bold=True))
-
         match_str = f"{match_pct}% Match   {status_str}   {media_format}   HD"
         draw.text((60, 435), match_str, fill=(70, 211, 105), font=get_font(15, bold=True))
         draw.text((60, 465), " • ".join(genres[:4]), fill=(180, 180, 180), font=get_font(13, bold=False))
@@ -1999,15 +2010,17 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
 
         draw.rectangle([60, 570, 170, 610], fill=(255, 255, 255))
         draw.text((85, 582), "▶ Play", fill=(0, 0, 0), font=get_font(14, bold=True))
-
         draw.rectangle([180, 570, 300, 610], outline=(150, 150, 150), width=1)
         draw.text((198, 582), "+ My List", fill=(255, 255, 255), font=get_font(14, bold=True))
-
         draw.text((1180, 650), f"★ {rating_val}", fill=(255, 215, 0), font=get_font(18, bold=True))
 
-    # -------------------------------------------------------------
-    # 5. CRUNCHYROLL STYLE
-    # -------------------------------------------------------------
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+    
     elif "CRUNCHYROLL" in b_upper:
         canvas = base_backdrop.copy()
         top_bar = Image.new("RGBA", (target_w, 60), (18, 18, 18, 230))
@@ -2033,7 +2046,6 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
             fill_c = (244, 117, 33) if i < 4 else (120, 120, 120)
             draw.text((60 + (i * 26), 275), "★", fill=fill_c, font=get_font(18, bold=True))
         draw.text((200, 277), f"{rating_val} ({match_pct}%)", fill=(200, 200, 200), font=get_font(13, bold=False))
-
         draw.rectangle([60, 330, 280, 380], fill=(244, 117, 33))
         draw.text((85, 345), "▶  START WATCHING", fill=(255, 255, 255), font=get_font(14, bold=True))
 
@@ -2049,9 +2061,13 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
             draw.text((60, sy), line, fill=(220, 220, 220), font=get_font(14, bold=False))
             sy += 22
 
-    # -------------------------------------------------------------
-    # 6 & 7. LIGHT CRUISE STYLE (ANIME / MANGA CRUISE)
-    # -------------------------------------------------------------
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+    
     elif "AERO" in b_upper or "LIGHT" in b_upper:
         canvas = Image.new("RGBA", (target_w, target_h), (255, 255, 255, 255))
         art_left = ImageOps.fit(raw_art, (640, target_h), method=Image.Resampling.LANCZOS)
@@ -2072,7 +2088,6 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
         draw.text((680, 30), main_type, fill=(0, 0, 0), font=get_font(22, bold=True))
         draw.text((840, 30), "AERO UNITY", fill=(80, 80, 80), font=get_font(22, bold=False))
         draw.text((910, 38), sub_type, fill=(140, 140, 140), font=get_font(11, bold=True))
-
         draw.text((680, 110), title.upper()[:22], fill=(10, 10, 10), font=get_font(48, bold=True))
         draw.line([(680, 180), (1220, 180)], fill=(180, 180, 180), width=2)
 
@@ -2091,7 +2106,6 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
         btn_color = (200, 30, 30) if is_manga else (20, 20, 20)
         draw.rounded_rectangle([680, 340, 830, 385], radius=22, fill=btn_color)
         draw.text((708, 353), "READ NOW" if is_manga else "WATCH NOW", fill=(255, 255, 255), font=get_font(12, bold=True))
-
         draw.ellipse([850, 340, 895, 385], fill=btn_color)
         draw.polygon([(868, 353), (878, 353), (878, 372), (873, 367), (868, 372)], fill=(255, 255, 255))
         draw.line([(680, 410), (1220, 410)], fill=(200, 200, 200), width=2)
@@ -2113,9 +2127,13 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
         draw.ellipse([910, 535, 990, 615], fill=(230, 50, 50))
         draw.text((940, 555), "+", fill=(255, 255, 255), font=get_font(28, bold=True))
 
-    # -------------------------------------------------------------
-    # 8. WEBTOON FLIX (DARK PLUM STYLE)
-    # -------------------------------------------------------------
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+    
     elif "WEBTOON" in b_upper or "DARK" in b_upper:
         is_darkm = "MANGA" in b_upper or "DARKM" in b_upper
         bg_color = (35, 10, 25, 255) if is_darkm else (55, 10, 35, 255)
@@ -2129,7 +2147,6 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
         header_tag = f"STATUS: {status_str}"
         draw.text((60, 45), "AERO UNITY", fill=(255, 255, 255), font=get_font(24, bold=True))
         draw.text((320, 50), header_tag, fill=(255, 255, 255), font=get_font(12, bold=True))
-
         draw.rounded_rectangle([60, 100, 600, 250], radius=20, fill=(75, 15, 48, 255))
         draw.text((90, 130), title.upper()[:20], fill=(255, 255, 255), font=get_font(38, bold=True))
 
@@ -2158,9 +2175,13 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
         draw.rounded_rectangle([210, 530, 450, 580], radius=25, fill=(255, 255, 255))
         draw.text((275 if is_darkm else 265, 548), btn_label, fill=(55, 10, 35), font=get_font(14, bold=True))
 
-    # -------------------------------------------------------------
-    # 9 & 10. MODERN AERO STYLE
-    # -------------------------------------------------------------
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+    
     else:
         canvas = base_backdrop.copy()
         overlay = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 160))
@@ -2178,11 +2199,10 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
 
         draw.text((60, 125), title.upper(), fill=(255, 255, 255), font=get_font(48, bold=True))
         draw.text((60, 185), f"FORMAT: {media_format}", fill=(255, 180, 0), font=get_font(20, bold=True))
-
         draw.text((60, 240), "INFORMATION", fill=(255, 80, 80), font=get_font(16, bold=True))
         draw.text((60, 270), f"> STUDIO : {studio_name}\n> STATUS : {status_str}\n> RATING : {rating_val}/10", fill=(220, 220, 220), font=get_font(14, bold=False))
-
         draw.rounded_rectangle([850, 60, 1180, 220], radius=15, fill=(20, 20, 30, 200))
+      
         try:
             raw_p = Image.open(io.BytesIO(portrait_bytes_list[0])).convert("RGBA") if portrait_bytes_list else raw_art
             p_crop = ImageOps.fit(raw_p, (310, 140), method=Image.Resampling.LANCZOS)
@@ -2211,6 +2231,13 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
     canvas.convert("RGB").save(output, format="JPEG", quality=95)
     output.seek(0)
     return output
+
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
 
 def send_style_poster_response(message, cmd, query, branding_name):
     style_names = {
@@ -2265,7 +2292,6 @@ def send_style_poster_response(message, cmd, query, branding_name):
         synopsis = det_res.get("overview") or item.get("overview") or "No synopsis available."
         vote_avg = det_res.get("vote_average", 8.4)
 
-        # Expanded list of target animation studios to check against TMDb production companies/networks
         KNOWN_STUDIOS = {
             "co-mix wave films": "CoMix Wave Films",
             "comix wave films": "CoMix Wave Films",
@@ -2303,7 +2329,6 @@ def send_style_poster_response(message, cmd, query, branding_name):
         if studio_str == "N/A" and collected_companies:
             studio_str = collected_companies[0]
 
-        # Automatically detect Format: Anime, Manga, Manhwa, Manhua, or Pornhwas based on genres, keywords, or original language/country
         origin_countries = det_res.get("origin_country", [])
         original_language = det_res.get("original_language", "")
         keywords = [k.get("name", "").lower() for k in det_res.get("keywords", {}).get("results", [])]
@@ -2319,8 +2344,8 @@ def send_style_poster_response(message, cmd, query, branding_name):
         elif any("adult" in g or "hentai" in g or "ecchi" in g for g in genre_names_lower):
             media_format = "PORNHWA"
 
-        # Automatically extract official release status from TMDb response and translate to Finished / Ongoing
         raw_status = det_res.get("status", "Unknown").lower()
+        
         if "ended" in raw_status or "returned" in raw_status or "released" in raw_status or "completed" in raw_status:
             status_str = "FINISHED"
         elif "returning" in raw_status or "in production" in raw_status or "ongoing" in raw_status or "planned" in raw_status:
@@ -2398,9 +2423,12 @@ def send_style_poster_response(message, cmd, query, branding_name):
             pass
         bot.reply_to(message, f"⚠️ An error occurred: <code>{html.escape(str(e))}</code>", parse_mode="HTML")
 
-# ===================================================================== #
-# 11 COMMAND HANDLERS
-# ===================================================================== #
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
 
 @bot.message_handler(commands=['ani'])
 def handle_ani(message):
@@ -2410,6 +2438,13 @@ def handle_ani(message):
         return
     send_style_poster_response(message, "ani", query, "ANILIST ANIME")
 
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
 @bot.message_handler(commands=['anim'])
 def handle_anim(message):
     query = message.text.replace("/anim", "").strip()
@@ -2417,6 +2452,13 @@ def handle_anim(message):
         bot.reply_to(message, "⚠️ <b>Usage:</b> /anim\n<b>Example:</b> <code>/anim Naruto</code>", parse_mode="HTML")
         return
     send_style_poster_response(message, "anim", query, "ANILIST MANGA")
+
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
 
 @bot.message_handler(commands=['crun'])
 def handle_crun(message):
@@ -2426,6 +2468,13 @@ def handle_crun(message):
         return
     send_style_poster_response(message, "crun", query, "CRUNCHYROLL")
 
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
 @bot.message_handler(commands=['net'])
 def handle_net(message):
     query = message.text.replace("/net", "").strip()
@@ -2433,6 +2482,13 @@ def handle_net(message):
         bot.reply_to(message, "⚠️ <b>Usage:</b> /net\n<b>Example:</b> <code>/net Naruto</code>", parse_mode="HTML")
         return
     send_style_poster_response(message, "net", query, "NETFLIX ANIME")
+
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
 
 @bot.message_handler(commands=['netm'])
 def handle_netm(message):
@@ -2442,6 +2498,13 @@ def handle_netm(message):
         return
     send_style_poster_response(message, "netm", query, "NETFLIX MANGA")
 
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
 @bot.message_handler(commands=['light'])
 def handle_light(message):
     query = message.text.replace("/light", "").strip()
@@ -2449,6 +2512,13 @@ def handle_light(message):
         bot.reply_to(message, "⚠️ <b>Usage:</b> /light\n<b>Example:</b> <code>/light Naruto</code>", parse_mode="HTML")
         return
     send_style_poster_response(message, "light", query, "ANIME AERO UNITY")
+
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
 
 @bot.message_handler(commands=['lightm'])
 def handle_lightm(message):
@@ -2458,6 +2528,13 @@ def handle_lightm(message):
         return
     send_style_poster_response(message, "lightm", query, "MANGA AERO LIGHTM")
 
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
 @bot.message_handler(commands=['dark'])
 def handle_dark(message):
     query = message.text.replace("/dark", "").strip()
@@ -2465,6 +2542,13 @@ def handle_dark(message):
         bot.reply_to(message, "⚠️ <b>Usage:</b> /dark\n<b>Example:</b> <code>/dark Naruto</code>", parse_mode="HTML")
         return
     send_style_poster_response(message, "dark", query, "WEBTOON FLIX")
+
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
 
 @bot.message_handler(commands=['darkm'])
 def handle_darkm(message):
@@ -2474,6 +2558,13 @@ def handle_darkm(message):
         return
     send_style_poster_response(message, "darkm", query, "WEBTOON FLIX DARKM")
 
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
 @bot.message_handler(commands=['netcr'])
 def handle_netcr(message):
     query = message.text.replace("/netcr", "").strip()
@@ -2481,6 +2572,13 @@ def handle_netcr(message):
         bot.reply_to(message, "⚠️ <b>Usage:</b> /netcr\n<b>Example:</b> <code>/netcr Naruto</code>", parse_mode="HTML")
         return
     send_style_poster_response(message, "netcr", query, "NETFLIX X CRUNCHYROLL")
+
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
 
 @bot.message_handler(commands=['mod'])
 def handle_mod(message):
@@ -2490,6 +2588,13 @@ def handle_mod(message):
         return
     send_style_poster_response(message, "mod", query, "MODERN AERO UNITY -->")
 
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
 @bot.message_handler(commands=['modm'])
 def handle_modm(message):
     query = message.text.replace("/modm", "").strip()
@@ -2498,6 +2603,12 @@ def handle_modm(message):
         return
     send_style_poster_response(message, "modm", query, "MODERN MANGA AERO UNITY")
         
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
