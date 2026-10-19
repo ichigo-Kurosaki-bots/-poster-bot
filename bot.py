@@ -1713,9 +1713,21 @@ def manga_command_handler(message):
 # FULL 11-STYLE MEDIA CARD GENERATOR
 # ===================================================================== #
 
-def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres, synopsis, rating_val="8.4", logo_url=None, branding="ANILIST ANIME"):
+def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres, synopsis, rating_val="8.4", logo_url=None, branding="ANILIST ANIME", extra_meta=None):
     target_w, target_h = 1280, 720
     b_upper = branding.upper()
+    extra_meta = extra_meta or {}
+
+    # Dynamically fetched TMDB details
+    studio_name = extra_meta.get("studio", "MAPPA").upper()
+    status_str = extra_meta.get("status", "FINISHED").upper()
+    vote_average = extra_meta.get("vote_average", 8.4)
+    
+    # Calculate percentage match (e.g. 8.4 -> 84% Match)
+    try:
+        match_pct = int(float(vote_average) * 10)
+    except Exception:
+        match_pct = 96
 
     def get_font(size, bold=False):
         font_paths = [
@@ -1744,11 +1756,9 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
         bg_color = (21, 31, 46, 255) if "ANIME" in b_upper else (15, 23, 36, 255)
         canvas = Image.new("RGBA", (target_w, target_h), bg_color)
         
-        # Banner backdrop top half
         top_banner = base_backdrop.resize((target_w, 380), Image.Resampling.LANCZOS)
         canvas.paste(top_banner, (0, 0))
         
-        # Dark overlay gradient
         grad = Image.new("RGBA", (target_w, 380), (0, 0, 0, 0))
         g_draw = ImageDraw.Draw(grad)
         for y in range(380):
@@ -1757,7 +1767,6 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
 
         draw = ImageDraw.Draw(canvas)
 
-        # Left Floating Poster Artwork
         try:
             raw_p = Image.open(io.BytesIO(portrait_bytes_list[0])).convert("RGBA") if portrait_bytes_list else raw_art
             p_img = ImageOps.fit(raw_p, (210, 310), method=Image.Resampling.LANCZOS)
@@ -1765,14 +1774,12 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
         except Exception:
             pass
 
-        # Text Details
         font_title = get_font(36, bold=True)
         font_sub = get_font(14, bold=False)
         font_pill = get_font(12, bold=True)
 
         draw.text((360, 290), title, fill=(255, 255, 255), font=font_title)
 
-        # Genre Pills
         gx, gy = 360, 345
         for g in genres[:4]:
             pill_txt = str(g).upper()
@@ -1781,11 +1788,9 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
             draw.text((gx + 8, gy + 4), pill_txt, fill=(255, 255, 255), font=font_pill)
             gx += pw + 10
 
-        # Specs line
-        specs = f"TV • 220 Eps  •  ★ {rating_val}  •  Finished" if "ANIME" in b_upper else f"MANGA • 700 Chs  •  ★ {rating_val}  •  Finished"
+        specs = f"TV • 220 Eps  •  ★ {rating_val}  •  {status_str}" if "ANIME" in b_upper else f"MANGA • 700 Chs  •  ★ {rating_val}  •  {status_str}"
         draw.text((360, 385), specs, fill=(143, 160, 179), font=font_sub)
 
-        # Synopsis
         words = synopsis.split()
         lines, curr = [], ""
         for w in words:
@@ -1798,11 +1803,9 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
             draw.text((360, sy), line, fill=(160, 175, 195), font=font_sub)
             sy += 20
 
-        # Add To List Button
         draw.rounded_rectangle([120, 550, 290, 590], radius=4, fill=(61, 180, 242))
         draw.text((145, 560), "Add to List", fill=(255, 255, 255), font=get_font(14, bold=True))
 
-        # Bottom AL Logo Bar
         draw.rectangle([0, 680, target_w, 720], fill=(11, 22, 34))
         draw.text((30, 688), "AL", fill=(255, 255, 255), font=get_font(22, bold=True))
 
@@ -1812,7 +1815,6 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
     elif "NETFLIX" in b_upper:
         canvas = base_backdrop.copy()
         
-        # Dark Left Vignette Overlay
         vignette = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 0))
         v_draw = ImageDraw.Draw(vignette)
         for x in range(750):
@@ -1825,20 +1827,13 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
         canvas.alpha_composite(vignette)
         draw = ImageDraw.Draw(canvas)
 
-        # Red N Logo
         draw.text((60, 40), "N", fill=(229, 9, 20), font=get_font(48, bold=True))
-
-        # Title
         draw.text((60, 360), title, fill=(255, 255, 255), font=get_font(52, bold=True))
 
-        # Green Match percentage line
-        match_str = f"96% Match   2024   TV-14   24 Episodes HD"
+        match_str = f"{match_pct}% Match   2024   TV-14   24 Episodes HD"
         draw.text((60, 435), match_str, fill=(70, 211, 105), font=get_font(15, bold=True))
-
-        # Genres line
         draw.text((60, 465), " • ".join(genres[:4]), fill=(180, 180, 180), font=get_font(13, bold=False))
 
-        # Synopsis
         words = synopsis.split()
         lines, curr = [], ""
         for w in words:
@@ -1851,14 +1846,12 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
             draw.text((60, sy), line, fill=(200, 200, 200), font=get_font(13, bold=False))
             sy += 18
 
-        # Play / My List Buttons
         draw.rectangle([60, 570, 170, 610], fill=(255, 255, 255))
         draw.text((85, 582), "▶ Play", fill=(0, 0, 0), font=get_font(14, bold=True))
 
         draw.rectangle([180, 570, 300, 610], outline=(150, 150, 150), width=1)
         draw.text((198, 582), "+ My List", fill=(255, 255, 255), font=get_font(14, bold=True))
 
-        # Bottom Rating Badge
         draw.text((1180, 650), f"★ {rating_val}", fill=(255, 215, 0), font=get_font(18, bold=True))
 
     # -------------------------------------------------------------
@@ -1867,7 +1860,6 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
     elif "CRUNCHYROLL" in b_upper:
         canvas = base_backdrop.copy()
         
-        # Header
         top_bar = Image.new("RGBA", (target_w, 60), (18, 18, 18, 230))
         canvas.paste(top_bar, (0, 0), top_bar)
         draw = ImageDraw.Draw(canvas)
@@ -1876,31 +1868,26 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
         draw.ellipse([28, 21, 42, 35], fill=(18, 18, 18))
         draw.ellipse([34, 24, 42, 32], fill=(244, 117, 33))
 
-        # Dark gradient bottom
         gradient = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 0))
         g_draw = ImageDraw.Draw(gradient)
         for y in range(250, target_h):
             g_draw.line([(0, y), (target_w, y)], fill=(0, 0, 0, int(230 * ((y - 250) / 470))))
         canvas.alpha_composite(gradient)
 
-        # Content
         draw.text((60, 160), title, fill=(255, 255, 255), font=get_font(42, bold=True))
         
         draw.rounded_rectangle([60, 230, 130, 258], radius=4, fill=(50, 50, 50, 200))
         draw.text((70, 235), "U/A 16+", fill=(200, 200, 200), font=get_font(13, bold=False))
         draw.text((140, 235), " • " + ", ".join(genres[:3]), fill=(200, 200, 200), font=get_font(13, bold=False))
 
-        # Stars
         for i in range(5):
             fill_c = (244, 117, 33) if i < 4 else (120, 120, 120)
             draw.text((60 + (i * 26), 275), "★", fill=fill_c, font=get_font(18, bold=True))
-        draw.text((200, 277), f"4.8 ({rating_val}K)", fill=(200, 200, 200), font=get_font(13, bold=False))
+        draw.text((200, 277), f"{rating_val} ({match_pct}%)", fill=(200, 200, 200), font=get_font(13, bold=False))
 
-        # Button
         draw.rectangle([60, 330, 280, 380], fill=(244, 117, 33))
         draw.text((85, 345), "▶  START WATCHING", fill=(255, 255, 255), font=get_font(14, bold=True))
 
-        # Synopsis
         words = synopsis.split()
         lines, curr = [], ""
         for w in words:
@@ -1919,7 +1906,6 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
     elif "CRUISE" in b_upper or "LIGHT" in b_upper:
         canvas = Image.new("RGBA", (target_w, target_h), (255, 255, 255, 255))
         
-        # FULL LEFT HALF COVERAGE (640x720)
         art_left = ImageOps.fit(raw_art, (640, target_h), method=Image.Resampling.LANCZOS)
         canvas.paste(art_left, (0, 0))
 
@@ -2032,15 +2018,12 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
     else:
         canvas = base_backdrop.copy()
         
-        # Dark Overlay
         overlay = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 160))
         canvas.alpha_composite(overlay)
         draw = ImageDraw.Draw(canvas)
 
-        # Header watermark
         draw.text((60, 40), "AERO_UNITY", fill=(255, 255, 255), font=get_font(18, bold=True))
 
-        # Genre Tags
         gx = 60
         for g in genres[:3]:
             pw = max(80, len(g) * 8 + 20)
@@ -2048,15 +2031,12 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
             draw.text((gx + 12, 83), g.upper(), fill=(255, 255, 255), font=get_font(12, bold=True))
             gx += pw + 10
 
-        # Title
         draw.text((60, 125), title.upper(), fill=(255, 255, 255), font=get_font(48, bold=True))
         draw.text((60, 185), "FALL 2024", fill=(255, 180, 0), font=get_font(20, bold=True))
 
-        # Information Box
         draw.text((60, 240), "INFORMATION", fill=(255, 80, 80), font=get_font(16, bold=True))
-        draw.text((60, 270), f"> STUDIO : MAPPA\n> STATUS : FINISHED\n> RATING : {rating_val}/10", fill=(220, 220, 220), font=get_font(14, bold=False))
+        draw.text((60, 270), f"> STUDIO : {studio_name}\n> STATUS : {status_str}\n> RATING : {rating_val}/10", fill=(220, 220, 220), font=get_font(14, bold=False))
 
-        # Right Glass Character Preview Card
         draw.rounded_rectangle([850, 60, 1180, 220], radius=15, fill=(20, 20, 30, 200))
         try:
             raw_p = Image.open(io.BytesIO(portrait_bytes_list[0])).convert("RGBA") if portrait_bytes_list else raw_art
@@ -2065,7 +2045,6 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
         except Exception:
             pass
 
-        # Right Overview
         draw.text((850, 240), "CHARACTER PREVIEW", fill=(255, 255, 255), font=get_font(18, bold=True))
         draw.text((850, 300), "OVERVIEW", fill=(255, 140, 0), font=get_font(16, bold=True))
 
@@ -2095,7 +2074,7 @@ def send_style_poster_response(message, cmd, query, branding_name):
     
     try:
         res = session.get(search_url, timeout=5).json()
-        results = [r for r in res.get("results", []) if r.get("media_type"] in ["tv", "movie"]]
+        results = [r for r in res.get("results", []) if r.get("media_type") in ["tv", "movie"]]
 
         if not results:
             bot.reply_to(message, f"<b>❌ Not Found.</b>\nCould not find content for <b>{html.escape(query)}</b>.", parse_mode="HTML")
@@ -2113,6 +2092,19 @@ def send_style_poster_response(message, cmd, query, branding_name):
         genres_list = [g["name"] for g in det_res.get("genres", [])]
         synopsis = det_res.get("overview") or item.get("overview") or "No synopsis available."
         vote_avg = det_res.get("vote_average", 8.4)
+
+        # Automatically extract studio names from TMDb production companies
+        production_companies = det_res.get("production_companies", [])
+        studio_str = production_companies[0].get("name", "MAPPA") if production_companies else "MAPPA"
+
+        # Automatically extract release status from TMDb metadata
+        status_str = det_res.get("status", "Finished")
+
+        extra_metadata = {
+            "studio": studio_str,
+            "status": status_str,
+            "vote_average": vote_avg
+        }
 
         images = det_res.get("images", {})
         backdrops = [f"https://image.tmdb.org/t/p/original{i['file_path']}" for i in images.get("backdrops", [])[:8]]
@@ -2140,7 +2132,8 @@ def send_style_poster_response(message, cmd, query, branding_name):
             synopsis=synopsis,
             rating_val=round(vote_avg, 1) if vote_avg else "8.4",
             logo_url=logo_url,
-            branding=branding_name
+            branding=branding_name,
+            extra_meta=extra_metadata
         )
 
         cache_key = f"{item_id}_{cmd}"
@@ -2151,7 +2144,7 @@ def send_style_poster_response(message, cmd, query, branding_name):
         app_url = os.environ.get("RENDER_EXTERNAL_URL") or request.host_url.rstrip('/')
         direct_link = f"{app_url}/poster/{cache_key}"
 
-        caption_text = f"Powered By<b>@Aero_Unity</b>\n\n<b>Open Image:</b> <a href=\"{direct_link}\">click here</a>"
+        caption_text = f"Powered By <b>@Aero_Unity</b>\n\n<b>Open Image:</b> <a href=\"{direct_link}\">click here</a>"
         markup = InlineKeyboardMarkup()
         markup.add(InlineKeyboardButton(text=" ↗", url="https://t.me/Aero_Unity"))
 
