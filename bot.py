@@ -1709,14 +1709,18 @@ def manga_command_handler(message):
 # Support : @Coders_Grp 
 # ------------------------ #
 
+# ===================================================================== #
+# MEDIA CARD GENERATOR WITH ADVANCED MEDIA TYPE & STUDIO DETECTION
+# ===================================================================== #
+
 def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres, synopsis, rating_val="8.4", logo_url=None, branding="ANILIST ANIME", extra_meta=None):
     target_w, target_h = 1280, 720
     b_upper = branding.upper()
     extra_meta = extra_meta or {}
 
-    # Dynamically fetched TMDB details
-    studio_name = extra_meta.get("studio", "").upper()
-    status_str = extra_meta.get("status", "").upper()
+    studio_name = extra_meta.get("studio", "N/A").upper()
+    status_str = extra_meta.get("status", "N/A").upper()
+    media_format = extra_meta.get("media_format", "ANIME").upper() # ANIME, MANGA, MANHWA, MANHUA, etc.
     vote_average = extra_meta.get("vote_average", 8.4)
     
     try:
@@ -1782,7 +1786,7 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
             draw.text((gx + 8, gy + 4), pill_txt, fill=(255, 255, 255), font=font_pill)
             gx += pw + 10
 
-        specs = f"TV • 220 Eps  •  ★ {rating_val}  •  {status_str}" if "ANIME" in b_upper else f"MANGA • 700 Chs  •  ★ {rating_val}  •  {status_str}"
+        specs = f"{media_format} • ★ {rating_val}  •  {status_str}"
         draw.text((360, 385), specs, fill=(143, 160, 179), font=font_sub)
 
         words = synopsis.split()
@@ -1823,7 +1827,7 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
         draw.text((60, 40), "N", fill=(229, 9, 20), font=get_font(48, bold=True))
         draw.text((60, 360), title, fill=(255, 255, 255), font=get_font(52, bold=True))
 
-        match_str = f"{match_pct}% Match   2024   TV-14   24 Episodes HD"
+        match_str = f"{match_pct}% Match   {status_str}   {media_format}   HD"
         draw.text((60, 435), match_str, fill=(70, 211, 105), font=get_font(15, bold=True))
         draw.text((60, 465), " • ".join(genres[:4]), fill=(180, 180, 180), font=get_font(13, bold=False))
 
@@ -1868,7 +1872,7 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
 
         draw.text((60, 160), title, fill=(255, 255, 255), font=get_font(42, bold=True))
         draw.rounded_rectangle([60, 230, 130, 258], radius=4, fill=(50, 50, 50, 200))
-        draw.text((70, 235), "U/A 16+", fill=(200, 200, 200), font=get_font(13, bold=False))
+        draw.text((70, 235), f"{status_str}", fill=(200, 200, 200), font=get_font(13, bold=False))
         draw.text((140, 235), " • " + ", ".join(genres[:3]), fill=(200, 200, 200), font=get_font(13, bold=False))
 
         for i in range(5):
@@ -1907,9 +1911,9 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
 
         draw = ImageDraw.Draw(canvas)
 
-        is_manga = "MANGA" in b_upper or "LIGHTM" in b_upper
-        main_type = "MANGA" if is_manga else "ANIME"
-        sub_type = "CRUSH ALL VILLAINS WITHOUT MERCY" if is_manga else "STREAM THE ANIME PHENOMENON!"
+        is_manga = "MANGA" in b_upper or "LIGHTM" in b_upper or "MANHWA" in media_format
+        main_type = media_format
+        sub_type = f"STUDIO: {studio_name}"
         
         draw.text((680, 30), main_type, fill=(0, 0, 0), font=get_font(22, bold=True))
         draw.text((770, 30), "CRUISE", fill=(80, 80, 80), font=get_font(22, bold=False))
@@ -1968,7 +1972,7 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
 
         draw = ImageDraw.Draw(canvas)
 
-        header_tag = "CONQUER THE DARK BATTLEFIELD NOW" if is_darkm else "DOMINATE EVERY SINGLE FIERCE BATTLE"
+        header_tag = f"STATUS: {status_str}"
         draw.text((60, 45), "Webtoon Flix", fill=(255, 255, 255), font=get_font(24, bold=True))
         draw.text((320, 50), header_tag, fill=(255, 255, 255), font=get_font(12, bold=True))
 
@@ -2019,7 +2023,7 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
             gx += pw + 10
 
         draw.text((60, 125), title.upper(), fill=(255, 255, 255), font=get_font(48, bold=True))
-        draw.text((60, 185), "FALL 2024", fill=(255, 180, 0), font=get_font(20, bold=True))
+        draw.text((60, 185), f"FORMAT: {media_format}", fill=(255, 180, 0), font=get_font(20, bold=True))
 
         draw.text((60, 240), "INFORMATION", fill=(255, 80, 80), font=get_font(16, bold=True))
         draw.text((60, 270), f"> STUDIO : {studio_name}\n> STATUS : {status_str}\n> RATING : {rating_val}/10", fill=(220, 220, 220), font=get_font(14, bold=False))
@@ -2038,7 +2042,7 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
         words = synopsis.split()
         lines, curr = [], ""
         for w in words:
-            if len(curr + " " + w) < 35: curr += " " + w
+            if len(curr + " " +W if False else curr + " " + w) < 35: curr += " " + w
             else: lines.append(curr.strip()); curr = w
         if curr: lines.append(curr.strip())
 
@@ -2072,34 +2076,80 @@ def send_style_poster_response(message, cmd, query, branding_name):
         title = item.get("name") or item.get("title") or query
 
         endpoint = "movie" if media_type == "movie" else "tv"
-        details_url = f"https://api.themoviedb.org/3/{endpoint}/{item_id}?api_key={TMDB_API_KEY}&append_to_response=images"
+        details_url = f"https://api.themoviedb.org/3/{endpoint}/{item_id}?api_key={TMDB_API_KEY}&append_to_response=images,keywords"
         det_res = session.get(details_url, timeout=5).json()
 
         genres_list = [g["name"] for g in det_res.get("genres", [])]
         synopsis = det_res.get("overview") or item.get("overview") or "No synopsis available."
         vote_avg = det_res.get("vote_average", 8.4)
 
-        # Strictly extract studio/network from official TMDb response
-        studio_str = "N/A"
-        if endpoint == "tv":
-            networks = det_res.get("networks", [])
-            if networks:
-                studio_str = networks[0].get("name", "N/A")
-            else:
-                companies = det_res.get("production_companies", [])
-                if companies:
-                    studio_str = companies[0].get("name", "N/A")
-        else:
-            companies = det_res.get("production_companies", [])
-            if companies:
-                studio_str = companies[0].get("name", "N/A")
+        # Expanded list of target animation studios to check against TMDb production companies/networks
+        KNOWN_STUDIOS = {
+            "co-mix wave films": "CoMix Wave Films",
+            "comix wave films": "CoMix Wave Films",
+            "a-1 pictures": "A-1 Pictures",
+            "wit studio": "Wit Studio",
+            "toei animation": "Toei Animation",
+            "bones": "Studio Bones",
+            "studio bones": "Studio Bones",
+            "madhouse": "Madhouse",
+            "studio ghibli": "Studio Ghibli",
+            "ghibli": "Studio Ghibli",
+            "ufotable": "Ufotable",
+            "kyoto animation": "Kyoto Animation",
+            "mappa": "MAPPA"
+        }
 
-        # Strictly extract official release status from TMDb response
-        status_str = det_res.get("status", "N/A")
+        studio_str = "N/A"
+        collected_companies = []
+        if endpoint == "tv":
+            for net in det_res.get("networks", []):
+                collected_companies.append(net.get("name", ""))
+        for comp in det_res.get("production_companies", []):
+            collected_companies.append(comp.get("name", ""))
+
+        # Check if any known studio matches TMDb company names
+        for comp_name in collected_companies:
+            comp_lower = comp_name.lower()
+            for key, mapped_name in KNOWN_STUDIOS.items():
+                if key in comp_lower:
+                    studio_str = mapped_name
+                    break
+            if studio_str != "N/A":
+                break
+        
+        if studio_str == "N/A" and collected_companies:
+            studio_str = collected_companies[0]
+
+        # Automatically detect Format: Anime, Manga, Manhwa, Manhua, or Pornhwas based on genres, keywords, or original language/country
+        origin_countries = det_res.get("origin_country", [])
+        original_language = det_res.get("original_language", "")
+        keywords = [k.get("name", "").lower() for k in det_res.get("keywords", {}).get("results", [])]
+        genre_names_lower = [g.lower() for g in genres_list]
+
+        media_format = "ANIME"
+        if "manhwa" in keywords or "webtoon" in keywords or original_language == "ko" or "south korea" in str(origin_countries).lower():
+            media_format = "MANHWA"
+        elif "manhua" in keywords or original_language == "zh":
+            media_format = "MANHUA"
+        elif "manga" in keywords:
+            media_format = "MANGA"
+        elif any("adult" in g or "hentai" in g or "ecchi" in g for g in genre_names_lower):
+            media_format = "PORNHWA"
+
+        # Automatically extract official release status from TMDb response and translate to Finished / Ongoing
+        raw_status = det_res.get("status", "Unknown").lower()
+        if "ended" in raw_status or "returned" in raw_status or "released" in raw_status or "completed" in raw_status:
+            status_str = "FINISHED"
+        elif "returning" in raw_status or "in production" in raw_status or "ongoing" in raw_status or "planned" in raw_status:
+            status_str = "ONGOING"
+        else:
+            status_str = raw_status.upper() if raw_status else "FINISHED"
 
         extra_metadata = {
             "studio": studio_str,
             "status": status_str,
+            "media_format": media_format,
             "vote_average": vote_avg
         }
 
@@ -2150,6 +2200,106 @@ def send_style_poster_response(message, cmd, query, branding_name):
     except Exception as e:
         bot.reply_to(message, f"⚠️ An error occurred: <code>{html.escape(str(e))}</code>", parse_mode="HTML")
 
+# ===================================================================== #
+# 11 COMMAND HANDLERS
+# ===================================================================== #
+
+@bot.message_handler(commands=['ani'])
+def handle_ani(message):
+    query = message.text.replace("/ani", "").strip()
+    if not query:
+        bot.reply_to(message, "⚠️ <b>Usage:</b> /ani\n<b>Example:</b> <code>/ani Naruto</code>", parse_mode="HTML")
+        return
+    send_style_poster_response(message, "ani", query, "ANILIST ANIME")
+
+@bot.message_handler(commands=['anim'])
+def handle_anim(message):
+    query = message.text.replace("/anim", "").strip()
+    if not query:
+        bot.reply_to(message, "⚠️ <b>Usage:</b> /anim\n<b>Example:</b> <code>/anim Naruto</code>", parse_mode="HTML")
+        return
+    send_style_poster_response(message, "anim", query, "ANILIST MANGA")
+
+@bot.message_handler(commands=['crun'])
+def handle_crun(message):
+    query = message.text.replace("/crun", "").strip()
+    if not query:
+        bot.reply_to(message, "⚠️ <b>Usage:</b> /crun\n<b>Example:</b> <code>/crun Naruto</code>", parse_mode="HTML")
+        return
+    send_style_poster_response(message, "crun", query, "CRUNCHYROLL")
+
+@bot.message_handler(commands=['net'])
+def handle_net(message):
+    query = message.text.replace("/net", "").strip()
+    if not query:
+        bot.reply_to(message, "⚠️ <b>Usage:</b> /net\n<b>Example:</b> <code>/net Naruto</code>", parse_mode="HTML")
+        return
+    send_style_poster_response(message, "net", query, "NETFLIX ANIME")
+
+@bot.message_handler(commands=['netm'])
+def handle_netm(message):
+    query = message.text.replace("/netm", "").strip()
+    if not query:
+        bot.reply_to(message, "⚠️ <b>Usage:</b> /netm\n<b>Example:</b> <code>/netm Naruto</code>", parse_mode="HTML")
+        return
+    send_style_poster_response(message, "netm", query, "NETFLIX MANGA")
+
+@bot.message_handler(commands=['light'])
+def handle_light(message):
+    query = message.text.replace("/light", "").strip()
+    if not query:
+        bot.reply_to(message, "⚠️ <b>Usage:</b> /light\n<b>Example:</b> <code>/light Naruto</code>", parse_mode="HTML")
+        return
+    send_style_poster_response(message, "light", query, "ANIME AERO UNITY")
+
+@bot.message_handler(commands=['lightm'])
+def handle_lightm(message):
+    query = message.text.replace("/lightm", "").strip()
+    if not query:
+        bot.reply_to(message, "⚠️ <b>Usage:</b> /lightm\n<b>Example:</b> <code>/lightm Naruto</code>", parse_mode="HTML")
+        return
+    send_style_poster_response(message, "lightm", query, "MANGA AERO LIGHTM")
+
+@bot.message_handler(commands=['dark'])
+def handle_dark(message):
+    query = message.text.replace("/dark", "").strip()
+    if not query:
+        bot.reply_to(message, "⚠️ <b>Usage:</b> /dark\n<b>Example:</b> <code>/dark Naruto</code>", parse_mode="HTML")
+        return
+    send_style_poster_response(message, "dark", query, "WEBTOON FLIX")
+
+@bot.message_handler(commands=['darkm'])
+def handle_darkm(message):
+    query = message.text.replace("/darkm", "").strip()
+    if not query:
+        bot.reply_to(message, "⚠️ <b>Usage:</b> /darkm\n<b>Example:</b> <code>/darkm Naruto</code>", parse_mode="HTML")
+        return
+    send_style_poster_response(message, "darkm", query, "WEBTOON FLIX DARKM")
+
+@bot.message_handler(commands=['netcr'])
+def handle_netcr(message):
+    query = message.text.replace("/netcr", "").strip()
+    if not query:
+        bot.reply_to(message, "⚠️ <b>Usage:</b> /netcr\n<b>Example:</b> <code>/netcr Naruto</code>", parse_mode="HTML")
+        return
+    send_style_poster_response(message, "netcr", query, "NETFLIX X CRUNCHYROLL")
+
+@bot.message_handler(commands=['mod'])
+def handle_mod(message):
+    query = message.text.replace("/mod", "").strip()
+    if not query:
+        bot.reply_to(message, "⚠️ <b>Usage:</b> /mod\n<b>Example:</b> <code>/mod Jujutsu Kaisen</code>", parse_mode="HTML")
+        return
+    send_style_poster_response(message, "mod", query, "MODERN AERO UNITY -->")
+
+@bot.message_handler(commands=['modm'])
+def handle_modm(message):
+    query = message.text.replace("/modm", "").strip()
+    if not query:
+        bot.reply_to(message, "⚠️ <b>Usage:</b> /modm\n<b>Example:</b> <code>/modm Naruto</code>", parse_mode="HTML")
+        return
+    send_style_poster_response(message, "modm", query, "MODERN MANGA AERO UNITY")
+        
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
