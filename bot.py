@@ -1919,54 +1919,88 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
     elif "CRUISE" in b_upper or "LIGHT" in b_upper:
         canvas = Image.new("RGBA", (target_w, target_h), (255, 255, 255, 255))
         
-        # Left Half Artwork
-        art_left = ImageOps.fit(raw_art, (600, target_h), method=Image.Resampling.LANCZOS)
+        # FULL LEFT HALF COVERAGE (640x720)
+        art_left = ImageOps.fit(raw_art, (640, target_h), method=Image.Resampling.LANCZOS)
         canvas.paste(art_left, (0, 0))
+
+        grad_left = Image.new("RGBA", (640, 200), (0, 0, 0, 0))
+        g_draw_l = ImageDraw.Draw(grad_left)
+        for y in range(200):
+            g_draw_l.line([(0, y), (640, y)], fill=(0, 0, 0, int(180 * (y / 200))))
+        canvas.alpha_composite(grad_left, (0, 520))
 
         draw = ImageDraw.Draw(canvas)
 
-        # Right Header
-        draw.text((660, 30), "ANIME", fill=(0, 0, 0), font=get_font(20, bold=True))
-        draw.text((740, 30), "CRUISE", fill=(80, 80, 80), font=get_font(20, bold=False))
+        is_manga = "MANGA" in b_upper or "LIGHTM" in b_upper
+        main_type = "MANGA" if is_manga else "ANIME"
+        sub_type = "YOUR HUB FOR THE LATEST MANGA!" if is_manga else "YOUR HUB FOR THE LATEST ANIME!"
+        
+        draw.text((680, 30), main_type, fill=(0, 0, 0), font=get_font(22, bold=True))
+        draw.text((770, 30), "CRUISE", fill=(80, 80, 80), font=get_font(22, bold=False))
+        draw.text((910, 38), sub_type, fill=(140, 140, 140), font=get_font(11, bold=True))
 
-        # Title
-        draw.text((660, 120), title.upper(), fill=(10, 10, 10), font=get_font(44, bold=True))
-        draw.line([(660, 185), (1220, 185)], fill=(180, 180, 180), width=2)
+        draw.text((680, 110), title.upper()[:22], fill=(10, 10, 10), font=get_font(48, bold=True))
+        draw.line([(680, 180), (1220, 180)], fill=(180, 180, 180), width=2)
 
-        # Synopsis
         words = synopsis.split()
         lines, curr = [], ""
         for w in words:
-            if len(curr + " " + w) < 55: curr += " " + w
+            if len(curr + " " + w) < 52: curr += " " + w
             else: lines.append(curr.strip()); curr = w
         if curr: lines.append(curr.strip())
 
-        sy = 210
-        for line in lines[:7]:
-            draw.text((660, sy), line, fill=(60, 60, 60), font=get_font(14, bold=False))
+        sy = 205
+        for line in lines[:5]:
+            draw.text((680, sy), line, fill=(50, 50, 50), font=get_font(14, bold=False))
             sy += 22
 
-        # Watch Button
-        draw.rounded_rectangle([660, 410, 810, 455], radius=22, fill=(20, 20, 20))
-        draw.text((690, 423), "WATCH NOW", fill=(255, 255, 255), font=get_font(13, bold=True))
+        btn_color = (200, 30, 30) if is_manga else (20, 20, 20)
+        draw.rounded_rectangle([680, 340, 830, 385], radius=22, fill=btn_color)
+        draw.text((708, 353), "READ NOW" if is_manga else "WATCH NOW", fill=(255, 255, 255), font=get_font(12, bold=True))
+
+        draw.ellipse([850, 340, 895, 385], fill=btn_color)
+        draw.polygon([(868, 353), (878, 353), (878, 372), (873, 367), (868, 372)], fill=(255, 255, 255))
+
+        draw.line([(680, 410), (1220, 410)], fill=(200, 200, 200), width=2)
+
+        p_x = 780
+        for p_bytes in portrait_bytes_list[:3]:
+            try:
+                p_img = Image.open(io.BytesIO(p_bytes)).convert("RGBA")
+                p_cropped = ImageOps.fit(p_img, (90, 90), method=Image.Resampling.LANCZOS)
+                mask = Image.new('L', (90, 90), 0)
+                mask_draw = ImageDraw.Draw(mask)
+                mask_draw.rounded_rectangle([0, 0, 90, 90], radius=15, fill=255)
+                canvas.paste(p_cropped, (p_x, 440), mask)
+                p_x += 105
+            except Exception:
+                pass
+
+        draw.rounded_rectangle([750, 560, 1150, 610], radius=25, fill=(20, 20, 20))
+        draw.ellipse([910, 535, 990, 615], fill=(230, 50, 50))
+        draw.text((940, 555), "+", fill=(255, 255, 255), font=get_font(28, bold=True))
 
     # -------------------------------------------------------------
     # 8. WEBTOON FLIX (DARK PLUM STYLE)
     # -------------------------------------------------------------
     elif "WEBTOON" in b_upper or "DARK" in b_upper:
-        canvas = Image.new("RGBA", (target_w, target_h), (55, 10, 35, 255))
+        is_darkm = "MANGA" in b_upper or "DARKM" in b_upper
+        bg_color = (35, 10, 25, 255) if is_darkm else (55, 10, 35, 255)
         
-        # Right Half Artwork
+        canvas = Image.new("RGBA", (target_w, target_h), bg_color)
+        
         art_right = ImageOps.fit(raw_art, (620, target_h), method=Image.Resampling.LANCZOS)
         canvas.paste(art_right, (660, 0))
 
         draw = ImageDraw.Draw(canvas)
 
-        # Title Card Box
-        draw.rounded_rectangle([60, 100, 600, 250], radius=20, fill=(75, 15, 48, 255))
-        draw.text((90, 130), title.upper(), fill=(255, 255, 255), font=get_font(38, bold=True))
+        header_tag = "UNFOLD THE BEST OF MANGA!" if is_darkm else "UNFOLD THE BEST OF ANIME!"
+        draw.text((60, 45), "Webtoon Flix", fill=(255, 255, 255), font=get_font(24, bold=True))
+        draw.text((320, 50), header_tag, fill=(255, 255, 255), font=get_font(12, bold=True))
 
-        # Genre Pills
+        draw.rounded_rectangle([60, 100, 600, 250], radius=20, fill=(75, 15, 48, 255))
+        draw.text((90, 130), title.upper()[:20], fill=(255, 255, 255), font=get_font(38, bold=True))
+
         gx = 90
         for g in genres[:3]:
             pw = max(75, len(g) * 8 + 16)
@@ -1974,10 +2008,8 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
             draw.text((gx + 10, 197), g.upper(), fill=(55, 10, 35), font=get_font(11, bold=True))
             gx += pw + 10
 
-        # Synopsis Header
         draw.text((230, 290), "SYNOPSIS", fill=(255, 255, 255), font=get_font(24, bold=True))
 
-        # Synopsis
         words = synopsis.split()
         lines, curr = [], ""
         for w in words:
@@ -1990,9 +2022,9 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
             draw.text((60, sy), line, fill=(220, 190, 200), font=get_font(13, bold=False))
             sy += 20
 
-        # Button
+        btn_label = "READ NOW" if is_darkm else "WATCH NOW"
         draw.rounded_rectangle([210, 530, 450, 580], radius=25, fill=(255, 255, 255))
-        draw.text((275, 548), "WATCH NOW", fill=(55, 10, 35), font=get_font(14, bold=True))
+        draw.text((275 if is_darkm else 265, 548), btn_label, fill=(55, 10, 35), font=get_font(14, bold=True))
 
     # -------------------------------------------------------------
     # 9 & 10. MODERN AERO STYLE
@@ -2063,7 +2095,7 @@ def send_style_poster_response(message, cmd, query, branding_name):
     
     try:
         res = session.get(search_url, timeout=5).json()
-        results = [r for r in res.get("results", []) if r.get("media_type") in ["tv", "movie"]]
+        results = [r for r in res.get("results", []) if r.get("media_type"] in ["tv", "movie"]]
 
         if not results:
             bot.reply_to(message, f"<b>❌ Not Found.</b>\nCould not find content for <b>{html.escape(query)}</b>.", parse_mode="HTML")
@@ -2186,7 +2218,7 @@ def handle_lightm(message):
     if not query:
         bot.reply_to(message, "⚠️ <b>Usage:</b> /lightm\n<b>Example:</b> <code>/lightm Naruto</code>", parse_mode="HTML")
         return
-    send_style_poster_response(message, "lightm", query, "MANGA CRUISE")
+    send_style_poster_response(message, "lightm", query, "MANGA CRUISE LIGHTM")
 
 @bot.message_handler(commands=['dark'])
 def handle_dark(message):
@@ -2202,7 +2234,7 @@ def handle_darkm(message):
     if not query:
         bot.reply_to(message, "⚠️ <b>Usage:</b> /darkm\n<b>Example:</b> <code>/darkm Naruto</code>", parse_mode="HTML")
         return
-    send_style_poster_response(message, "darkm", query, "WEBTOON FLIX MANGA")
+    send_style_poster_response(message, "darkm", query, "WEBTOON FLIX DARKM")
 
 @bot.message_handler(commands=['netcr'])
 def handle_netcr(message):
@@ -2227,8 +2259,6 @@ def handle_modm(message):
         bot.reply_to(message, "⚠️ <b>Usage:</b> /modm\n<b>Example:</b> <code>/modm Naruto</code>", parse_mode="HTML")
         return
     send_style_poster_response(message, "modm", query, "MODERN MANGA AERO")
-
-
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
