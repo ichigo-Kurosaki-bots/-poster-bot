@@ -1,3 +1,103 @@
+# ===================================================================== #
+# HELP MENU DATA & PAGINATION SYSTEM
+# ===================================================================== #
+
+HELP_PAGES = {
+    1: {
+        "photo": "https://telegra.ph/file/2ab528ba65c23832cdcf6-4ff26f1b433ef961eb.jpg",
+        "caption": (
+            "<b>AniList Style — 1/7</b>\n"
+            "──────────────────────────────\n"
+            "A clean information-rich style mimicking the <code>AniList.co</code> interface.\n\n"
+            "<b>Usage:</b>\n"
+            "• Anime: <code>/ani Naruto</code>\n"
+            "• Manga: <code>/anim Berserk</code>"
+        )
+    },
+    2: {
+        "photo": "https://graph.org/file/283e03b08d8306b8d85af-8436c3be9697b2374c.jpg",
+        "caption": (
+            "<b>Netflix Style — 2/7</b>\n"
+            "──────────────────────────────\n"
+            "A cinematic style mimicking the Netflix UI. Features a vignette effect, N-logo, and 'Watch Now' buttons.\n\n"
+            "<b>Usage:</b>\n"
+            "• Anime: <code>/net Erased</code>\n"
+            "• Manga: <code>/netm Berserk</code>"
+        )
+    },
+    3: {
+        "photo": "https://graph.org/file/faf795187aa693e1024a4-746b376c8dcc889d4f.jpg",
+        "caption": (
+            "<b>Crunchyroll Style — 3/7</b>\n"
+            "──────────────────────────────\n"
+            "Vibrant orange and white design based on the Crunchyroll TV app. Features a large backdrop and season/episode info.\n\n"
+            "<b>Usage:</b>\n"
+            "• Anime: <code>/crun One Piece</code>\n"
+            "• Manga: <code>N/A</code>"
+        )
+    },
+    4: {
+        "photo": "https://telegra.ph/file/2ab528ba65c23832cdcf6-4ff26f1b433ef961eb.jpg",
+        "caption": (
+            "<b>Light Simple Style — 4/7</b>\n"
+            "──────────────────────────────\n"
+            "A clean, bright aesthetic. Great for manga with a white/paper-like feel.\n\n"
+            "<b>Usage:</b>\n"
+            "• Anime: <code>/light One Piece</code>\n"
+            "• Manga: <code>/lightm One Piece</code>"
+        )
+    },
+    5: {
+        "photo": "https://graph.org/file/283e03b08d8306b8d85af-8436c3be9697b2374c.jpg",
+        "caption": (
+            "<b>Dark Simple Style — 5/7</b>\n"
+            "──────────────────────────────\n"
+            "A sleek, dark mode design. High contrast and easy on the eyes.\n\n"
+            "<b>Usage:</b>\n"
+            "• Anime: <code>/dark Solo Leveling</code>\n"
+            "• Manga: <code>/darkm Solo Leveling</code>"
+        )
+    },
+    6: {
+        "photo": "https://graph.org/file/faf795187aa693e1024a4-746b376c8dcc889d4f.jpg",
+        "caption": (
+            "<b>Modern Style — 6/7</b>\n"
+            "──────────────────────────────\n"
+            "A customized modern layout with glassmorphism effects and clean typography.\n\n"
+            "<b>Usage:</b>\n"
+            "• Anime: <code>/mod Jujutsu Kaisen</code>\n"
+            "• Manga: <code>/modm Naruto</code>"
+        )
+    },
+    7: {
+        "photo": "https://telegra.ph/file/2ab528ba65c23832cdcf6-4ff26f1b433ef961eb.jpg",
+        "caption": (
+            "<b>Netflix x Crunchyroll — 7/7</b>\n"
+            "──────────────────────────────\n"
+            "A hybrid style combining Netflix layout with Crunchyroll colors and branding.\n\n"
+            "<b>Usage:</b>\n"
+            "• Anime: <code>/netcr Demon Slayer</code>\n"
+            "• Manga: <code>N/A</code>"
+        )
+    }
+}
+
+def get_help_markup(current_page=1):
+    markup = InlineKeyboardMarkup(row_width=4)
+    row_buttons = []
+    for p in range(1, 8):
+        btn_text = f"• {p} •" if p == current_page else str(p)
+        row_buttons.append(InlineKeyboardButton(text=btn_text, callback_data=f"help_page_{p}"))
+    
+    markup.add(*row_buttons[:4])
+    markup.add(*row_buttons[4:])
+    markup.row(
+        InlineKeyboardButton(text="🏠 Home", callback_data="help_home"),
+        InlineKeyboardButton(text="🗑 Close", callback_data="help_close")
+    )
+    return markup
+
+
 # ------------------------ #
 # Don't Remove My Credits
 # Owner: @Mr_Mohammed_29
@@ -166,40 +266,17 @@ def help_command(message):
         send_fsub_prompt(message.chat.id)
         return
 
-    help_text = (
-        "<b>📖 <u>How To Search & Use Aero Poster Bot</u></b>\n\n"
-        "<b>1️⃣ Direct Title Search:</b>\n"
-        "Just send any title to get poster images.\n"
-        "<i>Example:</i> <code>Doomsday</code>\n\n"
-        "<b>2️⃣ Title + Year Search:</b>\n"
-        "Narrow down to a specific release year.\n"
-        "<i>Example:</i> <code>Doomsday 2026</code>\n\n"
-        "<b>3️⃣ TV Series / Season Search:</b>\n"
-        "Specify the season number for TV shows.\n"
-        "<i>Example:</i> <code>The Mentalist S01</code> or <code>Stranger Things Season 2</code>\n\n"
-        "<b>4️⃣ Language & Regional Search:</b>\n"
-        "Add a language tag anywhere in your query to filter regional movies/dramas.\n"
-        "<i>Example:</i> <code>Crush Kdrama</code>, <code>Crush 2024 Chi</code>, or <code>Doomsday English</code>\n\n"
-        "<b>🌐 <u>Supported Language Keywords:</u></b>\n"
-        "• <b>Korean:</b> <code>kdrama</code>, <code>k-drama</code>, <code>korean</code>, <code>kr</code>\n"
-        "• <b>Chinese:</b> <code>chi</code>, <code>cdrama</code>, <code>chinese</code>, <code>mandarin</code>, <code>zh</code>\n"
-        "• <b>Japanese:</b> <code>jdrama</code>, <code>j-drama</code>, <code>japanese</code>, <code>jap</code>, <code>anime</code>, <code>ja</code>\n"
-        "• <b>Indian:</b> <code>hindi</code>, <code>tamil</code>, <code>telugu</code>, <code>malayalam</code>, <code>kannada</code>, <code>bengali</code>, <code>marathi</code>, <code>punjabi</code>\n"
-        "• <b>Global:</b> <code>english</code>, <code>spanish</code>, <code>french</code>, <code>german</code>, <code>italian</code>, <code>russian</code>, <code>portuguese</code>, <code>turkish</code>, <code>arabic</code>, <code>thai</code>\n\n"
-        "<b>🎬 <u>IMDb Info Lookup:</u></b>\n"
-        "Use <code>/imdb [Title]</code> to get detailed metadata cards and ratings."
-    )
-
-    markup = InlineKeyboardMarkup(row_width=2)
-    dev_btn = InlineKeyboardButton(text="• ᴅᴇᴠᴇʟᴏᴘᴇʀ •", url="https://t.me/Mr_Mohammed_29")
-    support_btn = InlineKeyboardButton(text="• sᴜᴘᴘᴏʀᴛ •", url="https://t.me/Coders_Grp")
-    close_btn = InlineKeyboardButton(text="• ᴄʟᴏsᴇ •", callback_data="imdb_close")
-
-    markup.row(dev_btn, support_btn)
-    markup.row(close_btn)
+    page_data = HELP_PAGES[1]
+    markup = get_help_markup(1)
 
     try:
-        bot.send_message(message.chat.id, help_text, parse_mode="HTML", reply_markup=markup)
+        bot.send_photo(
+            message.chat.id, 
+            photo=page_data["photo"], 
+            caption=page_data["caption"], 
+            parse_mode="HTML", 
+            reply_markup=markup
+        )
     except Exception as e:
         print(f"Error sending help message: {e}")
 
@@ -288,6 +365,56 @@ def handle_all_callbacks(call):
     
     if database.is_banned(user_id):
         bot.answer_callback_query(call.id, " you are banned from using this bot.", show_alert=True)
+        return
+
+    # --- Help Menu Callbacks --- #
+    if call.data.startswith("help_page_"):
+        page_num = int(call.data.split("_")[-1])
+        page_data = HELP_PAGES[page_num]
+        markup = get_help_markup(page_num)
+        try:
+            bot.edit_message_media(
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                media=telebot.types.InputMediaPhoto(page_data["photo"], caption=page_data["caption"], parse_mode="HTML"),
+                reply_markup=markup
+            )
+        except Exception:
+            try:
+                bot.edit_message_caption(
+                    chat_id=call.message.chat.id,
+                    message_id=call.message.message_id,
+                    caption=page_data["caption"],
+                    parse_mode="HTML",
+                    reply_markup=markup
+                )
+            except Exception:
+                pass
+        bot.answer_callback_query(call.id)
+        return
+
+    elif call.data == "help_home":
+        page_num = 1
+        page_data = HELP_PAGES[page_num]
+        markup = get_help_markup(page_num)
+        try:
+            bot.edit_message_media(
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                media=telebot.types.InputMediaPhoto(page_data["photo"], caption=page_data["caption"], parse_mode="HTML"),
+                reply_markup=markup
+            )
+        except Exception:
+            pass
+        bot.answer_callback_query(call.id)
+        return
+
+    elif call.data == "help_close":
+        try:
+            bot.delete_message(call.message.chat.id, call.message.message_id)
+        except Exception:
+            pass
+        bot.answer_callback_query(call.id)
         return
     
     if call.data.startswith("p_") or call.data == "noop":
