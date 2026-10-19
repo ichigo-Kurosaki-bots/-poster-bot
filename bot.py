@@ -1008,10 +1008,8 @@ def add_title_overlay(image_bytes, title_text="", logo_url=None, position="cente
 def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres, synopsis, rating_val="8.4", logo_url=None, branding="Manga Aero"):
     target_w, target_h = 1280, 720
     
-    # 1. Clean white canvas for the right panel background
     canvas = Image.new("RGBA", (target_w, target_h), (255, 255, 255, 255))
-    
-    # 2. Left Side: Vertical Poster Artwork (Width 500px, Height 720px)
+
     try:
         raw_art = Image.open(io.BytesIO(poster_bytes)).convert("RGBA")
         art_left = ImageOps.fit(raw_art, (500, target_h), method=Image.Resampling.LANCZOS)
@@ -1021,7 +1019,6 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
 
     draw = ImageDraw.Draw(canvas)
 
-    # Helper for loading fonts safely with fallbacks so text can be scaled up cleanly
     def get_font(size, bold=False):
         font_paths = [
             "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
@@ -1043,26 +1040,18 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
     font_small = get_font(11, bold=False)
     font_badge_title = get_font(18, bold=True)
 
-    # Watermark at bottom-left with a high-contrast dark outline / shadow
     wm_x, wm_y = 25, target_h - 38
     wm_text = "@Aero_Unity"
     
-    # Black outline / drop-shadow behind text
     for offset_x, offset_y in [(-1, -1), (1, -1), (-1, 1), (1, 1), (0, 2), (2, 0)]:
         draw.text((wm_x + offset_x, wm_y + offset_y), wm_text, fill=(0, 0, 0, 255), font=font_bold)
         
-    # Main vibrant white/blue/red text on top
     draw.text((wm_x, wm_y), wm_text, fill=(255, 255, 255, 255), font=font_bold)
-
-    # 3. Top-Right Branding Badge: "MANGA AERO" & Subtitle
     draw.text((980, 28), "MANGA AERO", fill=(20, 20, 20), font=font_badge_title)
     draw.text((980, 50), "INSTANT ART, ENDLESS STORIES", fill=(0, 136, 204), font=font_small)
-
-    # 4. Title (Large, Bold, Prominent on Right Panel)
     clean_title = title.upper()[:24]
     draw.text((560, 105), clean_title, fill=(15, 15, 15), font=font_title)
 
-    # 5. Dynamic TMDb Genres Row
     gx, gy = 560, 165
     for g in genres[:3]:
         tag_text = str(g).upper()[:12]
@@ -1072,17 +1061,12 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
         draw.text((gx + 12, gy + 6), tag_text, fill=(60, 60, 60), font=font_reg)
         gx += pill_w + 10
 
-    # 6. Ratings (Numerical score format placed below genres)
     rating_y = gy + 42
-    draw.text((560, rating_y), "Avg Ratings : ", fill=(40, 40, 40), font=font_bold)
-    
+    draw.text((560, rating_y), "Avg Ratings : ", fill=(40, 40, 40), font=font_bold)  
     score_display = f"{rating_val} / 10" if "/" not in str(rating_val) else rating_val
     draw.text((670, rating_y), score_display, fill=(0, 136, 204), font=font_bold)
-
-    # 7. Horizontal Divider Line 1
     draw.line([(560, 255), (1220, 255)], fill=(220, 220, 220), width=1)
-
-    # 8. Official TMDb Synopsis Text Block (Word Wrapped & Expanded to Fill Down)
+    
     clean_synopsis = synopsis if synopsis else "No synopsis available from TMDb."
     words = clean_synopsis.split()
     lines, curr_line = [], ""
@@ -1100,10 +1084,8 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
         draw.text((560, y_pos), line.upper(), fill=(95, 95, 95), font=font_reg)
         y_pos += 22
 
-    # 9. Horizontal Divider Line 2
     draw.line([(560, 500), (1220, 500)], fill=(220, 220, 220), width=1)
 
-    # 10. Bottom Action Buttons ("READ NOW!!" pill and bookmark circle)
     btn_x, btn_y = 560, 535
     draw.rounded_rectangle([btn_x, btn_y, btn_x + 160, btn_y + 48], radius=24, fill=(15, 15, 15))
     draw.text((btn_x + 22, btn_y + 14), "READ ", fill=(255, 255, 255), font=font_bold)
@@ -1260,7 +1242,6 @@ def build_poster_page(search_id, index=0):
         markup.row(aero_button, open_image_button)
 
         return backdrop_url_original, caption, markup
-
     return None, None, None
 
 # ------------------------ #
