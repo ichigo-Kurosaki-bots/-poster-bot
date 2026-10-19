@@ -2392,6 +2392,10 @@ def send_style_poster_response(message, cmd, query, branding_name):
         card_io.seek(0)
         bot.send_photo(message.chat.id, photo=card_io, caption=caption_text, parse_mode="HTML", reply_markup=markup)
     except Exception as e:
+        try:
+            bot.delete_message(message.chat.id, status_msg.message_id)
+        except Exception:
+            pass
         bot.reply_to(message, f"⚠️ An error occurred: <code>{html.escape(str(e))}</code>", parse_mode="HTML")
 
 # ===================================================================== #
