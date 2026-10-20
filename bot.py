@@ -1495,40 +1495,40 @@ def search_poster(message):
                 except Exception:
                     pass
 
-           if not images_list:
-               images_list = [target_item]
+            if not images_list:
+                images_list = [target_item]
 
-           search_id = str(message.message_id)
-           SEARCH_CACHE[search_id] = {
-               "results": images_list,
-               "season_number": season_number
-           }
+            search_id = str(message.message_id)
+            SEARCH_CACHE[search_id] = {
+                "results": images_list,
+                "season_number": season_number
+            }
 
-           photo_url, caption, markup = build_poster_page(search_id, index=0)
+            photo_url, caption, markup = build_poster_page(search_id, index=0)
 
-           try:
-               bot.delete_message(message.chat.id, status_msg.message_id)
-           except Exception:
-               pass
+            try:
+                bot.delete_message(message.chat.id, status_msg.message_id)
+            except Exception:
+                pass
 
-           if photo_url:
-               bot.send_photo(
-                   chat_id=message.chat.id,
-                   photo=photo_url,
-                   caption=caption,
-                   parse_mode="HTML",
-                   reply_markup=markup
-               )
-           else:
-               bot.send_message(message.chat.id, "❌ failed to generate poster.")
-       else:
-           bot.edit_message_text("ᴘʟᴇᴀsᴇ ᴄʜᴇᴄᴋ ʏᴏᴜʀ sᴘᴇʟʟɪɴɢ.", message.chat.id, status_msg.message_id)
+            if photo_url:
+                bot.send_photo(
+                    chat_id=message.chat.id,
+                    photo=photo_url,
+                    caption=caption,
+                    parse_mode="HTML",
+                    reply_markup=markup
+                )
+            else:
+                bot.send_message(message.chat.id, "❌ failed to generate poster.")
+        else:
+            bot.edit_message_text("ᴘʟᴇᴀsᴇ ᴄʜᴇᴄᴋ ʏᴏᴜʀ sᴘᴇʟʟɪɴɢ.", message.chat.id, status_msg.message_id)
 
-    except Exception as e:
-        try:
-            bot.edit_message_text(f"⚠️ ᴀɴ ᴇʀʀᴏʀ ᴏᴄᴄᴜʀᴇᴅ: {html.escape(str(e))}", message.chat.id, status_msg.message_id, parse_mode="HTML")
-        except Exception:
-            pass
+     except Exception as e:
+         try:
+             bot.edit_message_text(f"⚠️ ᴀɴ ᴇʀʀᴏʀ ᴏᴄᴄᴜʀᴇᴅ: {html.escape(str(e))}", message.chat.id, status_msg.message_id, parse_mode="HTML")
+         except Exception:
+             pass
 
 # ------------------------ #
 # Don't Remove My Credits
@@ -2301,7 +2301,7 @@ def send_style_poster_response(message, cmd, query, branding_name):
                 bot.delete_message(message.chat.id, status_msg.message_id)
             except Exception:
                 pass
-            bot.reply_to(message, f"<b>❌ Not Found.</b>\nCould not find content for <b>{html.escape(query)}</b>.", parse_mode="HTML")
+            bot.reply_to(message, f"Could not find content for <b>{html.escape(query)}</b>.", parse_mode="HTML")
             return
 
         item = results[0]
