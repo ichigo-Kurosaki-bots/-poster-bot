@@ -2428,8 +2428,25 @@ def send_style_poster_response(message, cmd, query, branding_name):
 
         app_url = os.environ.get("RENDER_EXTERNAL_URL") or request.host_url.rstrip('/')
         direct_link = f"{app_url}/poster/{cache_key}"
+        media_title = item.get("title") or item.get("name") or "N/A"
+        release_date = item.get("release_date") or item.get("first_air_date") or ""
+        year_str = release_date.split("-")[0] if release_date else "N/A"
+        m_type_raw = item.get("media_type", "movie").lower()
+        
+        if m_type_raw == "tv":
+            media_type_str = "TV Series"
+        elif m_type_raw == "movie":
+            media_type_str = "Movie"
+        else:
+            media_type_str = m_type_raw.capitalize()
 
-        caption_text = f"<b>Genarated By @Aero_Poster_Bot</b>\n\n•<b>Powered By : @Aero_Unity</b>\n\n<b>Open Image:</b> <b><a href=\"{direct_link}\">Click here</a></b>"
+        caption_text = (
+            f"<b>● Tɪᴛʟᴇ :</b> {html.escape(media_title)}\n"
+            f"<b>● Yᴇᴀʀ :</b> {year_str}\n"
+            f"<b>● Tʏᴘᴇ :</b> {media_type_str}\n"
+            f"<b>● Oᴘᴇɴ Iᴍᴀɢᴇ : <a href=\"{direct_link}\">Cʟɪᴄᴋ Hᴇʀᴇ</a>\n\n"
+            f"<b>›› Pᴏᴡᴇʀᴇᴅ Bʏ : <a href=\"https://t.me/Aero_Unity\">Aᴇʀᴏ Uɴɪᴛʏ</b>"  
+        )
         markup = InlineKeyboardMarkup()
         markup.add(InlineKeyboardButton(text="• Uᴘᴅᴀᴛᴇs •", url="https://t.me/Aero_Unity"))
 
