@@ -1451,69 +1451,78 @@ def search_poster(message):
                 bot.edit_message_text("‼️ ɪᴍᴀɢᴇ ʙᴀɴɴᴇʀ ɴᴏᴛ ᴀᴠᴀɪʟᴀʙʟᴇ ꜰᴏʀ ᴛʜɪs ᴛɪᴛʟᴇ.", message.chat.id, status_msg.message_id)
                 return
 
-            target_item = valid_items[0]
+            Target_item = valid_items[0]
             item_id = str(target_item.get("id"))
             media_type = target_item.get("media_type", "movie")
-
+   
             images_list = []
-            img_endpoint = "tv" if (media_type == "tv" or season_number) else "movie"
-
             if season_number and media_type == "tv":
-                images_url = f"https://api.themoviedb.org/3/tv/{item_id}/season/{season_number}/images?api_key={TMDB_API_KEY}"
-            else:
-                images_url = f"https://api.themoviedb.org/3/{img_endpoint}/{item_id}/images?api_key={TMDB_API_KEY}"
-
-            try:
-                img_res = session.get(images_url, timeout=5)
-                if img_res.status_code == 200:
-                    img_data = img_res.json()
-                    backdrops = img_data.get("backdrops", [])
-                    posters = img_data.get("posters", [])
-
-                    for b in backdrops:
-                        if b.get("file_path"):
-                            images_list.append({
-                                **target_item,
-                                "backdrop_path": b.get("file_path")
-                            })
-                    if not images_list:
-                        for p in posters:
-                            if p.get("file_path"):
+                season_images_url = f"https://api.themoviedb.org/3/tv/{item_id}/season/{season_number}/images?api_key={TMDB_API_KEY}"
+                try:
+                    s_res = session.get(season_images_url, timeout=5)
+                    if s_res.status_code == 200:
+                        s_data = s_res.json()
+                        for b in s_data.get("backdrops", []):
+                            if b.get("file_path"):
                                 images_list.append({
                                     **target_item,
-                                    "backdrop_path": p.get("file_path")
+                                    "backdrop_path": b.get("file_path")
                                 })
-            except Exception:
-                pass
+                except Exception:
+                    pass
 
             if not images_list:
-                images_list = [target_item]
+                img_endpoint = "tv" if media_type == "tv" else "movie"
+                images_url = f"https://api.themoviedb.org/3/{img_endpoint}/{item_id}/images?api_key={TMDB_API_KEY}"
+                try:
+                    img_res = session.get(images_url, timeout=5)
+                    if img_res.status_code == 200:
+                        img_data = img_res.json()
+                        for b in img_data.get("backdrops", []):
+                            if b.get("file_path"):
+                                images_list.append({
+                                    **target_item,
+                                    "backdrop_path": b.get("file_path")
+                                })
+                
+                        if not images_list:
+                            for p in img_data.get("posters", []):
+                                if p.get("file_path"):
+                                    images_list.append({
+                                        **target_item,
+                                        "backdrop_path": p.get("file_path")
+                                    })
+                except Exception:
+                    pass
 
-            search_id = str(message.message_id)
-            SEARCH_CACHE[search_id] = {
-                "results": images_list,
-                "season_number": season_number
-            }
+           if not images_list:
+               images_list = [target_item]
 
-            photo_url, caption, markup = build_poster_page(search_id, index=0)
+           search_id = str(message.message_id)
+           SEARCH_CACHE[search_id] = {
+               "results": images_list,
+               "season_number": season_number
+           }
 
-            try:
-                bot.delete_message(message.chat.id, status_msg.message_id)
-            except Exception:
-                pass
+           photo_url, caption, markup = build_poster_page(search_id, index=0)
 
-            if photo_url:
-                bot.send_photo(
-                    chat_id=message.chat.id,
-                    photo=photo_url,
-                    caption=caption,
-                    parse_mode="HTML",
-                    reply_markup=markup
-                )
-            else:
-                bot.send_message(message.chat.id, "❌ failed to generate poster.")
-        else:
-            bot.edit_message_text("ᴘʟᴇᴀsᴇ ᴄʜᴇᴄᴋ ʏᴏᴜʀ sᴘᴇʟʟɪɴɢ.", message.chat.id, status_msg.message_id)
+           try:
+               bot.delete_message(message.chat.id, status_msg.message_id)
+           except Exception:
+               pass
+
+           if photo_url:
+               bot.send_photo(
+                   chat_id=message.chat.id,
+                   photo=photo_url,
+                   caption=caption,
+                   parse_mode="HTML",
+                   reply_markup=markup
+               )
+           else:
+               bot.send_message(message.chat.id, "❌ failed to generate poster.")
+       else:
+           bot.edit_message_text("ᴘʟᴇᴀsᴇ ᴄʜᴇᴄᴋ ʏᴏᴜʀ sᴘᴇʟʟɪɴɢ.", message.chat.id, status_msg.message_id)
 
     except Exception as e:
         try:
@@ -2084,7 +2093,7 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
 # Support : @Coders_Grp 
 # ------------------------ #
     
-    elif "AERO" in b_upper or "LIGHT" in b_upper:
+    elif "AERO" in b_upper or "LIGHT" in b_upper or "MOD" in b_upper:
         canvas = Image.new("RGBA", (target_w, target_h), (255, 255, 255, 255))
         art_left = ImageOps.fit(raw_art, (640, target_h), method=Image.Resampling.LANCZOS)
         canvas.paste(art_left, (0, 0))
@@ -2097,7 +2106,7 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
 
         draw = ImageDraw.Draw(canvas)
 
-        is_manga = "MANGA" in b_upper or "LIGHTM" in b_upper or "MANHWA" in media_format
+        is_manga = "MANGA" in b_upper or "LIGHTM" in b_upper or "MODM" in b_upper or "MANHWA" in media_format
         main_type = "AERO"
         sub_type = f"STUDIO: {studio_name}"
         
