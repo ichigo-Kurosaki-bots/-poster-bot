@@ -2444,8 +2444,8 @@ def send_style_poster_response(message, cmd, query, branding_name):
             f"<b>● Tɪᴛʟᴇ :</b> {html.escape(media_title)}\n"
             f"<b>● Yᴇᴀʀ :</b> {year_str}\n"
             f"<b>● Tʏᴘᴇ :</b> {media_type_str}\n"
-            f"<b>● Oᴘᴇɴ Iᴍᴀɢᴇ : <a href=\"{direct_link}\">Cʟɪᴄᴋ Hᴇʀᴇ</a>\n\n"
-            f"<b>›› Pᴏᴡᴇʀᴇᴅ Bʏ : <a href=\"https://t.me/Aero_Unity\">Aᴇʀᴏ Uɴɪᴛʏ</b>"  
+            f"<b>● Oᴘᴇɴ Iᴍᴀɢᴇ : <a href=\"{direct_link}\">Cʟɪᴄᴋ Hᴇʀᴇ</a></b>\n\n"
+            f"<b>›› Pᴏᴡᴇʀᴇᴅ Bʏ : <a href=\"https://t.me/Aero_Unity\">Aᴇʀᴏ Uɴɪᴛʏ</a></b>"  
         )
         markup = InlineKeyboardMarkup()
         markup.add(InlineKeyboardButton(text="• Uᴘᴅᴀᴛᴇs •", url="https://t.me/Aero_Unity"))
