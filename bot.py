@@ -2058,7 +2058,7 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
 # Support : @Coders_Grp 
 # ------------------------ #
     
-    elif "NETFLIX" in b_upper:
+    elif "NETFLIX" in b_upper or "NETCR" in b_upper:
         canvas = base_backdrop.copy()
         vignette = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 0))
         v_draw = ImageDraw.Draw(vignette)
@@ -2074,29 +2074,37 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
         canvas.alpha_composite(vignette)
         draw = ImageDraw.Draw(canvas)
         draw.text((60, 40), "N", fill=(229, 9, 20), font=get_font(48, bold=True))
-        draw.text((60, 360), title, fill=(255, 255, 255), font=get_font(52, bold=True))
-        match_str = f"{match_pct}% Match   {status_str}   {media_format}   HD"
-        draw.text((60, 435), match_str, fill=(70, 211, 105), font=get_font(15, bold=True))
-        draw.text((60, 465), " • ".join(genres[:4]), fill=(180, 180, 180), font=get_font(13, bold=False))
+        draw.text((60, 340), title.upper()[:25], fill=(255, 255, 255), font=get_font(48, bold=True))
+        rel_year = extra_meta.get("year", "2024") if extra_meta else "2024"
+        is_manga_style = "MANGA" in b_upper or "NETM" in b_upper
+        count_label = f"{extra_meta.get('chapters', '120+')} Chapters" if is_manga_style else f"{extra_meta.get('episodes', '12')} Episodes"
+        meta_str = f"{match_pct}% Match    {rel_year}    TV-14    {count_label}    HD"
+        draw.text((60, 415), meta_str, fill=(70, 211, 105), font=get_font(14, bold=True))
+        genre_text = " • ".join(genres[:4]) if genres else "Drama • Mystery"
+        draw.text((60, 445), genre_text, fill=(180, 180, 180), font=get_font(13, bold=False))
 
         words = synopsis.split()
         lines, curr = [], ""
-        
         for w in words:
             if len(curr + " " + w) < 60: curr += " " + w
             else: lines.append(curr.strip()); curr = w
         if curr: lines.append(curr.strip())
         
-        sy = 495
+        sy = 475
         for line in lines[:3]:
             draw.text((60, sy), line, fill=(200, 200, 200), font=get_font(13, bold=False))
             sy += 18
 
-        draw.rectangle([60, 570, 170, 610], fill=(255, 255, 255))
-        draw.text((85, 582), "▶ Play", fill=(0, 0, 0), font=get_font(14, bold=True))
-        draw.rectangle([180, 570, 300, 610], outline=(150, 150, 150), width=1)
-        draw.text((198, 582), "+ My List", fill=(255, 255, 255), font=get_font(14, bold=True))
-        draw.text((1180, 650), f"★ {rating_val}", fill=(255, 215, 0), font=get_font(18, bold=True))
+        # Buttons (Play / Read & My List)
+        btn_label = "▶  Read" if is_manga_style else "▶  Play"
+        draw.rectangle([60, 550, 170, 590], fill=(255, 255, 255))
+        draw.text((85, 562), btn_label, fill=(0, 0, 0), font=get_font(14, bold=True))
+        
+        draw.rectangle([180, 550, 300, 590], outline=(150, 150, 150), width=1)
+        draw.text((198, 562), "+ My List", fill=(255, 255, 255), font=get_font(14, bold=True))
+        
+        # Star Rating on Bottom Right
+        draw.text((1180, 640), f"★ {rating_val}", fill=(255, 215, 0), font=get_font(18, bold=True))
 
 # ------------------------ #
 # Don't Remove My Credits
