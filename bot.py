@@ -2228,77 +2228,95 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
 
     elif "MOD" in b_upper:
         canvas = base_backdrop.copy()
-        overlay = Image.new("RGBA", (target_w, target_h), (10, 10, 15, 215))
+        overlay = Image.new("RGBA", (target_w, target_h), (10, 10, 15, 200))
         canvas.alpha_composite(overlay)
         draw = ImageDraw.Draw(canvas)
 
-        draw.rectangle([0, 0, 65, target_h], fill=(12, 12, 18, 255))
-        draw.text((22, 45), "🏠", fill=(255, 255, 255), font=get_font(16))
-        draw.text((22, 130), "🔍", fill=(180, 180, 180), font=get_font(16))
-        draw.text((22, 220), "🎛️", fill=(180, 180, 180), font=get_font(16))
-        draw.text((22, 310), "⭐", fill=(180, 180, 180), font=get_font(16))
-        draw.rectangle([0, 305, 5, 335], fill=(245, 180, 20))
-
-        draw.text((100, 30), "@Aero_Unity", fill=(255, 255, 255), font=get_font(16, bold=True))
+        sidebar_x, sidebar_y, sidebar_w, sidebar_h = 25, 130, 75, 480
+        draw.rounded_rectangle([sidebar_x, sidebar_y, sidebar_x + sidebar_w, sidebar_y + sidebar_h], radius=35, fill=(10, 10, 15, 245))
         
-        gx = 100
-        gy = 60
-        pill_colors = [(235, 50, 50), (245, 150, 20), (255, 20, 120), (50, 130, 245)]
+        draw.text((sidebar_x + 24, sidebar_y + 25), "🏠", fill=(0, 210, 255), font=get_font(18))
+        draw.text((sidebar_x + 18, sidebar_y + 52), "HOME", fill=(0, 210, 255), font=get_font(9, bold=True))
+
+        draw.text((sidebar_x + 26, sidebar_y + 125), "🔍", fill=(180, 180, 180), font=get_font(18))
+        draw.text((sidebar_x + 15, sidebar_y + 152), "SEARCH", fill=(180, 180, 180), font=get_font(9, bold=True))
+
+        draw.text((sidebar_x + 26, sidebar_y + 225), "🎛️", fill=(180, 180, 180), font=get_font(18))
+        draw.text((sidebar_x + 8, sidebar_y + 252), "CATEGORY", fill=(180, 180, 180), font=get_font(9, bold=True))
+
+        draw.text((sidebar_x + 26, sidebar_y + 325), "⭐", fill=(180, 180, 180), font=get_font(18))
+        draw.text((sidebar_x + 6, sidebar_y + 352), "FAVORITES", fill=(180, 180, 180), font=get_font(9, bold=True))
+
+        # 2. Top Header Pill & Genre Pills
+        draw.rounded_rectangle([125, 20, 280, 55], radius=18, fill=(15, 15, 22, 230))
+        draw.text((138, 28), "☰", fill=(255, 255, 255), font=get_font(16, bold=True))
+        draw.text((165, 30), "AERO UNITY", fill=(0, 210, 255), font=get_font(14, bold=True))
+        
+        gx = 125
+        gy = 72
+        pill_colors = [(255, 255, 255), (255, 255, 255), (255, 255, 255)]
         for idx, g in enumerate(genres[:3]):
             pill_txt = str(g).upper()
-            pw = max(65, len(pill_txt) * 8 + 16)
-            p_color = pill_colors[idx % len(pill_colors)]
-            draw.rounded_rectangle([gx, gy, gx + pw, gy + 26], radius=13, fill=p_color)
-            draw.text((gx + 10, gy + 5), pill_txt, fill=(255, 255, 255), font=get_font(11, bold=True))
+            pw = max(65, len(pill_txt) * 7 + 16)
+            draw.rounded_rectangle([gx, gy, gx + pw, gy + 28], radius=14, fill=(255, 255, 255))
+            draw.text((gx + 12, gy + 7), pill_txt, fill=(10, 10, 15), font=get_font(11, bold=True))
             gx += pw + 10
 
-        draw.text((100, 105), title.upper()[:22], fill=(255, 255, 255), font=get_font(42, bold=True))
-        rel_year = extra_meta.get("year", "2024") if extra_meta else "2024"
-        season_label = f"FALL {rel_year}" if "MODM" not in b_upper else f"RELEASE {rel_year}"
-        draw.text((100, 158), season_label, fill=(245, 190, 20), font=get_font(18, bold=True))
-        draw.text((100, 225), "INFORMATION", fill=(245, 60, 60), font=get_font(14, bold=True))
-        count_display = extra_meta.get("chapters", "700 Chapters") if "MODM" in b_upper else extra_meta.get("episodes", "220 Episodes")
-        info_text = f"> STUDIO : {studio_name}\n> STATUS : {status_str}\n> TOTAL : {count_display}\n> RATING : {match_pct}/100"
-        draw.text((100, 250), info_text, fill=(210, 210, 210), font=get_font(13, bold=False))
-        card_x, card_y, card_w, card_h = 680, 30, 560, 210
-        draw.rounded_rectangle([card_x, card_y, card_x + card_w, card_y + card_h], radius=16, fill=(20, 20, 28, 230))
+        title_words = title.upper().split()
+        title_lines = []
+        curr_line = ""
+        for w in title_words:
+            if len(curr_line + " " + w) < 18:
+                curr_line += (" " + w) if curr_line else w
+            else:
+                title_lines.append(curr_line)
+                curr_line = w
+        if curr_line:
+            title_lines.append(curr_line)
+
+        ty = 112
+        for t_line in title_lines[:2]:
+            draw.text((125, ty), t_line, fill=(255, 255, 255), font=get_font(38, bold=True))
+            ty += 42
+
+        draw.rounded_rectangle([125, ty + 12, 420, ty + 72], radius=14, fill=(15, 15, 22, 230))
+        draw.text((140, ty + 20), "Studio", fill=(180, 180, 180), font=get_font(11, bold=False))
+        draw.text((140, ty + 38), studio_name[:24], fill=(255, 255, 255), font=get_font(13, bold=True))
+
+        box_y = ty + 84
+        draw.rounded_rectangle([125, box_y, 265, box_y + 55], radius=14, fill=(255, 255, 255))
+        draw.text((140, box_y + 10), "Status", fill=(80, 80, 80), font=get_font(10, bold=False))
+        draw.text((140, box_y + 26), status_str.capitalize(), fill=(10, 10, 15), font=get_font(13, bold=True))
+
+        rel_year = extra_meta.get("year", "2026") if extra_meta else "2026"
+        arc_label = f"Fall {rel_year}" if "MODM" not in b_upper else "Release"
+        draw.rounded_rectangle([280, box_y, 420, box_y + 55], radius=14, fill=(255, 255, 255))
+        draw.text((295, box_y + 10), "Arc", fill=(80, 80, 80), font=get_font(10, bold=False))
+        draw.text((295, box_y + 26), arc_label, fill=(10, 10, 15), font=get_font(13, bold=True))
+
+        card_x, card_y, card_w, card_h = 660, 25, 595, 205
+        draw.rounded_rectangle([card_x, card_y, card_x + card_w, card_y + card_h], radius=16, fill=(15, 15, 22, 235))
         
         try:
             raw_p = Image.open(io.BytesIO(portrait_bytes_list[0])).convert("RGBA") if portrait_bytes_list else raw_art
-            p_crop = ImageOps.fit(raw_p, (230, 180), method=Image.Resampling.LANCZOS)
+            p_crop = ImageOps.fit(raw_p, (160, 175), method=Image.Resampling.LANCZOS)
             canvas.paste(p_crop, (card_x + 15, card_y + 15))
         except Exception:
             pass
 
-        char_name = (title.split()[0] + " SPOTLIGHT").upper()
-        draw.text((card_x + 260, card_y + 20), char_name[:20], fill=(255, 255, 255), font=get_font(15, bold=True))   
-        char_bio = f"{title} is highlighted as one of the featured titles. Recognized for exceptional storytelling, art direction, and world-building..."
-        
-        b_words = char_bio.split()
-        b_lines, b_curr = [], ""
-        for w in b_words:
-            if len(b_curr + " " + w) < 30: b_curr += " " + w
-            else: b_lines.append(b_curr.strip()); b_curr = w
-        if b_curr: b_lines.append(b_curr.strip())
-        
-        by = card_y + 50
-        for line in b_lines[:4]:
-            draw.text((card_x + 260, by), line, fill=(180, 180, 180), font=get_font(11, bold=False))
-            by += 16
-
-        draw.text((680, 265), "OVERVIEW", fill=(245, 180, 20), font=get_font(14, bold=True))
+        draw.text((card_x + 190, card_y + 18), "SYNOPSIS", fill=(255, 255, 255), font=get_font(13, bold=True))
 
         words = synopsis.split()
         lines, curr = [], ""
         for w in words:
-            if len(curr + " " + w) < 58: curr += " " + w
+            if len(curr + " " + w) < 48: curr += " " + w
             else: lines.append(curr.strip()); curr = w
         if curr: lines.append(curr.strip())
 
-        sy = 295
-        for line in lines[:8]:
-            draw.text((680, sy), line, fill=(210, 210, 210), font=get_font(12, bold=False))
-            sy += 18
+        sy = card_y + 42
+        for line in lines[:7]:
+            draw.text((card_x + 190, sy), line, fill=(200, 200, 200), font=get_font(11, bold=False))
+            sy += 17
 
 # ------------------------ #
 # Don't Remove My Credits
