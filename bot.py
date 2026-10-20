@@ -2227,24 +2227,39 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
 # ------------------------ #
 
     elif "MOD" in b_upper:
+        
         canvas = base_backdrop.copy()
         overlay = Image.new("RGBA", (target_w, target_h), (10, 10, 15, 200))
         canvas.alpha_composite(overlay)
+        
         draw = ImageDraw.Draw(canvas)
-
         sidebar_x, sidebar_y, sidebar_w, sidebar_h = 25, 130, 75, 480
         draw.rounded_rectangle([sidebar_x, sidebar_y, sidebar_x + sidebar_w, sidebar_y + sidebar_h], radius=35, fill=(10, 10, 15, 245))
         
-        draw.text((sidebar_x + 24, sidebar_y + 25), "🏠", fill=(0, 210, 255), font=get_font(18))
+        hx = sidebar_x + 37
+        hy = sidebar_y + 22
+        draw.polygon([(hx, hy), (hx - 10, hy + 9), (hx + 10, hy + 9)], fill=(0, 210, 255))
+        draw.rectangle([hx - 7, hy + 9, hx + 7, hy + 20], fill=(0, 210, 255))
         draw.text((sidebar_x + 18, sidebar_y + 52), "HOME", fill=(0, 210, 255), font=get_font(9, bold=True))
-
-        draw.text((sidebar_x + 26, sidebar_y + 125), "🔍", fill=(180, 180, 180), font=get_font(18))
+        sx, sy_icon = sidebar_x + 37, sidebar_y + 118
+        draw.ellipse([sx - 7, sy_icon - 7, sx + 5, sy_icon + 5], outline=(180, 180, 180), width=2)
+        draw.line([(sx + 3, sy_icon + 3), (sx + 10, sy_icon + 10)], fill=(180, 180, 180), width=2)
         draw.text((sidebar_x + 15, sidebar_y + 152), "SEARCH", fill=(180, 180, 180), font=get_font(9, bold=True))
-
-        draw.text((sidebar_x + 26, sidebar_y + 225), "🎛️", fill=(180, 180, 180), font=get_font(18))
+        cx, cy_icon = sidebar_x + 37, sidebar_y + 218
+        draw.rectangle([cx - 8, cy_icon - 8, cx - 1, cy_icon - 1], fill=(180, 180, 180))
+        draw.rectangle([cx + 1, cy_icon - 8, cx + 8, cy_icon - 1], fill=(180, 180, 180))
+        draw.rectangle([cx - 8, cy_icon + 1, cx - 1, cy_icon + 8], fill=(180, 180, 180))
+        draw.rectangle([cx + 1, cy_icon + 1, cx + 8, cy_icon + 8], fill=(180, 180, 180))
         draw.text((sidebar_x + 8, sidebar_y + 252), "CATEGORY", fill=(180, 180, 180), font=get_font(9, bold=True))
-
-        draw.text((sidebar_x + 26, sidebar_y + 325), "⭐", fill=(180, 180, 180), font=get_font(18))
+        
+        fx, fy_icon = sidebar_x + 37, sidebar_y + 318
+        star_points = [
+            (fx, fy_icon - 9), (fx + 3, fy_icon - 2), (fx + 10, fy_icon - 2),
+            (fx + 5, fy_icon + 2), (fx + 7, fy_icon + 9), (fx, fy_icon + 5),
+            (fx - 7, fy_icon + 9), (fx - 5, fy_icon + 2), (fx - 10, fy_icon - 2),
+            (fx - 3, fy_icon - 2)
+        ]
+        draw.polygon(star_points, fill=(180, 180, 180))
         draw.text((sidebar_x + 6, sidebar_y + 352), "FAVORITES", fill=(180, 180, 180), font=get_font(9, bold=True))
 
         # 2. Top Header Pill & Genre Pills
@@ -2254,7 +2269,6 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
         
         gx = 125
         gy = 72
-        pill_colors = [(255, 255, 255), (255, 255, 255), (255, 255, 255)]
         for idx, g in enumerate(genres[:3]):
             pill_txt = str(g).upper()
             pw = max(65, len(pill_txt) * 7 + 16)
@@ -2294,29 +2308,29 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
         draw.text((295, box_y + 10), "Arc", fill=(80, 80, 80), font=get_font(10, bold=False))
         draw.text((295, box_y + 26), arc_label, fill=(10, 10, 15), font=get_font(13, bold=True))
 
-        card_x, card_y, card_w, card_h = 660, 25, 595, 205
+        card_x, card_y, card_w, card_h = 660, 20, 595, 480
         draw.rounded_rectangle([card_x, card_y, card_x + card_w, card_y + card_h], radius=16, fill=(15, 15, 22, 235))
         
         try:
             raw_p = Image.open(io.BytesIO(portrait_bytes_list[0])).convert("RGBA") if portrait_bytes_list else raw_art
-            p_crop = ImageOps.fit(raw_p, (160, 175), method=Image.Resampling.LANCZOS)
+            p_crop = ImageOps.fit(raw_p, (card_w - 30, 210), method=Image.Resampling.LANCZOS)
             canvas.paste(p_crop, (card_x + 15, card_y + 15))
         except Exception:
             pass
 
-        draw.text((card_x + 190, card_y + 18), "SYNOPSIS", fill=(255, 255, 255), font=get_font(13, bold=True))
+        draw.text((card_x + 15, card_y + 235), "SYNOPSIS", fill=(255, 255, 255), font=get_font(13, bold=True))
 
         words = synopsis.split()
         lines, curr = [], ""
         for w in words:
-            if len(curr + " " + w) < 48: curr += " " + w
+            if len(curr + " " + w) < 72: curr += " " + w
             else: lines.append(curr.strip()); curr = w
         if curr: lines.append(curr.strip())
 
-        sy = card_y + 42
-        for line in lines[:7]:
-            draw.text((card_x + 190, sy), line, fill=(200, 200, 200), font=get_font(11, bold=False))
-            sy += 17
+        sy = card_y + 260
+        for line in lines[:10]:
+            draw.text((card_x + 15, sy), line, fill=(200, 200, 200), font=get_font(11, bold=False))
+            sy += 18
 
 # ------------------------ #
 # Don't Remove My Credits
