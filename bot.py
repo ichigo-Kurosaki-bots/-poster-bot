@@ -2253,15 +2253,13 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
             gx += pw + 10
 
         draw.text((100, 105), title.upper()[:22], fill=(255, 255, 255), font=get_font(42, bold=True))
-        
         rel_year = extra_meta.get("year", "2024") if extra_meta else "2024"
         season_label = f"FALL {rel_year}" if "MODM" not in b_upper else f"RELEASE {rel_year}"
         draw.text((100, 158), season_label, fill=(245, 190, 20), font=get_font(18, bold=True))
-
         draw.text((100, 225), "INFORMATION", fill=(245, 60, 60), font=get_font(14, bold=True))
-        info_text = f"> STUDIO : {studio_name}\n> STATUS : {status_str}\n> RATING : {match_pct}/100"
+        count_display = extra_meta.get("chapters", "700 Chapters") if "MODM" in b_upper else extra_meta.get("episodes", "220 Episodes")
+        info_text = f"> STUDIO : {studio_name}\n> STATUS : {status_str}\n> TOTAL : {count_display}\n> RATING : {match_pct}/100"
         draw.text((100, 250), info_text, fill=(210, 210, 210), font=get_font(13, bold=False))
-
         card_x, card_y, card_w, card_h = 680, 30, 560, 210
         draw.rounded_rectangle([card_x, card_y, card_x + card_w, card_y + card_h], radius=16, fill=(20, 20, 28, 230))
         
@@ -2273,9 +2271,9 @@ def generate_custom_media_card(poster_bytes, portrait_bytes_list, title, genres,
             pass
 
         char_name = (title.split()[0] + " SPOTLIGHT").upper()
-        draw.text((card_x + 260, card_y + 20), char_name[:20], fill=(255, 255, 255), font=get_font(15, bold=True))
-        
+        draw.text((card_x + 260, card_y + 20), char_name[:20], fill=(255, 255, 255), font=get_font(15, bold=True))   
         char_bio = f"{title} is highlighted as one of the featured titles. Recognized for exceptional storytelling, art direction, and world-building..."
+        
         b_words = char_bio.split()
         b_lines, b_curr = [], ""
         for w in b_words:
@@ -2527,11 +2525,20 @@ def send_style_poster_response(message, cmd, query, branding_name):
         else:
             status_str = raw_status.upper() if raw_status else "FINISHED"
 
+        release_date = item.get("release_date") or item.get("first_air_date") or ""
+        year_str = release_date.split("-")[0] if release_date else "2024"
+        
+        ep_count = det_res.get("number_of_episodes") or 12
+        chap_str = f"{ep_count * 15}+" if ep_count else "700+"  # Estimates chapters if it's a long running series/manga format
+
         extra_metadata = {
             "studio": studio_str,
             "status": status_str,
             "media_format": media_format,
-            "vote_average": vote_avg
+            "vote_average": vote_avg,
+            "year": year_str,
+            "episodes": f"{ep_count} Episodes" if ep_count else "12 Episodes",
+            "chapters": chap_str
         }
 
         images = det_res.get("images", {})
