@@ -1454,8 +1454,9 @@ def search_poster(message):
             target_item = valid_items[0]
             item_id = str(target_item.get("id"))
             media_type = target_item.get("media_type", "movie")
-   
+
             images_list = []
+        
             if season_number and media_type == "tv":
                 season_images_url = f"https://api.themoviedb.org/3/tv/{item_id}/season/{season_number}/images?api_key={TMDB_API_KEY}"
                 try:
@@ -1470,7 +1471,7 @@ def search_poster(message):
                                 })
                 except Exception:
                     pass
-
+                    
             if not images_list:
                 img_endpoint = "tv" if media_type == "tv" else "movie"
                 images_url = f"https://api.themoviedb.org/3/{img_endpoint}/{item_id}/images?api_key={TMDB_API_KEY}"
@@ -1484,7 +1485,7 @@ def search_poster(message):
                                     **target_item,
                                     "backdrop_path": b.get("file_path")
                                 })
-                
+                        
                         if not images_list:
                             for p in img_data.get("posters", []):
                                 if p.get("file_path"):
@@ -1868,6 +1869,63 @@ def manga_command_handler(message):
         )
     except Exception as e:
         bot.reply_to(message, f"❌ Error generating manga result: {e}", parse_mode="HTML")
+
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
+def detect_media_type_and_studio(item, session, tmdb_api_key):
+    media_type_raw = str(item.get("media_type", "movie")).lower()
+    genre_ids = item.get("genre_ids", [])
+    orig_lang = str(item.get("original_language", "")).lower()
+    origin_country = [c.upper() for c in item.get("origin_country", [])]
+    
+    full_text = (item.get("title", "") + " " + item.get("name", "") + " " + item.get("overview", "")).lower()
+    
+    if item.get("adult", False) or "pornhwa" in full_text or "erotic" in full_text:
+        detected_type = "Pornhwa" if ("manhwa" in full_text or orig_lang == "ko") else "Adult"
+    elif "manhwa" in full_text or (orig_lang == "ko" and "webtoon" in full_text):
+        detected_type = "Manhwa"
+    elif "manhua" in full_text or (orig_lang == "zh" and "comic" in full_text):
+        detected_type = "Manhua"
+    elif "manga" in full_text:
+        detected_type = "Manga"
+    elif 16 in genre_ids and orig_lang == "ja":
+        detected_type = "Anime"
+    elif media_type_raw == "tv" and (orig_lang in ["ko", "ja", "zh", "th"] or any(c in ["KR", "JP", "CN", "TW", "TH"] for c in origin_country)):
+        detected_type = "Drama"
+    elif media_type_raw == "tv" and (orig_lang in ["hi", "ta", "te", "ml", "mr", "bn"] or "IN" in origin_country):
+        detected_type = "TV Serial"
+    elif media_type_raw == "tv":
+        detected_type = "TV Series"
+    elif media_type_raw == "movie":
+        detected_type = "Movie"
+    else:
+        detected_type = "TV Show"
+
+    studio_name = "N/A"
+    item_id = item.get("id")
+    
+    if item_id:
+        endpoint = "tv" if media_type_raw == "tv" else "movie"
+        details_url = f"https://api.themoviedb.org/3/{endpoint}/{item_id}?api_key={tmdb_api_key}"
+        try:
+            res = session.get(details_url, timeout=3)
+            if res.status_code == 200:
+                data = res.json()
+                prod_companies = data.get("production_companies", [])
+                if prod_companies:
+                    studio_name = prod_companies[0].get("name", "N/A")
+                elif endpoint == "tv":
+                    networks = data.get("networks", [])
+                    if networks:
+                        studio_name = networks[0].get("name", "N/A")
+        except Exception:
+            pass
+    return detected_type, studio_name
 
 # ------------------------ #
 # Don't Remove My Credits
@@ -2431,22 +2489,16 @@ def send_style_poster_response(message, cmd, query, branding_name):
         media_title = item.get("title") or item.get("name") or "N/A"
         release_date = item.get("release_date") or item.get("first_air_date") or ""
         year_str = release_date.split("-")[0] if release_date else "N/A"
-        m_type_raw = item.get("media_type", "movie").lower()
-        
-        if m_type_raw == "tv":
-            media_type_str = "TV Series"
-        elif m_type_raw == "movie":
-            media_type_str = "Movie"
-        else:
-            media_type_str = m_type_raw.capitalize()
+        media_type_str, studio_str = detect_media_type_and_studio(item, session, TMDB_API_KEY)
 
         caption_text = (
             f"<b>● Tɪᴛʟᴇ :</b> {html.escape(media_title)}\n"
             f"<b>● Yᴇᴀʀ :</b> {year_str}\n"
             f"<b>● Tʏᴘᴇ :</b> {media_type_str}\n"
-            f"<b>● Oᴘᴇɴ Iᴍᴀɢᴇ : <a href=\"{direct_link}\">Cʟɪᴄᴋ Hᴇʀᴇ</a></b>\n\n"
-            f"<b>›› Pᴏᴡᴇʀᴇᴅ Bʏ : <a href=\"https://t.me/Aero_Unity\">Aᴇʀᴏ Uɴɪᴛʏ</a></b>"  
+            f"<b>● Sᴛᴜᴅɪᴏ :</b> {html.escape(studio_str)}\n"
+            f"<b>● Oᴘᴇɴ Iᴍᴀɢᴇ : <a href=\"{direct_link}\">Cʟɪᴄᴋ Hᴇʀᴇ</a></b>"
         )
+
         markup = InlineKeyboardMarkup()
         markup.add(InlineKeyboardButton(text="• Uᴘᴅᴀᴛᴇs •", url="https://t.me/Aero_Unity"))
 
