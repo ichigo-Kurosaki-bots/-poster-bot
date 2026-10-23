@@ -405,7 +405,18 @@ def handle_all_callbacks(call):
         bot.answer_callback_query(call.id, " you are banned from using this bot.", show_alert=True)
         return
 
-    # --- Help Menu Callbacks --- #
+    if call.data.startswith("style_nav_"):
+        target_idx = int(call.data.split("_")[-1])
+        send_style_page(call.message.chat.id, index=target_idx, message_id=call.message.message_id)
+        bot.answer_callback_query(call.id)
+        return
+
+    elif call.data.startswith("style_select_"):
+        target_idx = int(call.data.split("_")[-1])
+        selected_style = STYLES_LIST[target_idx]
+        bot.answer_callback_query(call.id, f"Selected Style: {selected_style['name']}", show_alert=True)
+        return
+
     if call.data.startswith("help_page_"):
         page_num = int(call.data.split("_")[-1])
         page_data = HELP_PAGES[page_num]
@@ -619,7 +630,7 @@ def handle_all_callbacks(call):
             f"» <b>Status:</b> {data['status']}\n"
             f"» <b>Chapters:</b> {data['chapters']}\n"
             f"» <b>Genres:</b> {html.escape(data['genres'])}\n\n"
-            f"▶ <u><b>SYNOPSIS</b></u>\n"
+            f" <u><b>SYNOPSIS</b></u>\n"
             f"<b>➔</b> <i>{html.escape(data['synopsis'][:400])}...</i> ❞"
         )
 
@@ -634,7 +645,6 @@ def handle_all_callbacks(call):
         )
         markup.row(InlineKeyboardButton(text="• ᴄᴀɴᴄᴇʟ •", callback_data="cancel_session"))
 
-        # 1. INSTANT LOAD: Check if this page was already sent once (re-uses Telegram file_id)
         file_ids = data.get("file_ids", {})
         if current_index in file_ids:
             try:
@@ -1604,7 +1614,45 @@ def imdb_command(message):
 # Support : @Coders_Grp 
 # ------------------------ #
 
-@bot.message_handler(commands=['jhs', 'posters'])
+@bot.message_handler(commands=['poster'])
+def handle_poster_command(message):
+    user_id = message.from_user.id
+    if database.is_banned(user_id):
+        return
+
+    if message.chat.type == "private" and user_id != OWNER_ID:
+        pm_enabled = database.get_global_pm_search()
+        if not pm_enabled:
+            access_denied_text = (
+                "🔒 <b>ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ</b>\n\n"
+                "<b>ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴀ ᴀᴜᴛʜᴏʀɪsᴇᴅ ᴜsᴇʀ.\n\n"
+                "ᴘʟᴇᴀsᴇ ᴜsᴇ ᴛʜɪs ʙᴏᴛ ɪɴ ᴏᴜʀ ᴘᴏsᴛᴇʀ ɢʀᴏᴜᴘ.</b>"
+            )
+            markup = telebot.types.InlineKeyboardMarkup()
+            group_btn = telebot.types.InlineKeyboardButton(text="• ᴊᴏɪɴ ᴘᴏsᴛᴇʀ ɢʀᴏᴜᴘ •", url=POSTER_GROUP_URL)
+            markup.add(group_btn)
+            bot.reply_to(message, access_denied_text, parse_mode="HTML", reply_markup=markup)
+            return
+
+    query = message.text.replace("/poster", "").strip()
+    if not query:
+        bot.reply_to(
+            message, 
+            "<b>USAGE:</b> <code>/poster anime name</code>  ❞", 
+            parse_mode="HTML"
+        )
+        return
+        
+    search_poster(message)
+
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
+@bot.message_handler(commands=['jhs'])
 def movie_poster_handler(message):
     query = message.text.replace("/jhs", "").replace("/posters", "").strip()
 
@@ -2866,6 +2914,13 @@ STYLES_LIST = [
     {"num": 14, "name": "Arched Pastel Frame", "desc": "1280x720 • Soft arched panel layout", "cmd": "modm"}
 ]
 
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
 @bot.message_handler(commands=['styles'])
 def handle_styles_carousel(message):
     user_id = message.from_user.id
@@ -2876,6 +2931,13 @@ def handle_styles_carousel(message):
         return
 
     send_style_page(message.chat.id, index=0)
+
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
 
 def send_style_page(chat_id, index=0, message_id=None):
     total = len(STYLES_LIST)
@@ -2916,6 +2978,12 @@ def send_style_page(chat_id, index=0, message_id=None):
     else:
         bot.send_photo(chat_id, photo=test_img_url, caption=caption, parse_mode="HTML", reply_markup=markup)
 
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
