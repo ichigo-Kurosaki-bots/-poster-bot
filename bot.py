@@ -148,6 +148,7 @@ import re
 import time
 import html
 import telebot
+import random
 import requests
 import database 
 import threading
@@ -1091,6 +1092,27 @@ def broadcast_unpin_handler(message):
 # Support : @Coders_Grp 
 # ------------------------ #
 
+@bot.message_handler(commands=['search', 'find'])
+def handle_search_command(message):
+    user_id = message.from_user.id
+    if database.is_banned(user_id):
+        return
+
+    query = message.text.replace("/search", "").replace("/find", "").strip()
+    if not query:
+        bot.reply_to(message, "<b>Usage:</b> <code>/search [title]</code>", parse_mode="HTML")
+        return
+
+    # Triggers TMDb search and returns an inline choice list
+    imdb_command(message)  # Reuses existing menu search flow
+
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
 def get_tmdb_logo_url(item_id, media_type):
     endpoint = "movie" if media_type == "movie" else "tv"
     url = f"https://api.themoviedb.org/3/{endpoint}/{item_id}/images?api_key={TMDB_API_KEY}"
@@ -1644,6 +1666,38 @@ def handle_poster_command(message):
         return
         
     search_poster(message)
+
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
+@bot.message_handler(commands=['random'])
+def handle_random_poster(message):
+    user_id = message.from_user.id
+    if database.is_banned(user_id):
+        return
+
+    status_msg = bot.reply_to(message, "🎲 <b>Fetching a random title for you...</b>", parse_mode="HTML")
+    
+    # Random page from top rated TMDb movies/shows
+    page = random.randint(1, 10)
+    url = f"https://api.themoviedb.org/3/trending/all/day?api_key={TMDB_API_KEY}&page={page}"
+    
+    try:
+        res = session.get(url, timeout=5).json()
+        results = res.get("results", [])
+        if results:
+            selected = random.choice(results)
+            title = selected.get("title") or selected.get("name")
+            bot.delete_message(message.chat.id, status_msg.message_id)
+            send_style_poster_response(message, "mod", title, "MODERN AERO UNITY -->")
+        else:
+            bot.edit_message_text("❌ Could not fetch a random title.", message.chat.id, status_msg.message_id)
+    except Exception as e:
+        bot.edit_message_text(f"⚠️ Error: {e}", message.chat.id, status_msg.message_id)
 
 # ------------------------ #
 # Don't Remove My Credits
