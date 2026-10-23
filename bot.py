@@ -2849,6 +2849,74 @@ def handle_modm(message):
 # Support : @Coders_Grp 
 # ------------------------ #
 
+STYLES_LIST = [
+    {"num": 1, "name": "Fanart PNG Style", "desc": "1920x1080 • Fanart.tv PNG (Poster if none)", "cmd": "ani"},
+    {"num": 2, "name": "Curved Graphic Accent", "desc": "1920x1080 • Fanart.tv PNG with modern curves", "cmd": "light"},
+    {"num": 3, "name": "AniList Classic", "desc": "1920x1080 • AniList Poster Layout", "cmd": "ani"},
+    {"num": 4, "name": "Geometric Red Accent", "desc": "1920x1080 • Modern geometric elements", "cmd": "mod"},
+    {"num": 5, "name": "Peach Circle Frame", "desc": "1920x1080 • Soft circular artwork frame", "cmd": "dark"},
+    {"num": 6, "name": "AniList Modern Card", "desc": "1920x1080 • Clean AniList poster card", "cmd": "anim"},
+    {"num": 7, "name": "Minimalist White Border", "desc": "1920x1080 • Clean boxed poster presentation", "cmd": "lightm"},
+    {"num": 8, "name": "Brand Lockup & Info Row", "desc": "1920x1080 • Full-width AniList banner with info bar", "cmd": "crun"},
+    {"num": 9, "name": "Streaming Home Look", "desc": "1920x1080 • Netflix UI layout with Match %", "cmd": "net"},
+    {"num": 10, "name": "White + Pink Half-Circle", "desc": "1920x1080 • Large arched artwork frame", "cmd": "darkm"},
+    {"num": 11, "name": "Light Red Block", "desc": "1280x720 • Clean red accent block layout", "cmd": "light"},
+    {"num": 12, "name": "Dark Violet Glow", "desc": "1280x720 • Dark mode glow background", "cmd": "dark"},
+    {"num": 13, "name": "Orange Slash & Rating", "desc": "1280x720 • Crunchyroll orange slash layout", "cmd": "netcr"},
+    {"num": 14, "name": "Arched Pastel Frame", "desc": "1280x720 • Soft arched panel layout", "cmd": "modm"}
+]
+
+@bot.message_handler(commands=['styles'])
+def handle_styles_carousel(message):
+    user_id = message.from_user.id
+    if database.is_banned(user_id):
+        return
+    if not is_user_member(user_id):
+        send_fsub_prompt(message.chat.id)
+        return
+
+    send_style_page(message.chat.id, index=0)
+
+def send_style_page(chat_id, index=0, message_id=None):
+    total = len(STYLES_LIST)
+    idx = index % total
+    style = STYLES_LIST[idx]
+
+    caption = (
+        f"🎨 <b>STYLE {style['num']} / {total}</b>\n"
+        f"<b>{html.escape(style['desc'])}</b>\n\n"
+        f"<code>OPTIONS ➔ POSTER CHANGE (◀▶), CUSTOM BUTTON TEXT, CHANNEL BRANDING</code>"
+    )
+
+    markup = InlineKeyboardMarkup()
+    prev_idx = (idx - 1) % total
+    next_idx = (idx + 1) % total
+
+    markup.row(
+        InlineKeyboardButton(text="• BACK •", callback_data=f"style_nav_{prev_idx}"),
+        InlineKeyboardButton(text=f"{style['num']}/{total}", callback_data="noop"),
+        InlineKeyboardButton(text="• NEXT •", callback_data=f"style_nav_{next_idx}")
+    )
+    markup.row(
+        InlineKeyboardButton(text="✅ USE THIS STYLE", callback_data=f"style_select_{idx}")
+    )
+
+    test_img_url = START_IMAGE_URL
+
+    if message_id:
+        try:
+            bot.edit_message_media(
+                chat_id=chat_id,
+                message_id=message_id,
+                media=telebot.types.InputMediaPhoto(test_img_url, caption=caption, parse_mode="HTML"),
+                reply_markup=markup
+            )
+        except Exception:
+            pass
+    else:
+        bot.send_photo(chat_id, photo=test_img_url, caption=caption, parse_mode="HTML", reply_markup=markup)
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     try:
