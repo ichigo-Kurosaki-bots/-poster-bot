@@ -152,6 +152,7 @@ import random
 import requests
 import database 
 import threading
+import shutil
 
 # ------------------------ #
 # Don't Remove My Credits
@@ -814,6 +815,8 @@ def bot_stats(message):
 
     users = database.get_all_users()
     total_users = len(users)
+    cached_files = len(os.listdir(CACHE_DIR)) if os.path.exists(CACHE_DIR) else 0
+    pm_status = "Enabled" if database.get_global_pm_search() else "Disabled"
 
     user_list_str = ""
     for idx, (uid, fname) in enumerate(users[:25], 1):
@@ -824,9 +827,12 @@ def bot_stats(message):
         user_list_str += f"\n<i>...and {total_users - 25} more users.</i>"
 
     stats_msg = (
-        f"📊 <b>𝖡𝗈𝗍 𝖲𝗍𝖺𝗍𝗂𝗌𝗍𝗂𝖼𝗌:</b>\n\n"
-        f"<b>ᴛᴏᴛᴀʟ ᴜsᴇʀs:</b> <code>{total_users}</code>\n\n"
-        f"<b>ᴜsᴇʀs ʟɪsᴛs:</b>\n{user_list_str if user_list_str else 'no users yet.'}"
+        "📊 <b><u>Aero Poster Bot Statistics</u></b>\n\n"
+        f"• 👤 <b>Total Registered Users:</b> <code>{total_users}</code>\n"
+        f"• 🖼️ <b>Cached Posters in Server:</b> <code>{cached_files}</code>\n"
+        f"• ⚙️ <b>PM Search Status:</b> <code>{pm_status}</code>\n"
+        "⚡ <b>Server Status:</b> <code>100% Operational</code>\n\n"
+        f"<b>👥 Users List:</b>\n{user_list_str if user_list_str else 'no users yet.'}"
     )
     bot.reply_to(message, stats_msg, parse_mode="HTML")
 
@@ -1155,6 +1161,72 @@ def handle_settings(message):
     )
     
     bot.send_message(message.chat.id, settings_text, parse_mode="HTML", reply_markup=markup)
+
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
+@bot.message_handler(commands=['clearcache'])
+def handle_clear_cache(message):
+    if message.from_user.id != OWNER_ID:
+        return
+
+    try:
+        if os.path.exists(CACHE_DIR):
+            file_count = len(os.listdir(CACHE_DIR))
+            shutil.rmtree(CACHE_DIR)
+            os.makedirs(CACHE_DIR, exist_ok=True)
+            bot.reply_to(message, f"🧹 <b>Successfully cleared {file_count} cached poster files!</b>", parse_mode="HTML")
+        else:
+            bot.reply_to(message, "📂 Cache folder is already empty.", parse_mode="HTML")
+    except Exception as e:
+        bot.reply_to(message, f"⚠️ Failed to clear cache: <code>{e}</code>", parse_mode="HTML")
+
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
+@bot.message_handler(commands=['trending'])
+def handle_trending(message):
+    user_id = message.from_user.id
+    if database.is_banned(user_id):
+        return
+
+    status_msg = bot.reply_to(message, "🔥 <b>Fetching today's trending titles...</b>", parse_mode="HTML")
+    
+    url = f"https://api.themoviedb.org/3/trending/all/day?api_key={TMDB_API_KEY}"
+    try:
+        res = session.get(url, timeout=5).json()
+        results = res.get("results", [])[:5]
+
+        if not results:
+            bot.edit_message_text("❌ No trending titles found.", message.chat.id, status_msg.message_id)
+            return
+
+        markup = InlineKeyboardMarkup()
+        for idx, item in enumerate(results):
+            title = item.get("title") or item.get("name")
+            media_type = item.get("media_type", "movie").upper()
+            markup.add(InlineKeyboardButton(text=f"🔥 {title} [{media_type}]", callback_data=f"tr_select_{idx}"))
+
+        # Save to cache for callbacks
+        SEARCH_CACHE[f"tr_{message.message_id}"] = results
+
+        bot.delete_message(message.chat.id, status_msg.message_id)
+        bot.send_message(
+            message.chat.id, 
+            "<b>🔥 Today's Top Trending Titles:</b>\n<i>Select any title below to generate a poster:</i>", 
+            parse_mode="HTML", 
+            reply_markup=markup
+        )
+    except Exception as e:
+        bot.edit_message_text(f"⚠️ Error: {e}", message.chat.id, status_msg.message_id)
 
 # ------------------------ #
 # Don't Remove My Credits
