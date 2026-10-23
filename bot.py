@@ -3193,6 +3193,27 @@ def send_style_page(chat_id, index=0, message_id=None):
 # Support : @Coders_Grp 
 # ------------------------ #
 
+def auto_cache_cleaner():
+    while True:
+        try:
+            if os.path.exists(CACHE_DIR):
+                now = time.time()
+                for f in os.listdir(CACHE_DIR):
+                    f_path = os.path.join(CACHE_DIR, f)
+                    if os.path.isfile(f_path) and (now - os.path.getmtime(f_path) > 86400):
+                        os.remove(f_path)
+        except Exception as e:
+            print(f"Auto cleanup error: {e}")
+        time.sleep(21600)  # Check every 6 hours
+threading.Thread(target=auto_cache_cleaner, daemon=True).start()
+
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     try:
