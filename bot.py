@@ -1455,6 +1455,45 @@ def build_poster_page(search_id, index=0):
 # Support : @Coders_Grp 
 # ------------------------ #
 
+@bot.inline_handler(func=lambda query: len(query.query.strip()) > 0)
+def handle_inline_query(query):
+    q_text = query.query.strip()
+    search_url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={requests.utils.quote(q_text)}&include_adult=true"
+
+    try:
+        res = session.get(search_url, timeout=4).json()
+        results = [r for r in res.get("results", []) if r.get("media_type") in ["tv", "movie"]][:5]
+
+        inline_results = []
+        for idx, item in enumerate(results):
+            title = item.get("title") or item.get("name")
+            poster_path = item.get("poster_path") or item.get("backdrop_path")
+            if not poster_path:
+                continue
+
+            thumb_url = f"https://image.tmdb.org/t/p/w185{poster_path}"
+            full_img = f"https://image.tmdb.org/t/p/original{poster_path}"
+
+            article = telebot.types.InlineQueryResultPhoto(
+                id=str(idx),
+                photo_url=full_img,
+                thumbnail_url=thumb_url,
+                caption=f"<b>● Title:</b> {html.escape(title)}\n<b>● Powered By:</b> @Aero_Unity",
+                parse_mode="HTML"
+            )
+            inline_results.append(article)
+
+        bot.answer_inline_query(query.id, inline_results)
+    except Exception:
+        pass
+
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
 @bot.message_handler(func=lambda message: not message.text.strip().startswith("/"))
 def search_poster(message):
     user_id = message.from_user.id
