@@ -1828,6 +1828,38 @@ def handle_random_poster(message):
 # Support : @Coders_Grp 
 # ------------------------ #
 
+@bot.message_handler(commands=['report'])
+def handle_report_command(message):
+    user_id = message.from_user.id
+    if database.is_banned(user_id):
+        return
+
+    report_text = message.text.replace("/report", "").strip()
+    if not report_text:
+        bot.reply_to(message, "<b>Usage:</b> <code>/report [your message or issue]</code>", parse_mode="HTML")
+        return
+
+    # Send report to Owner
+    owner_notification = (
+        f"📩 <b>New User Report</b>\n\n"
+        f"• <b>From User:</b> {html.escape(message.from_user.first_name)} (<code>{user_id}</code>)\n"
+        f"• <b>Chat ID:</b> <code>{message.chat.id}</code>\n"
+        f"• <b>Report:</b> <i>{html.escape(report_text)}</i>"
+    )
+
+    try:
+        bot.send_message(OWNER_ID, owner_notification, parse_mode="HTML")
+        bot.reply_to(message, "✅ <b>Your report has been sent to the developers! Thank you.</b>", parse_mode="HTML")
+    except Exception:
+        bot.reply_to(message, "⚠️ <b>Could not deliver report. Please try again later.</b>", parse_mode="HTML")
+
+# ------------------------ #
+# Don't Remove My Credits
+# Owner: @Mr_Mohammed_29
+# Updates: @Aero_Unity 
+# Support : @Coders_Grp 
+# ------------------------ #
+
 @bot.message_handler(commands=['jhs'])
 def movie_poster_handler(message):
     query = message.text.replace("/jhs", "").replace("/posters", "").strip()
